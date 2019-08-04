@@ -1,0 +1,5 @@
+rectpack
+pygame==2.*
+moderngl
+numpy
+pyrr
