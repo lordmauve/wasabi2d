@@ -246,6 +246,8 @@ while True:
     pygame.display.flip()
 ```
 
+## Controlling the ship
+
 Which just leaves us with some logic for moving the ship around. We'll do that
 by constructing (separate) rotation and translate matrices. We'll initialize
 both as an identity:
