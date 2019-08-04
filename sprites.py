@@ -24,7 +24,6 @@ class Atlas:
         self.next_id = 0
         self.packer = rectpack.newPacker()
         self.packer.add_bin(512, 512, count=10)
-        self.texs = [np.zeros((512, 512, 4))]
         self.sprites = {}
 
         self.tex_for_name = {}
@@ -209,10 +208,10 @@ while True:
 
     ship_pos += ship_v * dt
     if vector3.length(ship_v):
-        n = vector3.normalize(ship_v)
-        r = vector3.cross(n, Z)
-        rot[0] = n
-        rot[1] = r
+        rx = vector3.normalize(ship_v)
+        ry = vector3.cross(rx, Z)
+        rot[0] = rx
+        rot[1] = ry
 
     xlate[2][:2] = ship_pos[:2]
     vbo.write(vs @ (rot @ xlate))
