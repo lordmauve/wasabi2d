@@ -65,17 +65,17 @@ class Atlas:
 
             if rotated:
                 texcoords = np.array([
-                    r, t,
-                    r, b,
-                    l, b,
-                    l, t,
+                    (r, t),
+                    (r, b),
+                    (l, b),
+                    (l, t),
                 ], dtype='f4')
             else:
                 texcoords = np.array([
-                    l, t,
-                    r, t,
-                    r, b,
-                    l, b
+                    (l, t),
+                    (r, t),
+                    (r, b),
+                    (l, b),
                 ], dtype='f4')
             verts = np.array([
                 (0, orig_h, 1),
@@ -118,7 +118,7 @@ class Atlas:
         self.packer.add_rect(w + pad, h + pad, (img, spritename))
 
 
-atlas = Atlas(ctx, ['ship.png'])
+atlas = Atlas(ctx, ['ship.png', 'tiny_red_bullet.png'])
 
 
 tex_quads_prog = ctx.program(
@@ -157,19 +157,29 @@ class SpriteArray:
     def __init__(self, ctx, tex, sprites):
         self.tex = tex
         self.allocated = len(sprites)
+
+        # Allocate extra slots in the arrays for faster additions
+        extra = max(32 - self.allocated, self.allocated // 2)
+
         for i, s in enumerate(sprites):
+            s.array = self
+            s.offset = 4 * i
             if not s.verts:
-                s.array = self
-                s.offset = 4 * i
                 s._update()
 
         self.indexes = np.vstack([
             self.QUAD + 6 * i
-            for i in range(self.allocated)
+            for i in range(self.allocated + extra)
         ])
         self.sprites = list(sprites)
-        self.uvs = np.vstack([s.uvs for s in self.sprites])
-        self.verts = np.vstack([s.verts for s in self.sprites])
+        self.uvs = np.vstack(
+            [s.uvs for s in self.sprites]
+            + [np.zeros((4 * extra, 2), dtype='f4')]
+        )
+        self.verts = np.vstack(
+            [s.verts for s in self.sprites]
+            + [np.zeros((4 * extra, 3), dtype='f4')]
+        )
 
         self.vbo = ctx.buffer(self.verts, dynamic=True)
         self.uvbo = ctx.buffer(self.uvs)
@@ -183,12 +193,48 @@ class SpriteArray:
             self.ibuf
         )
 
+    def add(self, s):
+        s.array = self
+        if not s.verts:
+            s._update()
+        size = len(self.verts) // 4
+        if self.allocated < size:
+            i = self.allocated
+            self.allocated += 1
+            self.verts[i * 4:i * 4 + 4] = s.verts
+            self.uvs[i * 4:i * 4 + 4] = s.uvs
+            self.sprites.append(s)
+            s.offset = 4 * i
+            print(f"allocated: {self.allocated}, size: {size}")
+        else:
+            self.allocated += 1
+            s.offset = 4 * len(self.sprites)
+            self.sprites.append(s)
+
+            extra = max(32 - self.allocated, self.allocated // 2)
+            print("Growing to", self.allocated + extra)
+            self.indexes = np.vstack([
+                self.QUAD + 6 * i
+                for i in range(self.allocated + extra)
+            ])
+            self.uvs = np.vstack(
+                [s.uvs for s in self.sprites]
+                + [np.zeros((4 * extra, 2), dtype='f4')]
+            )
+            self.verts = np.vstack(
+                [s.verts for s in self.sprites]
+                + [np.zeros((4 * extra, 3), dtype='f4')]
+            )
+            self.vbo.write(self.verts)
+            self.uvbo.write(self.uvs)
+            self.ibuf.write(self.indexes)
+
     def render(self):
         tex_quads_prog['tex'].value = 0
         self.tex.use(0)
         dirty = False
         for i, s in enumerate(self.sprites):
-            if not s.verts:
+            if s.verts is None:
                 s._update()
                 self.verts[i * 4:i * 4 + 4] = s.verts
                 dirty = True
@@ -210,10 +256,10 @@ class Layer:
         for a in self.arrays.values():
             a.render()
 
-    def add_sprite(self, img, pos=(0, 0), angle=0):
-        tex, uvs, vs = atlas['ship.png']
+    def add_sprite(self, image, pos=(0, 0), angle=0):
+        tex, uvs, vs = atlas[image]
         spr = Sprite(
-            image='ship.png',
+            image=image,
             _angle=angle,
             uvs=uvs,
             orig_verts=vs,
@@ -314,12 +360,25 @@ ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
 ship_pos = Vector3()
 ship_v = Vector3()
 
+
+bullets = []
+
 while True:
     dt = clock.tick(60) / 1000.0
     t += dt
+
+    fire = False
     for ev in pygame.event.get():
         if ev.type == pygame.QUIT:
             sys.exit(0)
+        if ev.type == pygame.KEYDOWN:
+            if ev.key == pygame.K_SPACE:
+                fire = True
+
+    if fire:
+        bullet = layers[0].add_sprite('tiny_red_bullet.png', pos=ship.pos)
+        bullet.vel = vector3.normalize(ship_v) * 100
+        bullets.append(bullet)
 
     keys = pygame.key.get_pressed()
 
