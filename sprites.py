@@ -197,6 +197,12 @@ class SpriteArray:
         )
 
     def add(self, s):
+        """Add a sprite to the array.
+
+        If there's unallocated space in the VBO we append the sprite.
+
+        Otherwise we allocate new VBOs.
+        """
         s.array = self
         if not s.verts:
             s._update()
@@ -216,6 +222,30 @@ class SpriteArray:
             self.sprites.append(s)
             self._allocate()
 
+    def delete(self, s):
+        """Remove a sprite from the array.
+
+        To do this without resizing the buffer we move a sprite from the
+        end of the array into the gap. This means that draw order changes.
+
+        """
+        assert s.array is self
+        i = s.offset
+        j = self.allocated - 1
+        self.allocated -= 1
+        if i == j:
+            self.sprites.pop()
+        else:
+            moved = self.sprites[i] = self.sprites[j]
+            self.sprites.pop()
+            moved.offset = i
+            self.verts[i * 4:i * 4 + 4] = self.verts[j * 4:j * 4 + 4]
+            self.uvs[i * 4:i * 4 + 4] = self.uvs[j * 4:j * 4 + 4]
+            # TODO: write only once per frame no matter how many adds/deletes
+            self.vbo.write(self.verts)
+            self.uvbo.write(self.uvs)
+        s.array = None
+
     def render(self):
         tex_quads_prog['tex'].value = 0
         self.tex.use(0)
@@ -229,7 +259,7 @@ class SpriteArray:
             f"Dtype of verts is {self.verts.dtype}"
         if dirty:
             self.vbo.write(self.verts)
-        self.vao.render()
+        self.vao.render(vertices=self.allocated * 6)
 
 
 class Layer:
@@ -273,24 +303,40 @@ class Sprite:
     orig_verts: np.ndarray
     verts: Optional[np.ndarray] = None
 
-    rot: np.ndarray = field(
+    _scale: np.ndarray = field(
         default_factory=lambda: np.identity(3, dtype='f4')
     )
-    xlate: np.ndarray = field(
+    _rot: np.ndarray = field(
+        default_factory=lambda: np.identity(3, dtype='f4')
+    )
+    _xlate: np.ndarray = field(
         default_factory=lambda: np.identity(3, dtype='f4')
     )
 
     array: Any = None
     offset: int = 0
 
+    def delete(self):
+        self.array.delete(self)
+
     @property
     def pos(self):
-        return self.xlate[2][:2]
+        return self._xlate[2][:2]
 
     @pos.setter
     def pos(self, v):
         assert len(v) == 2
-        self.xlate[2][:2] = v
+        self._xlate[2][:2] = v
+        self.verts = None
+
+    @property
+    def scale(self):
+        p = self._scale[0, 0] * self._scale[1, 1]
+        return math.copysign(math.sqrt(abs(p)), p)
+
+    @scale.setter
+    def scale(self, v):
+        self._scale[0, 0] = self._scale[1, 1] = v
         self.verts = None
 
     @property
@@ -300,12 +346,12 @@ class Sprite:
     @angle.setter
     def angle(self, theta):
         assert isinstance(theta, (int, float))
-        self.rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
+        self._rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
         self._angle = theta
         self.verts = None
 
     def _update(self):
-        xform = self.rot @ self.xlate
+        xform = self._scale @ self._rot @ self._xlate
         self.verts = self.orig_verts @ xform
 
 
@@ -392,8 +438,12 @@ while True:
     if not (-1e-6 < ship_vx < 1e-6 and -1e-6 < ship_vy < -1e-6):
         ship.angle = math.atan2(ship_vy, ship_vx)
 
-    for b in bullets:
+    for b in bullets.copy():
         b.angle += 3 * dt
+        b.scale *= 0.5 ** dt
+        if b.scale < 0.1:
+            b.delete()
+            bullets.remove(b)
 
     render(t, dt)
     pygame.display.flip()
