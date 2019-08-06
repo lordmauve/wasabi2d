@@ -1,20 +1,29 @@
 import sys
+import math
 import pygame
 import moderngl
 import rectpack
 import numpy as np
-from pyrr import Matrix44, Vector3, vector3
+from typing import Any, Optional
+from pyrr import Matrix44, Vector3, vector3, matrix33
+from dataclasses import dataclass
 
 
 pygame.init()
 pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 4)
-pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
+pygame.display.gl_set_attribute(
+    pygame.GL_CONTEXT_PROFILE_MASK,
+    pygame.GL_CONTEXT_PROFILE_CORE
+)
 screen = pygame.display.set_mode(
     (1600, 1200),
     flags=pygame.OPENGL | pygame.DOUBLEBUF,
     depth=24
 )
 ctx = moderngl.create_context()
+
+
+Z = vector3.create_unit_length_z()
 
 
 class Atlas:
@@ -109,12 +118,10 @@ class Atlas:
         self.packer.add_rect(w + pad, h + pad, (img, spritename))
 
 
-
 atlas = Atlas(ctx, ['ship.png'])
 
 
-
-prog = ctx.program(
+tex_quads_prog = ctx.program(
     vertex_shader='''
         #version 330
 
@@ -143,60 +150,182 @@ prog = ctx.program(
 )
 
 
-indexes = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
-tex, uvs, vs = atlas['ship.png']
-vbo = ctx.buffer(vs, dynamic=True)
-uvbo = ctx.buffer(uvs.tobytes())
-ibuf = ctx.buffer(indexes)
-vao = ctx.vertex_array(
-    prog,
-    [
-        (vbo, '3f', 'in_vert'),
-        (uvbo, '2f', 'in_uv'),
-    ],
-    ibuf
-)
+class SpriteArray:
+    """Vertex array object to hold textured quads."""
+    QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
+
+    def __init__(self, ctx, tex, sprites):
+        self.tex = tex
+        self.allocated = len(sprites)
+        for i, s in enumerate(sprites):
+            if not s.verts:
+                s.array = self
+                s.offset = 4 * i
+                s._update()
+
+        self.indexes = np.vstack([
+            self.QUAD + 6 * i
+            for i in range(self.allocated)
+        ])
+        self.sprites = list(sprites)
+        self.uvs = np.vstack([s.uvs for s in self.sprites])
+        self.verts = np.vstack([s.verts for s in self.sprites])
+
+        self.vbo = ctx.buffer(self.verts, dynamic=True)
+        self.uvbo = ctx.buffer(self.uvs)
+        self.ibuf = ctx.buffer(self.indexes)
+        self.vao = ctx.vertex_array(
+            tex_quads_prog,
+            [
+                (self.vbo, '3f', 'in_vert'),
+                (self.uvbo, '2f', 'in_uv'),
+            ],
+            self.ibuf
+        )
+
+    def render(self):
+        tex_quads_prog['tex'].value = 0
+        self.tex.use(0)
+        dirty = False
+        for i, s in enumerate(self.sprites):
+            if not s.verts:
+                s._update()
+                self.verts[i * 4:i * 4 + 4] = s.verts
+                dirty = True
+        assert self.verts.dtype == 'f4', \
+            f"Dtype of verts is {self.verts.dtype}"
+        if dirty:
+            self.vbo.write(self.verts)
+        self.vao.render()
+
+
+class Layer:
+    def __init__(self, ctx, group):
+        self.ctx = ctx
+        self.group = group
+        self.arrays = {}
+        self.objects = []
+
+    def render(self):
+        for a in self.arrays.values():
+            a.render()
+
+    def add_sprite(self, img, pos=(0, 0), angle=0):
+        tex, uvs, vs = atlas['ship.png']
+        spr = Sprite(
+            image='ship.png',
+            _angle=angle,
+            uvs=uvs,
+            orig_verts=vs,
+        )
+        spr.pos = pos
+        spr.angle = angle
+        spr.uvs = uvs
+        k = ('sprite', tex.glo)
+        array = self.arrays.get(k)
+        if not array:
+            array = SpriteArray(ctx, tex, [spr])
+            self.arrays[k] = array
+        else:
+            array.add(spr)
+        return spr
+
+
+@dataclass
+class Sprite:
+    image: str
+    _angle: float
+
+    uvs: np.ndarray
+    orig_verts: np.ndarray
+    verts: Optional[np.ndarray] = None
+
+    rot: np.ndarray = np.identity(3, dtype='f4')
+    xlate: np.ndarray = np.identity(3, dtype='f4')
+
+    array: Any = None
+    offset: int = 0
+
+    @property
+    def pos(self):
+        return self.xlate[2][:2]
+
+    @pos.setter
+    def pos(self, v):
+        assert len(v) == 2
+        self.xlate[2][:2] = v
+        self.verts = None
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, theta):
+        assert isinstance(theta, (int, float))
+        self.rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
+        self._angle = theta
+        self.verts = None
+
+    def _update(self):
+        xform = self.rot @ self.xlate
+        self.verts = self.orig_verts @ xform
+
+
+class LayerGroup(dict):
+    def __new__(cls, ctx):
+        return dict.__new__(cls)
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def __missing__(self, k):
+        if not isinstance(k, (float, int)):
+            raise TypeError("Layer indices must be numbers")
+        layer = self[k] = Layer(self.ctx, self)
+        return layer
+
+    def render(self):
+        for k in sorted(self):
+            self[k].render()
+
+
+layers = LayerGroup(ctx)
+ship = layers[0].add_sprite('ship.png')
 
 
 def render(t, dt):
     ctx.clear(1.0, 1.0, 1.0)
-    tex.use(0)
-    vao.render()
+    layers.render()
 
 
 clock = pygame.time.Clock()
 
 t = 0
 
-xlate = np.identity(3, dtype='f4')
-rot = ident_rot = np.identity(3, dtype='f4')
 
 proj = Matrix44.orthogonal_projection(
     left=0, right=800, top=600, bottom=0, near=-1000, far=1000,
 ).astype('f4')
-prog['proj'].write(proj.tobytes())
-prog['tex'].value = 0
+tex_quads_prog['proj'].write(proj.tobytes())
 ctx.enable(moderngl.BLEND)
 ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
 
 ship_pos = Vector3()
 ship_v = Vector3()
 
-Z = vector3.create_unit_length_z()
-
 while True:
     dt = clock.tick(60) / 1000.0
     t += dt
     for ev in pygame.event.get():
-        #print(ev)
         if ev.type == pygame.QUIT:
             sys.exit(0)
 
     keys = pygame.key.get_pressed()
 
-    ship_v *= 0.5 ** dt
+    ship_v *= 0.3 ** dt
 
-    accel = 100 * dt
+    accel = 300 * dt
     if keys[pygame.K_RIGHT]:
         ship_v[0] += accel
     elif keys[pygame.K_LEFT]:
@@ -206,14 +335,12 @@ while True:
     elif keys[pygame.K_DOWN]:
         ship_v[1] += accel
 
+    ship_vx, ship_vy, _ = ship_v
     ship_pos += ship_v * dt
-    if vector3.length(ship_v):
-        rx = vector3.normalize(ship_v)
-        ry = vector3.cross(rx, Z)
-        rot[0] = rx
-        rot[1] = ry
 
-    xlate[2][:2] = ship_pos[:2]
-    vbo.write(vs @ (rot @ xlate))
+    ship.pos = ship_pos[:2]
+    if not (-1e-6 < ship_vx < 1e-6 and -1e-6 < ship_vy < -1e-6):
+        ship.angle = math.atan2(ship_vy, ship_vx)
+
     render(t, dt)
     pygame.display.flip()
