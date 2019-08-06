@@ -6,7 +6,7 @@ import rectpack
 import numpy as np
 from typing import Any, Optional
 from pyrr import Matrix44, Vector3, vector3, matrix33
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 pygame.init()
@@ -156,22 +156,25 @@ class SpriteArray:
 
     def __init__(self, ctx, tex, sprites):
         self.tex = tex
-        self.allocated = len(sprites)
+        self.sprites = list(sprites)
+        self._allocate()
+
+    def _allocate(self):
+        self.allocated = len(self.sprites)
 
         # Allocate extra slots in the arrays for faster additions
         extra = max(32 - self.allocated, self.allocated // 2)
 
-        for i, s in enumerate(sprites):
+        for i, s in enumerate(self.sprites):
             s.array = self
-            s.offset = 4 * i
-            if not s.verts:
+            s.offset = i
+            if s.verts is None:
                 s._update()
 
         self.indexes = np.vstack([
-            self.QUAD + 6 * i
+            self.QUAD + 4 * i
             for i in range(self.allocated + extra)
         ])
-        self.sprites = list(sprites)
         self.uvs = np.vstack(
             [s.uvs for s in self.sprites]
             + [np.zeros((4 * extra, 2), dtype='f4')]
@@ -204,30 +207,14 @@ class SpriteArray:
             self.verts[i * 4:i * 4 + 4] = s.verts
             self.uvs[i * 4:i * 4 + 4] = s.uvs
             self.sprites.append(s)
-            s.offset = 4 * i
-            print(f"allocated: {self.allocated}, size: {size}")
-        else:
-            self.allocated += 1
-            s.offset = 4 * len(self.sprites)
-            self.sprites.append(s)
+            s.offset = i
 
-            extra = max(32 - self.allocated, self.allocated // 2)
-            print("Growing to", self.allocated + extra)
-            self.indexes = np.vstack([
-                self.QUAD + 6 * i
-                for i in range(self.allocated + extra)
-            ])
-            self.uvs = np.vstack(
-                [s.uvs for s in self.sprites]
-                + [np.zeros((4 * extra, 2), dtype='f4')]
-            )
-            self.verts = np.vstack(
-                [s.verts for s in self.sprites]
-                + [np.zeros((4 * extra, 3), dtype='f4')]
-            )
+            #TODO: We can send less data with write_chunks()
             self.vbo.write(self.verts)
             self.uvbo.write(self.uvs)
-            self.ibuf.write(self.indexes)
+        else:
+            self.sprites.append(s)
+            self._allocate()
 
     def render(self):
         tex_quads_prog['tex'].value = 0
@@ -261,8 +248,8 @@ class Layer:
         spr = Sprite(
             image=image,
             _angle=angle,
-            uvs=uvs,
-            orig_verts=vs,
+            uvs=np.copy(uvs),
+            orig_verts=np.copy(vs),
         )
         spr.pos = pos
         spr.angle = angle
@@ -286,8 +273,12 @@ class Sprite:
     orig_verts: np.ndarray
     verts: Optional[np.ndarray] = None
 
-    rot: np.ndarray = np.identity(3, dtype='f4')
-    xlate: np.ndarray = np.identity(3, dtype='f4')
+    rot: np.ndarray = field(
+        default_factory=lambda: np.identity(3, dtype='f4')
+    )
+    xlate: np.ndarray = field(
+        default_factory=lambda: np.identity(3, dtype='f4')
+    )
 
     array: Any = None
     offset: int = 0
@@ -400,6 +391,9 @@ while True:
     ship.pos = ship_pos[:2]
     if not (-1e-6 < ship_vx < 1e-6 and -1e-6 < ship_vy < -1e-6):
         ship.angle = math.atan2(ship_vy, ship_vx)
+
+    for b in bullets:
+        b.angle += 3 * dt
 
     render(t, dt)
     pygame.display.flip()
