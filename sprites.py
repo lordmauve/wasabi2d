@@ -118,7 +118,7 @@ class Atlas:
         self.packer.add_rect(w + pad, h + pad, (img, spritename))
 
 
-atlas = Atlas(ctx, ['ship.png', 'tiny_red_bullet.png'])
+atlas = Atlas(ctx, ['ship.png', 'tiny_bullet.png'])
 
 
 tex_quads_prog = ctx.program(
@@ -128,12 +128,15 @@ tex_quads_prog = ctx.program(
         uniform mat4 proj;
 
         in vec3 in_vert;
+        in vec4 in_color;
         in vec2 in_uv;
         out vec2 uv;
+        out vec4 color;
 
         void main() {
             gl_Position = proj * vec4(in_vert.xy, 0.0, 1.0);
             uv = in_uv;
+            color = in_color;
         }
     ''',
     fragment_shader='''
@@ -141,10 +144,11 @@ tex_quads_prog = ctx.program(
 
         out vec4 f_color;
         in vec2 uv;
+        in vec4 color;
         uniform sampler2D tex;
 
         void main() {
-            f_color = texture(tex, uv);
+            f_color = color * texture(tex, uv);
         }
     ''',
 )
@@ -181,7 +185,7 @@ class SpriteArray:
         )
         self.verts = np.vstack(
             [s.verts for s in self.sprites]
-            + [np.zeros((4 * extra, 3), dtype='f4')]
+            + [np.zeros((4 * extra, 7), dtype='f4')]
         )
 
         self.vbo = ctx.buffer(self.verts, dynamic=True)
@@ -190,7 +194,7 @@ class SpriteArray:
         self.vao = ctx.vertex_array(
             tex_quads_prog,
             [
-                (self.vbo, '3f', 'in_vert'),
+                (self.vbo, '3f 4f', 'in_vert', 'in_color'),
                 (self.uvbo, '2f', 'in_uv'),
             ],
             self.ibuf
@@ -312,12 +316,24 @@ class Sprite:
     _xlate: np.ndarray = field(
         default_factory=lambda: np.identity(3, dtype='f4')
     )
+    _color: np.ndarray = field(
+        default_factory=lambda: np.ones((4, 4), dtype='f4')
+    )
 
     array: Any = None
     offset: int = 0
 
     def delete(self):
         self.array.delete(self)
+
+    @property
+    def color(self):
+        return tuple(self.color[0])
+
+    @color.setter
+    def color(self, v):
+        self._color[:] = v
+        self.verts = None
 
     @property
     def pos(self):
@@ -352,7 +368,11 @@ class Sprite:
 
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
-        self.verts = self.orig_verts @ xform
+
+        self.verts = np.hstack([
+            self.orig_verts @ xform,
+            self._color
+        ])
 
 
 class LayerGroup(dict):
@@ -413,8 +433,10 @@ while True:
                 fire = True
 
     if fire:
-        bullet = layers[0].add_sprite('tiny_red_bullet.png', pos=ship.pos)
+        bullet = layers[0].add_sprite('tiny_bullet.png', pos=ship.pos)
+        bullet.color = (1, 0, 0, 1)
         bullet.vel = vector3.normalize(ship_v) * 100
+        bullet.power = 1.0
         bullets.append(bullet)
 
     keys = pygame.key.get_pressed()
@@ -439,9 +461,11 @@ while True:
         ship.angle = math.atan2(ship_vy, ship_vx)
 
     for b in bullets.copy():
+        b.power *= 0.5 ** dt
         b.angle += 3 * dt
-        b.scale *= 0.5 ** dt
-        if b.scale < 0.1:
+        b.scale = b.power
+        b.color = (1, 0, 0, b.power ** 0.5)
+        if b.scale < 0.01:
             b.delete()
             bullets.remove(b)
 
