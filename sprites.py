@@ -435,7 +435,7 @@ while True:
     if fire:
         bullet = layers[0].add_sprite('tiny_bullet.png', pos=ship.pos)
         bullet.color = (1, 0, 0, 1)
-        bullet.vel = vector3.normalize(ship_v) * 100
+        bullet.vel = vector3.normalize(ship_v)[:2] * 600
         bullet.power = 1.0
         bullets.append(bullet)
 
@@ -461,7 +461,8 @@ while True:
         ship.angle = math.atan2(ship_vy, ship_vx)
 
     for b in bullets.copy():
-        b.power *= 0.5 ** dt
+        b.pos += b.vel * dt
+        b.power = max(0, b.power - dt)
         b.angle += 3 * dt
         b.scale = b.power
         b.color = (1, 0, 0, b.power ** 0.5)
