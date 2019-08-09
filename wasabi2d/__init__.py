@@ -2,3 +2,10 @@
 
 from .atlas import Atlas
 from .layers import LayerGroup
+from .game import EventMapper
+from .constants import keys, mouse
+
+event = EventMapper()
+del EventMapper
+
+run = event.run

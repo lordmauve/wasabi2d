@@ -1,11 +1,10 @@
-import sys
 import math
 import pygame
 import moderngl
-import numpy as np
 from pyrr import Matrix44, Vector3, vector3, matrix33
 from dataclasses import dataclass, field
 
+from wasabi2d import event, run
 from wasabi2d import LayerGroup
 
 
@@ -28,8 +27,6 @@ layers = LayerGroup(ctx)
 ship = layers[0].add_sprite('ship.png')
 
 
-clock = pygame.time.Clock()
-
 t = 0
 
 
@@ -45,37 +42,35 @@ ship_v = Vector3()
 
 bullets = []
 
-while True:
-    dt = clock.tick(60) / 1000.0
-    t += dt
 
-    fire = False
-    for ev in pygame.event.get():
-        if ev.type == pygame.QUIT:
-            sys.exit(0)
-        if ev.type == pygame.KEYDOWN:
-            if ev.key == pygame.K_SPACE:
-                fire = True
+@event
+def on_mouse_down(pos):
+    print(pos)
 
-    if fire:
+
+@event
+def on_key_down(key):
+    if key == key.SPACE:
         bullet = layers[0].add_sprite('tiny_bullet.png', pos=ship.pos)
         bullet.color = (1, 0, 0, 1)
         bullet.vel = vector3.normalize(ship_v)[:2] * 600
         bullet.power = 1.0
         bullets.append(bullet)
 
-    keys = pygame.key.get_pressed()
 
+@event
+def update(dt, keyboard):
+    global ship_v, ship_pos
     ship_v *= 0.3 ** dt
 
     accel = 300 * dt
-    if keys[pygame.K_RIGHT]:
+    if keyboard.right:
         ship_v[0] += accel
-    elif keys[pygame.K_LEFT]:
+    elif keyboard.left:
         ship_v[0] -= accel
-    if keys[pygame.K_UP]:
+    if keyboard.up:
         ship_v[1] -= accel
-    elif keys[pygame.K_DOWN]:
+    elif keyboard.down:
         ship_v[1] += accel
 
     ship_vx, ship_vy, _ = ship_v
@@ -95,5 +90,10 @@ while True:
             b.delete()
             bullets.remove(b)
 
+
+@event
+def draw(t, dt):
     layers.render(proj, t, dt)
-    pygame.display.flip()
+
+
+run()
