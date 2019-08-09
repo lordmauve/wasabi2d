@@ -4,7 +4,7 @@ import moderngl
 from pyrr import Matrix44, Vector3, vector3, matrix33
 from dataclasses import dataclass, field
 
-from wasabi2d import event, run
+from wasabi2d import event, run, sounds
 from wasabi2d import LayerGroup
 
 
@@ -56,6 +56,7 @@ def on_key_down(key):
         bullet.vel = vector3.normalize(ship_v)[:2] * 600
         bullet.power = 1.0
         bullets.append(bullet)
+        sounds.laser.play()
 
 
 @event
