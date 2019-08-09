@@ -2,6 +2,7 @@ import sys
 import operator
 import time
 import builtins
+import types
 from collections import namedtuple
 
 import pygame
@@ -93,7 +94,12 @@ class EventMapper:
 
         """
         code = handler.__code__
-        param_names = code.co_varnames[:code.co_argcount]
+        if isinstance(handler, types.MethodType):
+            start_idx = 1
+        else:
+            start_idx = 0
+
+        param_names = code.co_varnames[start_idx:code.co_argcount]
 
         def make_getter(mapper, getter):
             if mapper:

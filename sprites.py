@@ -3,6 +3,7 @@ from wasabi2d import event, run, sounds, Scene, Vector2
 
 
 scene = Scene()
+scene.background = (0, 0.02, 0.1)
 
 ship = scene.layers[0].add_sprite(
     'ship.png',

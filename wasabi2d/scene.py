@@ -29,7 +29,7 @@ class Scene:
         )
         ctx = self.ctx = moderngl.create_context()
 
-        layers = self.layers = LayerGroup(ctx)
+        self.layers = LayerGroup(ctx)
 
         ctx.enable(moderngl.BLEND)
         ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
@@ -37,9 +37,15 @@ class Scene:
         self.camera = Camera(width, height)
 
         from . import event
-        @event
-        def draw(t, dt):
-            layers.render(self.camera.proj, t, dt)
+        event(self.draw)
+
+        self.background = (0.0, 0.0, 0.0)
+
+    def draw(self, t, dt):
+        assert len(self.background) == 3, \
+            "Scene.background must be a 3-element tuple."
+        self.ctx.clear(*self.background)
+        self.layers.render(self.camera.proj, t, dt)
 
 
 class Camera:

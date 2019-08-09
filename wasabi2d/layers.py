@@ -68,7 +68,6 @@ class LayerGroup(dict):
         self.ctx = ctx
         self.shadermgr = ShaderManager(self.ctx)
         self.atlas = Atlas(ctx, ['ship.png', 'tiny_bullet.png'])
-        self.background = (0.0, 0.0, 0.0)
 
     def __missing__(self, k):
         if not isinstance(k, (float, int)):
@@ -77,9 +76,6 @@ class LayerGroup(dict):
         return layer
 
     def render(self, proj, t, dt):
-        assert len(self.background) == 3, \
-            "LayerGroup.background must be a 3-element tuple."
-        self.ctx.clear(*self.background)
         self.shadermgr.set_proj(proj)
         for k in sorted(self):
             self[k].render(t, dt)
