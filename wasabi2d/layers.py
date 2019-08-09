@@ -1,0 +1,85 @@
+import numpy as np
+
+from .sprites import SpriteArray, Sprite
+from .atlas import Atlas
+
+
+class ShaderManager:
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.programs = {}
+
+    def get(self, vertex_shader, fragment_shader):
+        """Get a compiled program."""
+        k = vertex_shader, fragment_shader
+        try:
+            return self.programs[k]
+        except KeyError:
+            prog = self.programs[k] = self.ctx.program(
+                vertex_shader=vertex_shader,
+                fragment_shader=fragment_shader,
+            )
+            return prog
+
+    def set_proj(self, proj):
+        """Set the projection matrix."""
+        for prog in self.programs.values():
+            prog['proj'].write(proj.tobytes())
+
+
+class Layer:
+    def __init__(self, ctx, group):
+        self.ctx = ctx
+        self.group = group
+        self.arrays = {}
+        self.objects = []
+
+    def render(self, t, dt):
+        for a in self.arrays.values():
+            a.render()
+
+    def add_sprite(self, image, pos=(0, 0), angle=0):
+        tex, uvs, vs = self.group.atlas[image]
+        spr = Sprite(
+            image=image,
+            _angle=angle,
+            uvs=np.copy(uvs),
+            orig_verts=np.copy(vs),
+        )
+        spr.pos = pos
+        spr.angle = angle
+        spr.uvs = uvs
+        k = ('sprite', tex.glo)
+        array = self.arrays.get(k)
+        if not array:
+            prog = self.group.shadermgr.get(**SpriteArray.PROGRAM)
+            array = SpriteArray(self.ctx, prog, tex, [spr])
+            self.arrays[k] = array
+        else:
+            array.add(spr)
+        return spr
+
+
+class LayerGroup(dict):
+    def __new__(cls, ctx):
+        return dict.__new__(cls)
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.shadermgr = ShaderManager(self.ctx)
+        self.atlas = Atlas(ctx, ['ship.png', 'tiny_bullet.png'])
+        self.background = (0.0, 0.0, 0.0)
+
+    def __missing__(self, k):
+        if not isinstance(k, (float, int)):
+            raise TypeError("Layer indices must be numbers")
+        layer = self[k] = Layer(self.ctx, self)
+        return layer
+
+    def render(self, proj, t, dt):
+        assert len(self.background) == 3, \
+            "LayerGroup.background must be a 3-element tuple."
+        self.ctx.clear(*self.background)
+        self.shadermgr.set_proj(proj)
+        for k in sorted(self):
+            self[k].render(t, dt)

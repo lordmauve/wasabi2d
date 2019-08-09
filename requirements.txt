@@ -1,5 +1,5 @@
 rectpack
 pygame==2.*
-moderngl
+moderngl==5.*
 numpy
 pyrr
