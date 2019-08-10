@@ -1,19 +1,8 @@
-from typing import Union, Tuple
 import numpy as np
-from pygame import Color
 
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
-
-
-def convert_color(c: Union[str, tuple]) -> Tuple[float, float, float, float]:
-    """Convert a color to an RGBA tuple."""
-    if isinstance(c, str):
-        col = Color(c)
-    else:
-        col = Color(*c)
-
-    return np.array(memoryview(col), dtype='u1').astype('f4')
+from .color import convert_color
 
 
 class ShaderManager:
