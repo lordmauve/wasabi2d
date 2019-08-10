@@ -1,7 +1,19 @@
+from typing import Union, Tuple
 import numpy as np
+from pygame import Color
 
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
+
+
+def convert_color(c: Union[str, tuple]) -> Tuple[float, float, float, float]:
+    """Convert a color to an RGBA tuple."""
+    if isinstance(c, str):
+        col = Color(c)
+    else:
+        col = Color(*c)
+
+    return np.array(memoryview(col), dtype='u1').astype('f4')
 
 
 class ShaderManager:
@@ -58,6 +70,14 @@ class Layer:
         else:
             array.add(spr)
         return spr
+
+    def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
+        color = convert_color()
+        return Circle(
+            radius=radius,
+            pos=pos,
+            color=color
+        )
 
 
 class LayerGroup(dict):

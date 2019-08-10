@@ -9,6 +9,8 @@ ship = scene.layers[0].add_sprite(
     'ship.png',
     pos=(scene.width / 2, scene.height / 2)
 )
+scene.layers[0].add_circle(radius=30, pos=(100, 100), color='cyan')
+
 ship.vel = Vector2()
 
 

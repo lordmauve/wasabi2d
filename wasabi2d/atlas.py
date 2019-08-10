@@ -94,4 +94,3 @@ class Atlas:
         pad = self.padding * 2
         w, h = img.get_size()
         self.packer.add_rect(w + pad, h + pad, (img, spritename))
-

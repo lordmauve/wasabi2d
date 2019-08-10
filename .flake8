@@ -1,0 +1,4 @@
+[flake8]
+ignore = E741  # I use variables called 'l' and 'o', deal with it
+         W503  # Line break before binary operator now preferred
+         E402  # Some module-level imports have to be not at the top

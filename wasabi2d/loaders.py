@@ -162,13 +162,18 @@ class ResourceLoader:
         return resource
 
     def __dir__(self):
-        standard_attributes = [key for key in self.__dict__.keys()
-            if not key.startswith("_")]
+        standard_attributes = [
+            key for key in self.__dict__.keys()
+            if not key.startswith("_")
+        ]
         resources = os.listdir(self._root())
         resource_names = [os.path.splitext(r) for r in resources]
-        loadable_names = [name for name, ext in resource_names
-            if name.isidentifier() and ext[1:] in self.EXTNS]
+        loadable_names = [
+            name for name, ext in resource_names
+            if name.isidentifier() and ext[1:] in self.EXTNS
+        ]
         return standard_attributes + loadable_names
+
 
 class ImageLoader(ResourceLoader):
     EXTNS = ['png', 'gif', 'jpg', 'jpeg', 'bmp']

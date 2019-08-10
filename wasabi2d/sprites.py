@@ -2,14 +2,13 @@ from typing import Any, Optional
 from dataclasses import dataclass, field
 
 import numpy as np
-from pyrr import Matrix44, Vector3, vector3, matrix33
+from pyrr import vector3, matrix33
 
 
 Z = vector3.create_unit_length_z()
 
 
-
-textured_quads_program = dict(
+TEXTURED_QUADS_PROGRAM = dict(
     vertex_shader='''
         #version 330
 
@@ -45,7 +44,7 @@ textured_quads_program = dict(
 class SpriteArray:
     """Vertex array object to hold textured quads."""
     QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
-    PROGRAM = textured_quads_program
+    PROGRAM = TEXTURED_QUADS_PROGRAM
 
     def __init__(self, ctx, prog, tex, sprites):
         self.tex = tex
