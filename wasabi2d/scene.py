@@ -1,6 +1,7 @@
 """Wrapper around window creation."""
 import numpy as np
 import pygame
+import pygame.image
 import pygame.display
 import moderngl
 from pyrr import Matrix44
@@ -40,6 +41,18 @@ class Scene:
         event(self.draw)
 
         self.background = (0.0, 0.0, 0.0)
+
+    def screenshot(self, filename=None):
+        """Take a screenshot."""
+        import datetime
+        if filename is None:
+            now = datetime.datetime.now()
+            filename = f'screenshot_{now:%Y-%m-%d_%H:%M:%S.%f}.png'
+        data = self.ctx.screen.read(components=3)
+        assert len(data) == (self.width * self.height * 3), \
+            f"Received {len(data)}, expected {self.width * self.height * 3}"
+        img = pygame.image.fromstring(data, (self.width, self.height), 'RGB')
+        pygame.image.save(img, filename)
 
     def draw(self, t, dt):
         assert len(self.background) == 3, \

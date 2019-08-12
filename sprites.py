@@ -24,7 +24,10 @@ def on_mouse_down(pos):
 
 @event
 def on_key_down(key):
-    if key == key.SPACE:
+    if key == key.F12:
+        scene.screenshot()
+
+    elif key == key.SPACE:
         bullet = scene.layers[0].add_sprite(
             'tiny_bullet.png',
             pos=ship.pos
