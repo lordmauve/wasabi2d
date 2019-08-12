@@ -19,9 +19,9 @@ class Circle(Transformable):
         self._radius = radius
 
         theta = np.linspace(0, 2 * np.pi, self.segments)
-        self.orig_verts = np.hstack([
-            self.radius * np.cos(theta),
-            self.radius * np.sin(theta),
-            1
+        self.orig_verts = np.dstack([
+            radius * np.cos(theta),
+            radius * np.sin(theta),
+            np.ones(self.segments)
         ])
         self.color = color
