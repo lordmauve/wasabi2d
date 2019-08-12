@@ -1,16 +1,16 @@
 from typing import Sequence
 
-from numpy import np
-from sortedcontainers import SortedList
+import moderngl
+import numpy as np
+
+from .abstract import AbstractAllocator, NoCapacity
 
 
 class Allocation:
     __slots__ = (
         'offset',
-        'dyn',
-        'static',
-        'dyn_dirty',
-        'static_dirty',
+        'buf',
+        'dirty',
     )
 
     def __init__(self, offset: int, dyn: np.ndarray, static: np.ndarray):
@@ -27,155 +27,86 @@ class Allocation:
         )
 
 
-class AbstractAllocator:
-    """Manage allocations within a block of items."""
-
-    def __init__(self, capacity=8192):
-        self.indexes = np.zeros(capacity, dtype='i4')
-
-        self.allocs = []
-        self.indirect_capacity = 50
-
-        self._free = SortedList([(capacity, 0)])
-
-    @property
-    def capacity(self):
-        """Get the capacity of the buffer."""
-        return len(self.indexes)
-
-    def _release(self, offset, length):
-        if not length:
-            return
-        # TODO: merge with previous if possible
-        # TODO: split in powers of two to avoid fragmentation
-        self._free.append((length, offset))
-
-    def allocate(self, indexes: Sequence[int], base_vertex: int):
-        """Allocate the given indices into the buffer."""
-        dirty = False
-        num = len(indexes)
-        pos = self._free.bisect_left((num, 0))
-        if pos == len(self._free):
-            # capacity is not high enough
-            capacity = len(self.indexes)
-            new_capacity = 2048
-            while new_capacity < num:
-                new_capacity *= 2
-            self.indexes = np.hstack([
-                self.indexes,
-                [0] * new_capacity
-            ]).astype('i4')
-            self._release(capacity, new_capacity)
-            dirty = True
-
-            pos = self._free.bisect_left((num, 0))
-
-        block_size, offset = self._free.pop(pos)
-
-        # Release the rest of the block in power-of-2 blocks
-        mid = block_size // 2
-        while mid > num:
-            self._release(offset + mid, block_size - mid)
-            block_size = mid
-            mid = block_size // 2
-
-        end_off = offset + num
-        self.indexes[offset:end_off] = indexes
-        self.allocs.append(
-            # (count, instanceCount, firstIndex, baseVertex, baseInstance)
-            (num, 1, offset, base_vertex, 0),
-        )
-
-        # Release the remainder of the block
-        self._release(end_off, block_size - num)
-
-        if dirty:
-            return 0, self.capacity
-        return offset, num
-
-
 class IndexAllocator:
     """Manage a buffer of vertex indexes, plus indirect render buffer."""
 
     def __init__(self, capacity=8192):
+        self.allocator = AbstractAllocator(capacity)
         self.indexes = np.zeros(capacity, dtype='i4')
-
         self.allocs = []
-        self.indirect_capacity = 50
-
-        self._free = SortedList([(capacity, 0)])
-
-    @property
-    def capacity(self):
-        """Get the capacity of the buffer."""
-        return len(self.indexes)
-
-    def _release(self, offset, length):
-        if not length:
-            return
-        # TODO: merge with previous if possible
-        # TODO: split in powers of two to avoid fragmentation
-        self._free.append((length, offset))
 
     def allocate(self, indexes: Sequence[int], base_vertex: int):
         """Allocate the given indices into the buffer."""
-        dirty = False
         num = len(indexes)
-        pos = self._free.bisect_left((num, 0))
-        if pos == len(self._free):
-            # capacity is not high enough
-            capacity = len(self.indexes)
-            new_capacity = 2048
-            while new_capacity < num:
-                new_capacity *= 2
-            self.indexes = np.hstack([
-                self.indexes,
-                [0] * new_capacity
-            ]).astype('i4')
-            self._release(capacity, new_capacity)
-            dirty = True
 
-            pos = self._free.bisect_left((num, 0))
+        try:
+            pos = self.allocator.alloc(num)
+        except NoCapacity as e:
+            new_capacity = e.recommended
+            new_indexes = np.zeros(new_capacity, dtype='i4')
+            new_indexes[:len(self.indexes)] = self.indexes
+            self.indexes = new_indexes
+            pos = self.allocator.alloc(num)
 
-        block_size, offset = self._free.pop(pos)
-
-        # Release the rest of the block in power-of-2 blocks
-        mid = block_size // 2
-        while mid > num:
-            self._release(offset + mid, block_size - mid)
-            block_size = mid
-            mid = block_size // 2
-
-        end_off = offset + num
-        self.indexes[offset:end_off] = indexes
+        self.indexes[pos] = indexes
         self.allocs.append(
             # (count, instanceCount, firstIndex, baseVertex, baseInstance)
-            (num, 1, offset, base_vertex, 0),
+            (num, 1, pos.start, base_vertex, 0),
         )
 
-        # Release the remainder of the block
-        self._release(end_off, block_size - num)
 
-        if dirty:
-            return 0, self.capacity
-        return offset, num
+TYPE_MAP = {
+    'uint8': 'f1',
+    'uint16': 'u2',
+    'uint32': 'u4',
+    'uint64': 'u8',
+    'int8': 'i1',
+    'int16': 'i2',
+    'int32': 'i4',
+    'int64': 'i8',
+    'float16': 'f2',
+    'float32': 'f4',
+    'float64': 'f8',
+}
+
+
+def dtype_to_moderngl(dtype: np.dtype):
+    """Convert a numpy dtype object to a ModernGL buffer type."""
+    names = dtype.names
+    assert names is not None, "Only structured numpy dtypes are allowed."
+    fields = dtype.fields
+    out = []
+    byte_pos = 0  # position of next field
+    for n in names:
+        dtype, offset, *_ = fields[n]
+
+        out.extend('x' * (offset - byte_pos))
+        byte_pos = offset + dtype.itemsize
+
+        type_name = TYPE_MAP[dtype.base.name]
+        assert len(dtype.shape) <= 1, \
+            "Multi-dimensional dtypes are not supported."
+        if dtype.shape == ():
+            out.append(type_name)
+        else:
+            out.append(f'{dtype.shape[0]}{type_name}')
+    return (' '.join(out), *names)
 
 
 class VertList:
     """Manage vertex lists within a buffer."""
-    QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
 
-    def __init__(self, ctx, dyn_vals, static_vals=0, capacity=4096):
+    def __init__(
+            self,
+            ctx: moderngl.Context,
+            dtype: np.dtype,
+            capacity: int = 4096):
         self.ctx = ctx
-        self.dyn_vals = dyn_vals
-        self.static_vals = static_vals
-
-        self._free = SortedList([(4096, 0)])
-        self.allocations = []
-        self._capacity = 4096
+        self.dtype = dtype
+        self.capacity = capacity
         self._initialise()
 
-    def _initialise(self, indices, alloc_length=0):
+    def _initialise(self):
         indices = np.array(indices, dtype='i4')
         alloc_length = alloc_length or (np.max(indices) + 1)
 
@@ -190,21 +121,8 @@ class VertList:
             if s.verts is None:
                 s._update()
 
-        self.indexes = np.vstack([
-            self.QUAD + 4 * i
-            for i in range(self.allocated + extra)
-        ])
-        self.uvs = np.vstack(
-            [s.uvs for s in self.sprites]
-            + [np.zeros((4 * extra, 2), dtype='f4')]
-        )
-        self.verts = np.vstack(
-            [s.verts for s in self.sprites]
-            + [np.zeros((4 * extra, 7), dtype='f4')]
-        )
-
-        self.vbo = self.ctx.buffer(self.verts, dynamic=True)
-        self.uvbo = self.ctx.buffer(self.uvs)
+        self.data = np.zeros(self.capacity, self.dtype)
+        self.vbo = self.ctx.buffer(self.data, dynamic=True)
         self.ibuf = self.ctx.buffer(self.indexes)
         self.vao = self.ctx.vertex_array(
             self.prog,
