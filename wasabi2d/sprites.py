@@ -157,42 +157,17 @@ class SpriteArray:
         self.vao.render(vertices=self.allocated * 6)
 
 
-@dataclass
-class Sprite:
-    image: str
-    _angle: float
+def identity():
+    """Return an identity transformation matrix."""
+    return np.identity(3, dtype='f4')
 
-    uvs: np.ndarray
-    orig_verts: np.ndarray
-    verts: Optional[np.ndarray] = None
 
-    _scale: np.ndarray = field(
-        default_factory=lambda: np.identity(3, dtype='f4')
-    )
-    _rot: np.ndarray = field(
-        default_factory=lambda: np.identity(3, dtype='f4')
-    )
-    _xlate: np.ndarray = field(
-        default_factory=lambda: np.identity(3, dtype='f4')
-    )
-    _color: np.ndarray = field(
-        default_factory=lambda: np.ones((4, 4), dtype='f4')
-    )
-
-    array: Any = None
-    offset: int = 0
-
-    def delete(self):
-        self.array.delete(self)
-
-    @property
-    def color(self):
-        return tuple(self.color[0])
-
-    @color.setter
-    def color(self, v):
-        self._color[:] = v
+class Transformable:
+    def __init__(self):
         self.verts = None
+        self._scale = identity()
+        self._rot = identity()
+        self._xlate = identity()
 
     @property
     def pos(self):
@@ -223,6 +198,34 @@ class Sprite:
         assert isinstance(theta, (int, float))
         self._rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
         self._angle = theta
+        self.verts = None
+
+
+class Sprite(Transformable):
+
+    def __init__(
+            self,
+            image,
+            uvs,
+            orig_verts,
+            array=None,
+            offset=None):
+        super().__init__()
+        self.image = image
+        self.uvs = uvs
+        self.orig_verts = orig_verts
+        self._color = np.ones((4, 4), dtype='f4')
+
+    def delete(self):
+        self.array.delete(self)
+
+    @property
+    def color(self):
+        return tuple(self.color[0])
+
+    @color.setter
+    def color(self, v):
+        self._color[:] = v
         self.verts = None
 
     def _update(self):

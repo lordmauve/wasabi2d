@@ -107,35 +107,17 @@ class VertList:
         self._initialise()
 
     def _initialise(self):
-        indices = np.array(indices, dtype='i4')
-        alloc_length = alloc_length or (np.max(indices) + 1)
-
-        self.allocated = len(self.sprites)
-
-        # Allocate extra slots in the arrays for faster additions
-        extra = max(32 - self.allocated, self.allocated // 2)
-
-        for i, s in enumerate(self.sprites):
-            s.array = self
-            s.offset = i
-            if s.verts is None:
-                s._update()
-
         self.data = np.zeros(self.capacity, self.dtype)
-        self.vbo = self.ctx.buffer(self.data, dynamic=True)
-        self.ibuf = self.ctx.buffer(self.indexes)
+        self.vbo = self.ctx.buffer(reserve=self.data.nbytes, dynamic=True)
+        self.ibuf = self.ctx.buffer(self.indexes, dynamic=True)
+
         self.vao = self.ctx.vertex_array(
             self.prog,
             [
-                (self.vbo, '3f 4f', 'in_vert', 'in_color'),
-                (self.uvbo, '2f', 'in_uv'),
+                (self.vbo, *dtype_to_moderngl(self.dtype)),
             ],
             self.ibuf
         )
-
-    def allocate(self, indices, alloc_length=0):
-        indices = np.array(indices, dtype='i4')
-        alloc_length = alloc_length or (np.max(indices) + 1)
 
     def add(self, s):
         """Add a sprite to the array.

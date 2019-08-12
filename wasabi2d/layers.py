@@ -43,7 +43,6 @@ class Layer:
         tex, uvs, vs = self.group.atlas[image]
         spr = Sprite(
             image=image,
-            _angle=angle,
             uvs=np.copy(uvs),
             orig_verts=np.copy(vs),
         )
@@ -61,7 +60,8 @@ class Layer:
         return spr
 
     def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
-        color = convert_color()
+        return
+        color = convert_color(color)
         return Circle(
             radius=radius,
             pos=pos,
