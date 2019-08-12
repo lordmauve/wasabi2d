@@ -1,8 +1,6 @@
-from sortedcontainers import SortedList
+from typing import Union
 
-# Set of powers of two
-POTWO = {2 ** n for n in range(32)}
-is_power_of_two = POTWO.__contains__
+from sortedcontainers import SortedList
 
 
 class NoCapacity(Exception):
@@ -13,9 +11,14 @@ class NoCapacity(Exception):
 
 
 class AbstractAllocator:
-    """Manage allocations within a block of items."""
+    """Manage allocations within a block of items.
 
-    def __init__(self, capacity=8192):
+    This is abstract because we don't actually assume anything about the types
+    of the items or how to write to them.
+
+    """
+
+    def __init__(self, capacity: int = 8192):
         self.capacity = capacity
         self.allocs = {}
         self._free = SortedList([(capacity, 0)])
@@ -24,25 +27,38 @@ class AbstractAllocator:
         """Get the current available capacity."""
         return sum(cap for cap, off in self._free)
 
-    def grow(self, new_capacity):
-        """Grow the available space for allocation to new_capacity."""
+    def grow(self, new_capacity: int):
+        """Grow the available space for allocation to new_capacity.
+
+        No reallocations or compactions are done here so the only guaranteed
+        contiguous new free space is at the end.
+        """
         self._release(self.capacity, new_capacity - self.capacity)
         self.capacity = new_capacity
 
     def _release(self, offset, length):
+        """Release the given block back to the pool.
+
+        We consider joining this block to a subsequent one. We don't currently
+        consider joining it to the previous block.
+
+        """
         if not length:
             return
 
-        k = (length, offset)
-        idx = self._free.bisect_left(k)
-        if idx >= len(self._free):
-            self._free.add(k)
-            return
+        while True:
+            k = (length, offset)
+            idx = self._free.bisect_left(k)
+            if idx >= len(self._free):
+                self._free.add(k)
+                return
 
-        next_length, next_off = self._free[idx]
-        if next_off == (length + offset):
+            next_length, next_off = self._free[idx]
+            if next_off != (length + offset):
+                return
+
             self._free.pop(idx)
-        self._release(offset, length + next_length)
+            length += next_length
 
     def alloc(self, num: int) -> slice:
         """Allocate a block of size num.
@@ -54,7 +70,7 @@ class AbstractAllocator:
         pos = self._free.bisect_left((num, 0))
         if pos == len(self._free):
             # capacity is not high enough
-            new_capacity = 2048
+            new_capacity = self.capacity
             while new_capacity < num:
                 new_capacity *= 2
 
@@ -66,7 +82,7 @@ class AbstractAllocator:
 
         # Release the rest of the block in power-of-2 blocks
         mid = block_size // 2
-        while mid > num:
+        while mid >= num >= 2:
             self._release(offset + mid, block_size - mid)
             block_size = mid
             mid = block_size // 2
@@ -79,12 +95,12 @@ class AbstractAllocator:
         self.allocs[offset] = num
         return slice(offset, end_off)
 
-    def free(self, offset):
+    def free(self, offset: Union[int, slice]):
         """Free the block at offset."""
         if isinstance(offset, slice):
             offset = offset.start
         try:
             size = self.allocs.pop(offset)
-        except IndexError:
-            raise IndexError(f"Offset {offset} is not allocated.")
+        except KeyError:
+            raise KeyError(f"Offset {offset} is not allocated.") from None
         self._release(offset, size)

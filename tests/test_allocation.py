@@ -1,6 +1,6 @@
 import pytest
 
-from wasabi2d.allocators.abstract import AbstractAllocator
+from wasabi2d.allocators.abstract import AbstractAllocator, NoCapacity
 
 
 @pytest.fixture
@@ -54,3 +54,36 @@ def test_contiguous(alloc):
     for a in allocations[::-1]:
         alloc.free(a)
     assert list(alloc._free) == [(8192, 0)]
+
+
+def test_free_unallocated(alloc):
+    """Freeing an unallocated block raises an error."""
+    with pytest.raises(KeyError):
+        alloc.free(0)
+
+
+def test_unavailable(alloc):
+    """We cannot allocate more items than available."""
+    for sz in BLOCKS:
+        alloc.alloc(sz)
+
+    with pytest.raises(NoCapacity) as exc_info:
+        alloc.alloc(6000)
+
+    assert exc_info.value.recommended == 2 * alloc.capacity
+
+
+def test_grow(alloc):
+    """We can accept a new capacity and make use of the new space."""
+    for sz in BLOCKS:
+        alloc.alloc(sz)
+
+    with pytest.raises(NoCapacity) as exc_info:
+        alloc.alloc(6000)
+
+    avail = alloc.avail()
+    target = exc_info.value.recommended
+    expected_avail = avail + target - alloc.capacity
+    alloc.grow(target)
+
+    assert alloc.avail() == expected_avail

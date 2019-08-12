@@ -3,3 +3,4 @@ pygame==2.0.0.dev3
 moderngl==5.*
 numpy
 pyrr
+sortedcontainers
