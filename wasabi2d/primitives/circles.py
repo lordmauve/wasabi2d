@@ -57,16 +57,16 @@ class Circle(Transformable):
             color=(1, 1, 1, 1),
             segments=None):
         super().__init__()
-        self.segments = segments or round(radius * math.pi)
+        self.segments = segments or max(4, round(radius * math.pi))
         self.pos = pos
         self._radius = radius
 
         theta = np.linspace(0, 2 * np.pi, self.segments)
-        self.orig_verts = np.dstack([
+        self.orig_verts = np.vstack([
             radius * np.cos(theta),
             radius * np.sin(theta),
             np.ones(self.segments)
-        ])
+        ]).T.astype('f4')
         self._color = convert_color(color)
 
     def _indices(self):
@@ -80,11 +80,12 @@ class Circle(Transformable):
     def _migrate(self, vao: VAO):
         """Migrate this object into the given VAO."""
         self.vao = vao
-        self.lst = vao.alloc(len(self.orig_verts), self.segments)
+        self.lst = vao.alloc(self.segments, self.segments)
         self.lst.indexbuf[:] = self._indices()
+        self._update()
 
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
-        self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:,:2]
-        self.list.vertbuf['in_color'] = self._color
+        self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:, :2]
+        self.lst.vertbuf['in_color'] = self._color

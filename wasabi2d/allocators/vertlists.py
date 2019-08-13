@@ -172,8 +172,7 @@ class VAO:
             self.indirect_capacity *= 2
             self._initialise_indirect()
         else:
-            # TODO: grow indirect capacity
-            self.indirect[aidx] = (num_verts, 1, ixs.start, vs.start, 0)
+            self.indirect[aidx] = (num_verts, 0, ixs.start, vs.start, 0)
             self.indirect_dirty = True
 
         return lst
