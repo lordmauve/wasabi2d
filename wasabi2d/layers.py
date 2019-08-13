@@ -2,7 +2,6 @@ import numpy as np
 
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
-from .color import convert_color
 
 
 class ShaderManager:
@@ -33,15 +32,20 @@ class Layer:
         self.ctx = ctx
         self.group = group
         self.arrays = {}
-        self.objects = []
+        self.objects = set()
+        self._dirty = set()
 
     def render(self, t, dt):
+        for o in self._dirty:
+            o._update()
+        self._dirty.clear()
         for a in self.arrays.values():
             a.render()
 
     def add_sprite(self, image, pos=(0, 0), angle=0):
         tex, uvs, vs = self.group.atlas[image]
         spr = Sprite(
+            layer=self,
             image=image,
             uvs=np.copy(uvs),
             orig_verts=np.copy(vs),
@@ -57,11 +61,13 @@ class Layer:
             self.arrays[k] = array
         else:
             array.add(spr)
+        self.objects.add(spr)
         return spr
 
     def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
         from .primitives.circles import Circle, line_vao
         c = Circle(
+            layer=self,
             radius=radius,
             pos=pos,
             color=color
@@ -73,9 +79,8 @@ class Layer:
             vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
 
         c._migrate(vao)
+        self.objects.add(c)
         return c
-
-
 
 
 class LayerGroup(dict):

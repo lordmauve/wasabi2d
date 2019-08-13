@@ -52,11 +52,13 @@ class Circle(Transformable):
 
     def __init__(
             self,
+            layer,
             pos=(0, 0),
             radius=100,
             color=(1, 1, 1, 1),
             segments=None):
         super().__init__()
+        self.layer = layer
         self.segments = segments or max(4, round(radius * math.pi))
         self.pos = pos
         self._radius = radius
@@ -84,8 +86,19 @@ class Circle(Transformable):
         self.lst.indexbuf[:] = self._indices()
         self._update()
 
+    def _set_dirty(self):
+        self.layer._dirty.add(self)
+
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
         self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:, :2]
         self.lst.vertbuf['in_color'] = self._color
+        self.lst.dirty = True
+        self._dirty = False
+
+    def delete(self):
+        """Delete this primitive."""
+        self.layer._dirty.discard(self)
+        self.layer.objects.discard(self)
+        self.vao.free()

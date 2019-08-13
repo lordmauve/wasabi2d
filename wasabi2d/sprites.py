@@ -146,9 +146,9 @@ class SpriteArray:
         self.tex.use(0)
         dirty = False
         for i, s in enumerate(self.sprites):
-            if s.verts is None:
-                s._update()
+            if s._dirty:
                 self.verts[i * 4:i * 4 + 4] = s.verts
+                s._dirty = False
                 dirty = True
         assert self.verts.dtype == 'f4', \
             f"Dtype of verts is {self.verts.dtype}"
@@ -177,6 +177,7 @@ class Transformable:
     def pos(self, v):
         assert len(v) == 2
         self._xlate[2][:2] = v
+        self._set_dirty()
         self.verts = None
 
     @property
@@ -187,6 +188,7 @@ class Transformable:
     @scale.setter
     def scale(self, v):
         self._scale[0, 0] = self._scale[1, 1] = v
+        self._set_dirty()
         self.verts = None
 
     @property
@@ -198,25 +200,30 @@ class Transformable:
         assert isinstance(theta, (int, float))
         self._rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
         self._angle = theta
-        self.verts = None
+        self._set_dirty()
 
 
 class Sprite(Transformable):
-
     def __init__(
             self,
+            layer,
             image,
             uvs,
             orig_verts,
             array=None,
             offset=None):
         super().__init__()
+        self.layer = layer
         self.image = image
         self.uvs = uvs
         self.orig_verts = orig_verts
+        self._dirty = True
         self._color = np.ones((4, 4), dtype='f4')
 
     def delete(self):
+        """Delete this sprite."""
+        self.layer._dirty.discard(self)
+        self.layer.objects.discard(self)
         self.array.delete(self)
 
     @property
@@ -226,6 +233,10 @@ class Sprite(Transformable):
     @color.setter
     def color(self, v):
         self._color[:] = v
+        self._set_dirty()
+
+    def _set_dirty(self):
+        self.layer._dirty.add(self)
         self.verts = None
 
     def _update(self):
@@ -235,3 +246,4 @@ class Sprite(Transformable):
             self.orig_verts @ xform,
             self._color
         ])
+        self._dirty = True

@@ -10,6 +10,7 @@ from .game import EventMapper
 from .constants import keys, mouse
 from .loaders import sounds
 from . import music
+from . import clock
 from .scene import Scene
 
 event = EventMapper()

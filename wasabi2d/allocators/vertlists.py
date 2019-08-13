@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Callable
 from dataclasses import dataclass
 
 import moderngl
@@ -73,6 +73,19 @@ def dtype_to_moderngl(dtype: np.dtype):
     return (' '.join(out), *names)
 
 
+class DirtyBit:
+    __slots__ = ('_dirty')
+
+    def __bool__(self):
+        return self._dirty
+
+    def set(self):
+        self._dirty = True
+
+    def clear(self):
+        self._dirty = False
+
+
 @dataclass
 class List:
     buf: 'VAO'
@@ -80,6 +93,7 @@ class List:
     vertoff: slice
     indexbuf: np.ndarray
     indexoff: slice
+    updater: Callable[[], None] = None
     dirty: bool = False
 
     def free(self):

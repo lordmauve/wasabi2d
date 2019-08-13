@@ -1,5 +1,5 @@
 import math
-from wasabi2d import event, run, sounds, Scene, Vector2
+from wasabi2d import event, run, sounds, Scene, Vector2, clock
 
 
 scene = Scene()
@@ -9,7 +9,7 @@ ship = scene.layers[0].add_sprite(
     'ship.png',
     pos=(scene.width / 2, scene.height / 2)
 )
-scene.layers[0].add_circle(radius=30, pos=(100, 100), color='cyan')
+circ = scene.layers[0].add_circle(radius=30, pos=(100, 100), color='cyan')
 
 ship.vel = Vector2()
 
@@ -33,10 +33,16 @@ def on_key_down(key):
             pos=ship.pos
         )
         bullet.color = (1, 0, 0, 1)
-        bullet.vel = ship.vel.normalize() * 600
+        bullet.vel = Vector2(600, 0).rotate_rad(ship.angle)
         bullet.power = 1.0
         bullets.append(bullet)
         sounds.laser.play()
+
+
+def update_circ():
+    circ.scale += 0.01
+
+clock.schedule_interval(update_circ, 0.1)
 
 
 @event
