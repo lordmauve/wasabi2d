@@ -60,13 +60,22 @@ class Layer:
         return spr
 
     def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
-        return
-        color = convert_color(color)
-        return Circle(
+        from .primitives.circles import Circle, line_vao
+        c = Circle(
             radius=radius,
             pos=pos,
             color=color
         )
+
+        k = 'lines'
+        vao = self.arrays.get(k)
+        if not vao:
+            vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
+
+        c._migrate(vao)
+        return c
+
+
 
 
 class LayerGroup(dict):

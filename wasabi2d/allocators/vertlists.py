@@ -97,6 +97,7 @@ class VAO:
             dtype: np.dtype,
             capacity: int = 4096,
             index_capacity: int = 8192):
+        self.mode = mode
         self.ctx = ctx
         self.prog = prog
         self.dtype = dtype
@@ -175,6 +176,8 @@ class VAO:
             self.indirect[aidx] = (num_verts, 1, ixs.start, vs.start, 0)
             self.indirect_dirty = True
 
+        return lst
+
     def free(self, lst):
         """Remove a list from the array."""
         pos = self.allocs.index(lst)
@@ -197,6 +200,9 @@ class VAO:
 
     def render(self):
         """Render all lists."""
+        if not self.allocs:
+            return
+
         dirty = False
         for a in self.allocs:
             if a.dirty:
