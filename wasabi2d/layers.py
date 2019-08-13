@@ -64,22 +64,46 @@ class Layer:
         self.objects.add(spr)
         return spr
 
+    def _lines_vao(self):
+        """Get a VAO for objects made of line strips."""
+        from .primitives.circles import line_vao
+        k = 'lines'
+        vao = self.arrays.get(k)
+        if not vao:
+            vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
+        return vao
+
     def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
-        from .primitives.circles import Circle, line_vao
+        from .primitives.circles import Circle
         c = Circle(
             layer=self,
             radius=radius,
             pos=pos,
             color=color
         )
-
-        k = 'lines'
-        vao = self.arrays.get(k)
-        if not vao:
-            vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
-
-        c._migrate(vao)
+        c._migrate(self._lines_vao())
         self.objects.add(c)
+        return c
+
+    def add_star(
+            self,
+            points,
+            inner_radius,
+            outer_radius,
+            pos=(0, 0),
+            color=(1, 1, 1, 1)):
+        from .primitives.circles import Circle
+        c = Circle(
+            layer=self,
+            segments=2 * points + 1,
+            radius=1.0,
+            pos=pos,
+            color=color
+        )
+        c._migrate(self._lines_vao())
+        self.objects.add(c)
+        c.orig_verts[::2, :2] *= outer_radius
+        c.orig_verts[1::2, :2] *= inner_radius
         return c
 
 

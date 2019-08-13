@@ -1,6 +1,3 @@
-from typing import Any, Optional
-from dataclasses import dataclass, field
-
 import numpy as np
 from pyrr import vector3, matrix33
 
@@ -109,7 +106,7 @@ class SpriteArray:
             self.sprites.append(s)
             s.offset = i
 
-            #TODO: We can send less data with write_chunks()
+            # TODO: We can send less data with write_chunks()
             self.vbo.write(self.verts)
             self.uvbo.write(self.uvs)
         else:
@@ -163,6 +160,8 @@ def identity():
 
 
 class Transformable:
+    _angle = 0
+
     def __init__(self):
         self.verts = None
         self._scale = identity()

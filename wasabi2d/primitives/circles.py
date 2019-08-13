@@ -70,6 +70,7 @@ class Circle(Transformable):
             np.ones(self.segments)
         ]).T.astype('f4')
         self._color = convert_color(color)
+        self._set_dirty()
 
     def _indices(self):
         return np.linspace(
@@ -95,7 +96,6 @@ class Circle(Transformable):
         self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:, :2]
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
-        self._dirty = False
 
     def delete(self):
         """Delete this primitive."""

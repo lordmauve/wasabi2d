@@ -10,6 +10,13 @@ ship = scene.layers[0].add_sprite(
     pos=(scene.width / 2, scene.height / 2)
 )
 circ = scene.layers[0].add_circle(radius=30, pos=(100, 100), color='cyan')
+star = scene.layers[0].add_star(
+    points=6,
+    inner_radius=30,
+    outer_radius=60,
+    pos=(400, 100),
+    color='yellow'
+)
 
 ship.vel = Vector2()
 
@@ -41,6 +48,7 @@ def on_key_down(key):
 
 def update_circ():
     circ.scale += 0.01
+    star.angle += 0.01
 
 clock.schedule_interval(update_circ, 0.1)
 
