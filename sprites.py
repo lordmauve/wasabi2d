@@ -1,5 +1,5 @@
 import math
-from wasabi2d import event, run, sounds, Scene, Vector2, clock
+from wasabi2d import event, run, sounds, Scene, Vector2, clock, animate
 
 
 scene = Scene()
@@ -48,9 +48,23 @@ def on_key_down(key):
 
 def update_circ():
     circ.scale += 0.01
-    star.angle += 0.01
+
 
 clock.schedule_interval(update_circ, 0.1)
+
+
+def rotate_star():
+    """Animate the rotation of the star."""
+    animate(
+        star,
+        'bounce_end',
+        duration=1.0,
+        angle=star.angle + math.pi / 3,
+    )
+
+
+rotate_star()
+clock.schedule_interval(rotate_star, 2.0)
 
 
 @event

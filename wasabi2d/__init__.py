@@ -12,6 +12,7 @@ from .loaders import sounds
 from . import music
 from . import clock
 from .scene import Scene
+from .animation import animate
 
 event = EventMapper()
 del EventMapper
@@ -23,6 +24,6 @@ __all__ = [
     'event',
     'run',
     'keys', 'mouse',
-    'sounds', 'music',
+    'sounds', 'music', 'clock', 'animate',
     'Scene',
 ]
