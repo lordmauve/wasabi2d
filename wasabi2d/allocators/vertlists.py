@@ -132,12 +132,12 @@ class VAO:
         )
 
     def _initialise_indirect(self):
-        self.indirect = np.zeros((self.indirect_capacity, 5), dtype='i4')
+        self.indirect = np.zeros((self.indirect_capacity, 5), dtype='u4')
         for aidx, lst in enumerate(self.allocs):
             num_verts = lst.vertoff.stop - lst.vertoff.start
             ixs_start = lst.indexoff.start
             vs_start = lst.vertoff.start
-            self.indirect[aidx] = (num_verts, 1, ixs_start, vs_start, 0)
+            self.indirect[aidx] = (num_verts, 0, ixs_start, vs_start, 0)
         self.indirectbo = self.ctx.buffer(self.indirect, dynamic=True)
         self.indirect_dirty = False
 
@@ -151,7 +151,7 @@ class VAO:
             vs = self.allocator.alloc(num_verts)
 
         try:
-            ixs = self.allocator.alloc(num_indexes)
+            ixs = self.index_allocator.alloc(num_indexes)
         except NoCapacity as e:
             self.index_allocator.grow(e.recommended)
             self._initialise()
@@ -172,7 +172,7 @@ class VAO:
             self.indirect_capacity *= 2
             self._initialise_indirect()
         else:
-            self.indirect[aidx] = (num_verts, 0, ixs.start, vs.start, 0)
+            self.indirect[aidx] = (num_verts, 1, ixs.start, vs.start, 0)
             self.indirect_dirty = True
 
         return lst
@@ -214,5 +214,5 @@ class VAO:
             self.indirectbo.write(self.indirect)
             self.indirect_dirty = False
 
-        self.vao.render_indirect(self.indirectbo, self.mode, len(self.allocs))
+        self.vao.render_indirect(self.indirectbo, mode=self.mode, count=len(self.allocs))
 
