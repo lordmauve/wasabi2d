@@ -1,30 +1,10 @@
 from typing import Sequence
+from dataclasses import dataclass
 
 import moderngl
 import numpy as np
 
 from .abstract import AbstractAllocator, NoCapacity
-
-
-class Allocation:
-    __slots__ = (
-        'offset',
-        'buf',
-        'dirty',
-    )
-
-    def __init__(self, offset: int, dyn: np.ndarray, static: np.ndarray):
-        self.offset = offset
-        self.length = np.prod(dyn.shape)
-        self.dyn = dyn
-        self.static = static
-        self.dyn_dirty = True
-        self.static_dirty = True
-
-    def free(self):
-        raise NotImplementedError(
-            "Cannot yet free a list allocation."
-        )
 
 
 class IndexAllocator:
@@ -93,95 +73,141 @@ def dtype_to_moderngl(dtype: np.dtype):
     return (' '.join(out), *names)
 
 
-class VertList:
-    """Manage vertex lists within a buffer."""
+@dataclass
+class List:
+    buf: 'VAO'
+    vertbuf: np.ndarray
+    vertoff: slice
+    indexbuf: np.ndarray
+    indexoff: slice
+    dirty: bool = False
+
+    def free(self):
+        self.buf.free(self)
+
+
+class VAO:
+    """Manage vertex lists within a VAO."""
 
     def __init__(
             self,
+            mode: int,
             ctx: moderngl.Context,
+            prog: moderngl.Program,
             dtype: np.dtype,
-            capacity: int = 4096):
+            capacity: int = 4096,
+            index_capacity: int = 8192):
         self.ctx = ctx
+        self.prog = prog
         self.dtype = dtype
-        self.capacity = capacity
+        self.indirect_capacity = 50
+        self.allocator = AbstractAllocator(capacity)
+        self.index_allocator = AbstractAllocator(index_capacity)
+        self.allocs = []
         self._initialise()
+        self._initialise_indirect()
 
     def _initialise(self):
-        self.data = np.zeros(self.capacity, self.dtype)
-        self.vbo = self.ctx.buffer(reserve=self.data.nbytes, dynamic=True)
-        self.ibuf = self.ctx.buffer(self.indexes, dynamic=True)
+        self.verts = np.zeros(self.allocator.capacity, dtype=self.dtype)
+        self.indexes = np.zeros(self.index_allocator.capacity, dtype='i4')
 
+        # Sync allocs into the new buffer
+        for a in self.allocs:
+            self.verts[a.vertoff] = a.vertbuf
+            self.indexes[a.indexoff] = a.indexbuf
+            a.vertbuf = self.verts[a.vertoff]
+            a.indexbuf = self.indexes[a.indexbuf]
+            a.dirty = False
+
+        # Create OpenGL objects
+        self.vbo = self.ctx.buffer(self.verts, dynamic=True)
+        self.ibo = self.ctx.buffer(self.indexes, dynamic=True)
         self.vao = self.ctx.vertex_array(
             self.prog,
             [
                 (self.vbo, *dtype_to_moderngl(self.dtype)),
             ],
-            self.ibuf
+            self.ibo
         )
 
-    def add(self, s):
-        """Add a sprite to the array.
+    def _initialise_indirect(self):
+        self.indirect = np.zeros((self.indirect_capacity, 5), dtype='i4')
+        for aidx, lst in enumerate(self.allocs):
+            num_verts = lst.vertoff.stop - lst.vertoff.start
+            ixs_start = lst.indexoff.start
+            vs_start = lst.vertoff.start
+            self.indirect[aidx] = (num_verts, 1, ixs_start, vs_start, 0)
+        self.indirectbo = self.ctx.buffer(self.indirect, dynamic=True)
+        self.indirect_dirty = False
 
-        If there's unallocated space in the VBO we append the sprite.
+    def alloc(self, num_verts: int, num_indexes: int) -> List:
+        """Allocate a list from within this buffer."""
+        try:
+            vs = self.allocator.alloc(num_verts)
+        except NoCapacity as e:
+            self.allocator.grow(e.recommended)
+            self._initialise()
+            vs = self.allocator.alloc(num_verts)
 
-        Otherwise we allocate new VBOs.
-        """
-        s.array = self
-        if not s.verts:
-            s._update()
-        size = len(self.verts) // 4
-        if self.allocated < size:
-            i = self.allocated
-            self.allocated += 1
-            self.verts[i * 4:i * 4 + 4] = s.verts
-            self.uvs[i * 4:i * 4 + 4] = s.uvs
-            self.sprites.append(s)
-            s.offset = i
+        try:
+            ixs = self.allocator.alloc(num_indexes)
+        except NoCapacity as e:
+            self.index_allocator.grow(e.recommended)
+            self._initialise()
+            ixs = self.index_allocator.alloc(num_indexes)
 
-            #TODO: We can send less data with write_chunks()
-            self.vbo.write(self.verts)
-            self.uvbo.write(self.uvs)
+        lst = List(
+            buf=self,
+            vertbuf=self.verts[vs],
+            vertoff=vs,
+            indexbuf=self.indexes[ixs],
+            indexoff=ixs,
+            dirty=True
+        )
+        aidx = len(self.allocs)
+        self.allocs.append(lst)
+
+        if len(self.allocs) > self.indirect_capacity:
+            self.indirect_capacity *= 2
+            self._initialise_indirect()
         else:
-            self.sprites.append(s)
-            self._allocate()
+            # TODO: grow indirect capacity
+            self.indirect[aidx] = (num_verts, 1, ixs.start, vs.start, 0)
+            self.indirect_dirty = True
 
-    def delete(self, s):
-        """Remove a sprite from the array.
+    def free(self, lst):
+        """Remove a list from the array."""
+        pos = self.allocs.index(lst)
 
-        To do this without resizing the buffer we move a sprite from the
-        end of the array into the gap. This means that draw order changes.
+        # Update indirect buffer
+        n_allocs = len(self.allocs)
+        self.allocs.remove(lst)
 
-        """
-        assert s.array is self
-        i = s.offset
-        j = self.allocated - 1
-        self.allocated -= 1
-        if i == j:
-            self.sprites.pop()
-        else:
-            moved = self.sprites[i] = self.sprites[j]
-            self.sprites.pop()
-            moved.offset = i
-            self.verts[i * 4:i * 4 + 4] = self.verts[j * 4:j * 4 + 4]
-            self.uvs[i * 4:i * 4 + 4] = self.uvs[j * 4:j * 4 + 4]
-            # TODO: write only once per frame no matter how many adds/deletes
-            self.vbo.write(self.verts)
-            self.uvbo.write(self.uvs)
-        s.array = None
+        # Move subsequent lists. Caution: linear cost per free
+        self.indirect[pos:len(self.allocs)] = self.indirect[pos + 1:n_allocs]
+        self.indirect_dirty = True
+
+        # Free space in allocators
+        self.allocator.free(lst.vertoff)
+        self.index_allocator.free(lst.indexoff)
+
+        lst.buf = None
+        lst.vertbuf = None
+        lst.indexbuf = None
 
     def render(self):
-        """Render all sprites in the array."""
-        self.prog['tex'].value = 0
-        self.tex.use(0)
+        """Render all lists."""
         dirty = False
-        for i, s in enumerate(self.sprites):
-            if s.verts is None:
-                s._update()
-                self.verts[i * 4:i * 4 + 4] = s.verts
+        for a in self.allocs:
+            if a.dirty:
                 dirty = True
-        assert self.verts.dtype == 'f4', \
-            f"Dtype of verts is {self.verts.dtype}"
+                a.dirty = False
         if dirty:
             self.vbo.write(self.verts)
-        self.vao.render(vertices=self.allocated * 6)
+            self.ibo.write(self.indexes)
+        if self.indirect_dirty:
+            self.indirectbo.write(self.indirect)
+            self.indirect_dirty = False
+
+        self.vao.render_indirect(self.indirectbo, self.mode, len(self.allocs))
 
