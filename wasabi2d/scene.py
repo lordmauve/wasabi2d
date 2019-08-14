@@ -2,6 +2,7 @@
 import numpy as np
 import pygame
 import pygame.image
+import pygame.transform
 import pygame.display
 import moderngl
 from pyrr import Matrix44
@@ -52,6 +53,7 @@ class Scene:
         assert len(data) == (self.width * self.height * 3), \
             f"Received {len(data)}, expected {self.width * self.height * 3}"
         img = pygame.image.fromstring(data, (self.width, self.height), 'RGB')
+        img = pygame.transform.flip(img, False, True)
         pygame.image.save(img, filename)
 
     def draw(self, t, dt):
