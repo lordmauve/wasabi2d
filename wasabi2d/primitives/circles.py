@@ -36,6 +36,60 @@ PLAIN_COLOR = dict(
 )
 
 
+WIDE_LINE = dict(
+    vertex_shader='''
+        #version 330
+
+        uniform mat4 proj;
+
+        in vec2 in_vert;
+        in vec4 in_color;
+        out vec4 g_color;
+
+        void main() {
+            gl_Position = proj * vec4(in_vert, 0.0, 1.0);
+            g_color = in_color;
+        }
+    ''',
+    geometry_shader="""
+#version 330 core
+layout (lines_adjacency) in;
+//layout (triangle_strip, max_vertices = 2) out;
+layout (line_strip, max_vertices = 2) out;
+
+in vec4 g_color[];
+out vec4 color;
+const float width = 10.0;
+
+void main() {
+    color = g_color[1];
+
+    gl_Position = gl_in[1].gl_Position;
+    //gl_Position = gl_in[1].gl_Position + vec4(-width, 0.0, 0.0, 0.0);
+    EmitVertex();
+
+    gl_Position = gl_in[2].gl_Position;
+    EmitVertex();
+
+//    gl_Position = gl_in[1].gl_Position + vec4(width, 0.0, 0.0, 0.0);
+//    EmitVertex();
+
+    EndPrimitive();
+}
+""",
+    fragment_shader='''
+        #version 330
+
+        out vec4 f_color;
+        in vec4 color;
+
+        void main() {
+            f_color = color;
+        }
+    ''',
+)
+
+
 def color_vao(
         mode: int,
         ctx: moderngl.Context,
@@ -56,10 +110,14 @@ def line_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a VAO for rendering lines."""
-    return color_vao(
-        mode=moderngl.LINE_STRIP,
+    return VAO(
+        mode=moderngl.LINE_STRIP_ADJACENCY,
         ctx=ctx,
-        shadermgr=shadermgr,
+        prog=shadermgr.get(**WIDE_LINE),
+        dtype=np.dtype([
+            ('in_vert', '2f4'),
+            ('in_color', '4f4'),
+        ])
     )
 
 
@@ -112,7 +170,7 @@ class Circle(AbstractShape):
             dtype='i4'
         )
         idxs[0] = self.segments - 1
-        return idxs
+        return idxs[[-1, *range(self.segments), 0, 1]]
 
     def _fill_indices(self):
         """Indexes for drawing the fill as TRIANGLES."""

@@ -20,7 +20,7 @@ class Scene:
         pygame.init()
 
         glconfig = {
-            'GL_CONTEXT_MAJOR_VERSION': 3,
+            'GL_CONTEXT_MAJOR_VERSION': 4,
             'GL_CONTEXT_MINOR_VERSION': 3,
             'GL_CONTEXT_PROFILE_MASK': pygame.GL_CONTEXT_PROFILE_CORE,
         }

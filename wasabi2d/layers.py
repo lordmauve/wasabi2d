@@ -13,7 +13,7 @@ class ShaderManager:
         self.ctx = ctx
         self.programs = {}
 
-    def get(self, vertex_shader, fragment_shader):
+    def get(self, vertex_shader, fragment_shader, geometry_shader=None):
         """Get a compiled program."""
         k = vertex_shader, fragment_shader
         try:
@@ -22,6 +22,7 @@ class ShaderManager:
             prog = self.programs[k] = self.ctx.program(
                 vertex_shader=vertex_shader,
                 fragment_shader=fragment_shader,
+                geometry_shader=geometry_shader,
             )
             return prog
 
