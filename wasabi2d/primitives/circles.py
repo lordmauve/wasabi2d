@@ -40,14 +40,13 @@ WIDE_LINE = dict(
     vertex_shader='''
         #version 330
 
-        uniform mat4 proj;
-
         in vec2 in_vert;
         in vec4 in_color;
         out vec4 g_color;
+        out float width;
 
         void main() {
-            gl_Position = proj * vec4(in_vert, 0.0, 1.0);
+            gl_Position = vec4(in_vert, 0.0, 1.0);
             g_color = in_color;
         }
     ''',
@@ -55,24 +54,60 @@ WIDE_LINE = dict(
 #version 330 core
 layout (lines_adjacency) in;
 //layout (triangle_strip, max_vertices = 2) out;
-layout (line_strip, max_vertices = 2) out;
+layout (triangle_strip, max_vertices = 4) out;
 
 in vec4 g_color[];
+in float width[];
 out vec4 color;
-const float width = 10.0;
+
+const float MITRE_LIMIT = 6.0;
+const float WIDTH = 1.3;
+
+vec2 rot90(vec2 v) {
+    return vec2(-v.y, v.x);
+}
+
+uniform mat4 proj;
+
+
+void mitre(vec2 a, vec2 b, vec2 c) {
+    vec2 ab = normalize(b - a);
+    vec2 bc = normalize(c - b);
+
+    if (length(bc) < 1e-6) {
+        bc = ab;
+    }
+
+    // across bc
+    vec2 xbc = rot90(bc);
+
+    vec2 along = normalize(ab + bc);
+    vec2 across_mitre = rot90(along);
+
+    float scale = 1.0 / dot(xbc, across_mitre);
+
+    //This kind of works Ok although it does cause the width to change
+    // scale = min(scale, MITRE_LIMIT);  // limit extension of the mitre
+    vec2 across = WIDTH * across_mitre * scale;
+
+    gl_Position = proj * vec4(b + across, 0.0, 1.0);
+    EmitVertex();
+
+    gl_Position = proj * vec4(b - across, 0.0, 1.0);
+    EmitVertex();
+}
+
 
 void main() {
     color = g_color[1];
 
-    gl_Position = gl_in[1].gl_Position;
-    //gl_Position = gl_in[1].gl_Position + vec4(-width, 0.0, 0.0, 0.0);
-    EmitVertex();
+    vec2 a = gl_in[0].gl_Position.xy;
+    vec2 b = gl_in[1].gl_Position.xy;
+    vec2 c = gl_in[2].gl_Position.xy;
+    vec2 d = gl_in[3].gl_Position.xy;
 
-    gl_Position = gl_in[2].gl_Position;
-    EmitVertex();
-
-//    gl_Position = gl_in[1].gl_Position + vec4(width, 0.0, 0.0, 0.0);
-//    EmitVertex();
+    mitre(a, b, c);
+    mitre(b, c, d);
 
     EndPrimitive();
 }
@@ -144,7 +179,7 @@ class Circle(AbstractShape):
             segments=None):
         super().__init__()
         self.layer = layer
-        self.segments = segments or max(4, round(radius * math.pi))
+        self.segments = segments or max(4, round(math.pi * radius))
         self.pos = pos
         self._radius = radius
 
@@ -163,14 +198,11 @@ class Circle(AbstractShape):
 
     def _stroke_indices(self):
         """Indexes for drawing the stroke as a LINE_STRIP."""
-        idxs = np.linspace(
-            0,
-            self.segments - 1,
-            self.segments,
+        n = self.segments
+        return np.array(
+            [n - 1, *range(1, n), 1, 2],
             dtype='i4'
         )
-        idxs[0] = self.segments - 1
-        return idxs[[-1, *range(self.segments), 0, 1]]
 
     def _fill_indices(self):
         """Indexes for drawing the fill as TRIANGLES."""

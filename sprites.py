@@ -125,9 +125,9 @@ def update(dt, keyboard):
         b.pos += b.vel * dt
         b.power = max(0, b.power - dt)
         b.angle += 3 * dt
-        b.scale = b.power
+        b.scale = 1 / (b.power + 1e-6)
         b.color = (1, 0, 0, b.power ** 0.5)
-        if b.scale < 0.01:
+        if b.power < 0.01:
             b.delete()
             bullets.remove(b)
 

@@ -83,7 +83,7 @@ class Polygon(AbstractShape):
             dtype='i4'
         )
         idxs[-1] = 0
-        return idxs[[-1, *range(verts), 0, 1]]
+        return idxs[[-1, *range(verts), 0, 1, 2]]
 
     def _fill_indices(self):
         """Indexes for drawing the fill as TRIANGLES."""
