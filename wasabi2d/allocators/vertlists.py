@@ -186,7 +186,7 @@ class VAO:
             self.indirect_capacity *= 2
             self._initialise_indirect()
         else:
-            self.indirect[aidx] = (num_verts, 1, ixs.start, vs.start, 0)
+            self.indirect[aidx] = (num_indexes, 1, ixs.start, vs.start, 0)
             self.indirect_dirty = True
 
         return lst

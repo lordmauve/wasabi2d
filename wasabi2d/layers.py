@@ -1,7 +1,10 @@
+from typing import Tuple
+
 import numpy as np
 
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
+from .primitives.circles import Circle, line_vao, shape_vao
 
 
 class ShaderManager:
@@ -66,33 +69,54 @@ class Layer:
 
     def _lines_vao(self):
         """Get a VAO for objects made of line strips."""
-        from .primitives.circles import line_vao
         k = 'lines'
         vao = self.arrays.get(k)
         if not vao:
             vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
         return vao
 
-    def add_circle(self, radius, pos=(0, 0), color=(1, 1, 1, 1)):
-        from .primitives.circles import Circle
+    def _fill_vao(self):
+        """Get a VAO for objects made of line strips."""
+        k = 'shapes'
+        vao = self.arrays.get(k)
+        if not vao:
+            vao = self.arrays[k] = shape_vao(self.ctx, self.group.shadermgr)
+        return vao
+
+    def add_circle(
+            self,
+            *,
+            radius: float,
+            pos: Tuple[float, float] = (0, 0),
+            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            fill: bool = True) -> Circle:
         c = Circle(
             layer=self,
             radius=radius,
             pos=pos,
             color=color
         )
-        c._migrate(self._lines_vao())
+        if fill:
+            c._migrate_fill(self._fill_vao())
+        else:
+            c._migrate_stroke(self._lines_vao())
         self.objects.add(c)
         return c
 
     def add_star(
             self,
-            points,
-            inner_radius,
-            outer_radius,
-            pos=(0, 0),
-            color=(1, 1, 1, 1)):
-        from .primitives.circles import Circle
+            *,
+            points: int,
+            inner_radius: float = 1.0,
+            outer_radius: float = None,
+            pos: Tuple[float, float] = (0, 0),
+            fill: bool = True,
+            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+    ) -> Circle:
+
+        if outer_radius is None:
+            outer_radius = inner_radius * 2
+
         c = Circle(
             layer=self,
             segments=2 * points + 1,
@@ -100,7 +124,10 @@ class Layer:
             pos=pos,
             color=color
         )
-        c._migrate(self._lines_vao())
+        if fill:
+            c._migrate_fill(self._fill_vao())
+        else:
+            c._migrate_stroke(self._lines_vao())
         self.objects.add(c)
         c.orig_verts[::2, :2] *= outer_radius
         c.orig_verts[1::2, :2] *= inner_radius
