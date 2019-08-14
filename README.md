@@ -3,9 +3,21 @@
 A fledgling 2D graphics engine for Python, based on [moderngl], with
 [pygame 2.0] for some supporting functions.
 
+![Screenshot as of 2019-08-14](https://github.com/lordmauve/wasabi2d/raw/master/docs/2019-08-14-screenshot.png)
+
 
 [moderngl]: https://github.com/moderngl/moderngl
 [pygame 2.0]: https://www.pygame.org/news
+
+
+Current features include:
+
+* Sprite loading and rendering
+* Stroked and solid-filled polygons, circles, stars, and rectangles
+* Rotate, scale and move any of the above
+* Sounds, keyboard and mouse events, animation/tweening, music and clocks
+  from [Pygame Zero](https://pygame-zero.readthedocs.io/en/stable/index.html)
+  (with most magic removed).
 
 
 ## Installation
