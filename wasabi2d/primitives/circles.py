@@ -4,7 +4,7 @@ import moderngl
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
-from ..sprites import Transformable
+from .polygons import AbstractShape
 
 
 #: Shader for a plain color fill
@@ -74,7 +74,7 @@ def shape_vao(
     )
 
 
-class Circle(Transformable):
+class Circle(AbstractShape):
     """A circle drawn with lines."""
 
     def __init__(
@@ -122,36 +122,3 @@ class Circle(Transformable):
         ], dtype='i4')
         idxs[-1][2] = 1
         return idxs.reshape((-1))
-
-    def _migrate_stroke(self, vao: VAO):
-        """Migrate the stroke into the given VAO."""
-        # TODO: dealloc from an existing VAO
-        self.vao = vao
-        self.lst = vao.alloc(self.segments, self.segments)
-        self.lst.indexbuf[:] = self._stroke_indices()
-        self._update()
-
-    def _migrate_fill(self, vao: VAO):
-        """Migrate the fill into the given VAO."""
-        # TODO: dealloc from an existing VAO
-        idxs = self._fill_indices()
-        self.vao = vao
-        self.lst = vao.alloc(self.segments, len(idxs))
-        self.lst.indexbuf[:] = idxs
-        self._update()
-
-    def _set_dirty(self):
-        self.layer._dirty.add(self)
-
-    def _update(self):
-        xform = self._scale @ self._rot @ self._xlate
-
-        self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:, :2]
-        self.lst.vertbuf['in_color'] = self._color
-        self.lst.dirty = True
-
-    def delete(self):
-        """Delete this primitive."""
-        self.layer._dirty.discard(self)
-        self.layer.objects.discard(self)
-        self.vao.free()

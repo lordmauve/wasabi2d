@@ -5,6 +5,7 @@ import numpy as np
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
+from .primitives.polygons import Polygon, Rect
 
 
 class ShaderManager:
@@ -113,6 +114,7 @@ class Layer:
             fill: bool = True,
             color: Tuple[float, float, float, float] = (1, 1, 1, 1),
     ) -> Circle:
+        assert points >= 3, "Stars must have at least 3 points."
 
         if outer_radius is None:
             outer_radius = inner_radius * 2
@@ -131,6 +133,49 @@ class Layer:
         self.objects.add(c)
         c.orig_verts[::2, :2] *= outer_radius
         c.orig_verts[1::2, :2] *= inner_radius
+        return c
+
+    def add_polygon(
+            self,
+            vertices,
+            *,
+            pos: Tuple[float, float] = (0, 0),
+            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            fill: bool = True) -> Polygon:
+        c = Polygon(
+            layer=self,
+            vertices=vertices,
+            pos=pos,
+            color=color
+        )
+        if fill:
+            c._migrate_fill(self._fill_vao())
+        else:
+            c._migrate_stroke(self._lines_vao())
+        self.objects.add(c)
+        return c
+
+    def add_rect(
+            self,
+            width: float,
+            height: float,
+            *,
+            pos: Tuple[float, float] = (0, 0),
+            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            fill: bool = True) -> Rect:
+
+        c = Rect(
+            layer=self,
+            width=width,
+            height=height,
+            pos=pos,
+            color=color
+        )
+        if fill:
+            c._migrate_fill(self._fill_vao())
+        else:
+            c._migrate_stroke(self._lines_vao())
+        self.objects.add(c)
         return c
 
 

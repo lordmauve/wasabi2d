@@ -27,6 +27,12 @@ scene.layers[0].add_circle(
     pos=(480, 120),
     color='#ff000088',
 )
+r = scene.layers[0].add_rect(
+    width=400,
+    height=50,
+    pos=(480, 500),
+    color='#ff00ff88',
+)
 
 ship.vel = Vector2()
 
@@ -58,6 +64,8 @@ def on_key_down(key):
 
 def update_circ():
     circ.scale += 0.01
+    x, y = r.pos
+    r.pos = (x, y - 1)
 
 
 clock.schedule_interval(update_circ, 0.1)
