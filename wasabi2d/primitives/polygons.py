@@ -14,9 +14,10 @@ class AbstractShape(Transformable):
     def _migrate_stroke(self, vao: VAO):
         """Migrate the stroke into the given VAO."""
         # TODO: dealloc from an existing VAO
+        idxs = self._stroke_indices()
         self.vao = vao
-        self.lst = vao.alloc(self.segments, self.segments)
-        self.lst.indexbuf[:] = self._stroke_indices()
+        self.lst = vao.alloc(len(self.orig_verts), len(idxs))
+        self.lst.indexbuf[:] = idxs
         self._update()
 
     def _migrate_fill(self, vao: VAO):

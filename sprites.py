@@ -31,8 +31,24 @@ r = scene.layers[0].add_rect(
     width=400,
     height=50,
     pos=(480, 500),
+    fill=False,
     color='#ff00ff88',
 )
+
+scene.layers[0].add_polygon(
+    [
+        (-20, 20),
+        (5, 60),
+        (50, 50),
+        (50, -60),
+        (-10, -80),
+        (-50, -50),
+        (0, -30),
+    ],
+    pos=(700, 300),
+    color='#888888ff',
+)
+
 
 ship.vel = Vector2()
 
