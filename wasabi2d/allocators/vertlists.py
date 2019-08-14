@@ -7,34 +7,6 @@ import numpy as np
 from .abstract import AbstractAllocator, NoCapacity
 
 
-class IndexAllocator:
-    """Manage a buffer of vertex indexes, plus indirect render buffer."""
-
-    def __init__(self, capacity=8192):
-        self.allocator = AbstractAllocator(capacity)
-        self.indexes = np.zeros(capacity, dtype='i4')
-        self.allocs = []
-
-    def allocate(self, indexes: Sequence[int], base_vertex: int):
-        """Allocate the given indices into the buffer."""
-        num = len(indexes)
-
-        try:
-            pos = self.allocator.alloc(num)
-        except NoCapacity as e:
-            new_capacity = e.recommended
-            new_indexes = np.zeros(new_capacity, dtype='i4')
-            new_indexes[:len(self.indexes)] = self.indexes
-            self.indexes = new_indexes
-            pos = self.allocator.alloc(num)
-
-        self.indexes[pos] = indexes
-        self.allocs.append(
-            # (count, instanceCount, firstIndex, baseVertex, baseInstance)
-            (num, 1, pos.start, base_vertex, 0),
-        )
-
-
 TYPE_MAP = {
     'uint8': 'f1',
     'uint16': 'u2',
@@ -73,27 +45,20 @@ def dtype_to_moderngl(dtype: np.dtype):
     return (' '.join(out), *names)
 
 
-class DirtyBit:
-    __slots__ = ('_dirty')
-
-    def __bool__(self):
-        return self._dirty
-
-    def set(self):
-        self._dirty = True
-
-    def clear(self):
-        self._dirty = False
-
-
 @dataclass
 class List:
+    """A list allocated within a VAO."""
     buf: 'VAO'
+
+    # View of the vertex buffer, and slice
     vertbuf: np.ndarray
     vertoff: slice
+
+    # View of the index buffer, and slice
     indexbuf: np.ndarray
     indexoff: slice
-    updater: Callable[[], None] = None
+
+    #: True if needs syncing to the GL
     dirty: bool = False
 
     def free(self):
