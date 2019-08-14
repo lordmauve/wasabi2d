@@ -1,4 +1,3 @@
-from typing import Sequence, Callable
 from dataclasses import dataclass
 
 import moderngl
@@ -193,5 +192,8 @@ class VAO:
             self.indirectbo.write(self.indirect)
             self.indirect_dirty = False
 
-        self.vao.render_indirect(self.indirectbo, mode=self.mode, count=len(self.allocs))
-
+        self.vao.render_indirect(
+            self.indirectbo,
+            mode=self.mode,
+            count=len(self.allocs)
+        )

@@ -13,17 +13,28 @@ from .layers import LayerGroup
 class Scene:
     """Top-level interface for renderable objects."""
 
-    def __init__(self, width=800, height=600):
+    def __init__(self, width=800, height=600, antialias=0):
         self.width = width
         self.height = height
 
         pygame.init()
-        pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
-        pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
-        pygame.display.gl_set_attribute(
-            pygame.GL_CONTEXT_PROFILE_MASK,
-            pygame.GL_CONTEXT_PROFILE_CORE
-        )
+
+        glconfig = {
+            'GL_CONTEXT_MAJOR_VERSION': 3,
+            'GL_CONTEXT_MINOR_VERSION': 3,
+            'GL_CONTEXT_PROFILE_MASK': pygame.GL_CONTEXT_PROFILE_CORE,
+        }
+
+        if antialias:
+            glconfig.update({
+                'GL_MULTISAMPLEBUFFERS': 1,
+                'GL_MULTISAMPLESAMPLES': antialias,
+            })
+
+        for k, v in glconfig.items():
+            k = getattr(pygame, k)
+            pygame.display.gl_set_attribute(k, v)
+
         self.screen = pygame.display.set_mode(
             (width, height),
             flags=pygame.OPENGL | pygame.DOUBLEBUF,
