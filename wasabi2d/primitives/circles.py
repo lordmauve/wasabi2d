@@ -61,7 +61,7 @@ in float width[];
 out vec4 color;
 
 const float MITRE_LIMIT = 6.0;
-const float WIDTH = 1.3;
+const float WIDTH = 2.3;
 
 vec2 rot90(vec2 v) {
     return vec2(-v.y, v.x);
@@ -170,6 +170,12 @@ def shape_vao(
 class Circle(AbstractShape):
     """A circle drawn with lines."""
 
+    __slots__ = (
+        'layer', 'segments',
+        '_radius',
+        'orig_verts',
+    )
+
     def __init__(
             self,
             layer,
@@ -212,3 +218,61 @@ class Circle(AbstractShape):
         ], dtype='i4')
         idxs[-1][2] = 1
         return idxs.reshape((-1))
+
+    @property
+    def left(self):
+        return self.pos[0] - self._radius
+
+    @left.setter
+    def left(self, v):
+        self.pos[0] = v + self._radius
+        self._set_dirty()
+
+    @property
+    def right(self):
+        return self.pos[0] + self._radius
+
+    @right.setter
+    def right(self, v):
+        self.pos[0] = v - self._radius
+        self._set_dirty()
+
+    @property
+    def top(self):
+        return self.pos[1] - self._radius
+
+    @top.setter
+    def top(self, v):
+        self.pos[1] = v + self._radius
+        self._set_dirty()
+
+    @property
+    def bottom(self):
+        return self.pos[1] + self._radius
+
+    @bottom.setter
+    def bottom(self, v):
+        self.pos[1] = v - self._radius
+        self._set_dirty()
+
+    def colliderect(self, ano):
+        return not (
+            self.left > ano.right
+            or self.right < ano.left
+            or self.top > ano.bottom
+            or self.bottom < ano.top
+        )
+
+    def collidelist(self, lst):
+        for idx, o in enumerate(lst):
+            if self.colliderect(o):
+                return idx
+        return -1
+
+    @property
+    def centerx(self):
+        return self.pos[0]
+
+    @property
+    def centery(self):
+        return self.pos[1]

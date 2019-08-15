@@ -40,6 +40,7 @@ class Scene:
             flags=pygame.OPENGL | pygame.DOUBLEBUF,
             depth=24
         )
+        pygame.display.set_caption("wasabi2d")
         ctx = self.ctx = moderngl.create_context()
 
         self.layers = LayerGroup(ctx)

@@ -1,7 +1,5 @@
 from unittest.mock import ANY
-import math
 import numpy as np
-import moderngl
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
@@ -43,7 +41,8 @@ class AbstractShape(Transformable):
         """Delete this primitive."""
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
-        self.vao.free()
+        self.vao.free(self.lst)
+        self.lst = None
 
 
 class Polygon(AbstractShape):
@@ -101,6 +100,10 @@ class Rect(Polygon):
         (0.5, -0.5),
     ], dtype='f4')
 
+    __slots__ = (
+        'width', 'height',
+    )
+
     def __init__(
             self,
             layer,
@@ -122,3 +125,47 @@ class Rect(Polygon):
 
     def _vertices(self):
         return np.copy(self.VERTS) * (self.width, self.height)
+
+    @property
+    def left(self):
+        return self.pos[0] - self.width / 2
+
+    @left.setter
+    def left(self, v):
+        self.pos[0] = v + self.width / 2
+        self._set_dirty()
+
+    @property
+    def right(self):
+        return self.pos[0] + self.width / 2
+
+    @right.setter
+    def right(self, v):
+        self.pos[0] = v - self.width / 2
+        self._set_dirty()
+
+    @property
+    def top(self):
+        return self.pos[1] - self.height / 2
+
+    @top.setter
+    def top(self, v):
+        self.pos[1] = v + self.height / 2
+        self._set_dirty()
+
+    @property
+    def bottom(self):
+        return self.pos[1] + self.height / 2
+
+    @bottom.setter
+    def bottom(self, v):
+        self.pos[1] = v - self.height / 2
+        self._set_dirty()
+
+    @property
+    def centerx(self):
+        return self.pos[0]
+
+    @property
+    def centery(self):
+        return self.pos[1]

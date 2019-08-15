@@ -1,7 +1,6 @@
 import sys
 import operator
 import time
-import builtins
 import types
 from collections import namedtuple
 
@@ -78,6 +77,7 @@ class EventMapper:
                 f"Unknown handler type {name}"
             )
         self.handlers[type] = self.prepare_handler(handler)
+        return handler
 
     def prepare_handler(self, handler):
         """Adapt a wasabi2d game's raw handler function to take a Pygame Event.
@@ -164,8 +164,8 @@ class EventMapper:
                 self.dispatch_event(event)
 
             pgzclock.tick(dt)
-            ev = UpdateEvent(UpdateEvent, t, dt, self.keyboard)
 
+            ev = UpdateEvent(UpdateEvent, t, dt, self.keyboard)
             updated = self.dispatch_event(ev)
 
             screen_change = False  # self.reinit_screen()

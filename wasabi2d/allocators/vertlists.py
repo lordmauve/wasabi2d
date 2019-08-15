@@ -44,7 +44,7 @@ def dtype_to_moderngl(dtype: np.dtype):
     return (' '.join(out), *names)
 
 
-@dataclass
+@dataclass(eq=False)
 class List:
     """A list allocated within a VAO."""
     buf: 'VAO'
@@ -112,10 +112,10 @@ class VAO:
     def _initialise_indirect(self):
         self.indirect = np.zeros((self.indirect_capacity, 5), dtype='u4')
         for aidx, lst in enumerate(self.allocs):
-            num_verts = lst.vertoff.stop - lst.vertoff.start
+            num_indexes = lst.indexoff.stop - lst.indexoff.start
             ixs_start = lst.indexoff.start
             vs_start = lst.vertoff.start
-            self.indirect[aidx] = (num_verts, 0, ixs_start, vs_start, 0)
+            self.indirect[aidx] = (num_indexes, 1, ixs_start, vs_start, 0)
         self.indirectbo = self.ctx.buffer(self.indirect, dynamic=True)
         self.indirect_dirty = False
 

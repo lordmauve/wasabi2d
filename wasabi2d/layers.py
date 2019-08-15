@@ -149,11 +149,11 @@ class Layer:
             pos=pos,
             color=color
         )
+        self.objects.add(c)
         if fill:
             c._migrate_fill(self._fill_vao())
         else:
             c._migrate_stroke(self._lines_vao())
-        self.objects.add(c)
         return c
 
     def add_rect(
@@ -172,11 +172,11 @@ class Layer:
             pos=pos,
             color=color
         )
+        self.objects.add(c)
         if fill:
             c._migrate_fill(self._fill_vao())
         else:
             c._migrate_stroke(self._lines_vao())
-        self.objects.add(c)
         return c
 
 
