@@ -110,6 +110,7 @@ def update_step(dt):
         # Find first collision
         idx = ball.collidelist(bricks)
         if idx != -1:
+            scene.camera.screen_shake()
             brick = bricks[idx]
             # Work out what side we collided on
             dx = (ball.centerx - brick.centerx) / BRICK_W

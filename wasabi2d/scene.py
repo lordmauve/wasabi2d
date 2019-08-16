@@ -1,4 +1,5 @@
 """Wrapper around window creation."""
+import math
 import numpy as np
 import pygame
 import pygame.image
@@ -7,6 +8,7 @@ import pygame.display
 import moderngl
 from pyrr import Matrix44
 
+from . import clock
 from .layers import LayerGroup
 
 
@@ -90,6 +92,9 @@ class Camera:
             far=1000
         ).astype('f4')
         self._xform = np.identity(4, dtype='f4')
+        self._cam_offset = np.zeros(2, dtype='f4')
+        self._cam_vel = np.zeros(2, dtype='f4')
+        self._pos = np.zeros(2, dtype='f4')
         self.pos = hw, hh
 
     @property
@@ -99,8 +104,29 @@ class Camera:
     @pos.setter
     def pos(self, v):
         assert len(v) == 2
-        self._xform[-1][:2] = -np.array(v, dtype='f4')
+        self._pos[:] = v
+        self._xform[-1][:2] = self._cam_offset - self._pos
 
     @property
     def proj(self):
         return self._xform @ self._proj
+
+    def screen_shake(self, dist=25):
+        theta = np.random.uniform(0, math.tau)
+        basis = np.array([theta, + math.pi * 0.5])
+        self._cam_offset[:] = dist * np.sin(basis)
+        self._xform[-1][:2] = self._cam_offset - self._pos
+        clock.schedule_interval(self._steady_cam, 0.01)
+
+    def _steady_cam(self):
+        dt = 0.05  # guarantee stable behaviour
+        self._cam_offset += self._cam_vel * dt
+        self._cam_vel -= self._cam_offset * (300 * dt)
+        self._cam_vel *= 0.1 ** dt
+        self._cam_offset *= 0.01 ** dt
+        if np.sum(self._cam_vel ** 2) < 1e-3 \
+                and np.sum(self._cam_offset ** 2) < 1e-2:
+            self._cam_offset[:] = self._cam_vel[:] = 0
+            clock.unschedule(self._steady_cam)
+        self._xform[-1][:2] = self._cam_offset - self._pos
+
