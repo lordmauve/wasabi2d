@@ -157,7 +157,7 @@ class Animation:
         try:
             self.function = TWEEN_FUNCTIONS[tween]
         except KeyError:
-            raise KeyError('No tween called %s found.' % tween)
+            raise KeyError('No tween called %s found.' % tween) from None
         self.duration = duration
         self.on_finished = on_finished
         self.t = 0
@@ -170,7 +170,7 @@ class Animation:
             except AttributeError:
                 raise ValueError(
                     'object %r has no attribute %s to animate' % (object, k)
-                )
+                ) from None
             self.initial[k] = a
             key = id(object), k
             previous_animation = self._animation_dict.get(key)

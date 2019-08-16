@@ -163,6 +163,7 @@ class Transformable:
     _angle = 0
 
     def __init__(self):
+        super().__init__()
         self.verts = None
         self._scale = identity()
         self._rot = identity()
@@ -202,7 +203,24 @@ class Transformable:
         self._set_dirty()
 
 
-class Sprite(Transformable):
+class Colorable:
+    """Mix-in for a primitive that has a 4-component color value."""
+
+    def __init__(self):
+        super().__init__()
+        self._color = np.ones(4, dtype='f4')
+
+    @property
+    def color(self):
+        return tuple(self._color)
+
+    @color.setter
+    def color(self, v):
+        self._color[:] = v
+        self._set_dirty()
+
+
+class Sprite(Colorable, Transformable):
     def __init__(
             self,
             layer,
@@ -217,22 +235,13 @@ class Sprite(Transformable):
         self.uvs = uvs
         self.orig_verts = orig_verts
         self._dirty = True
-        self._color = np.ones((4, 4), dtype='f4')
+        self._vert_color = np.ones((4, 4), dtype='f4')
 
     def delete(self):
         """Delete this sprite."""
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
         self.array.delete(self)
-
-    @property
-    def color(self):
-        return tuple(self.color[0])
-
-    @color.setter
-    def color(self, v):
-        self._color[:] = v
-        self._set_dirty()
 
     def _set_dirty(self):
         self.layer._dirty.add(self)
@@ -241,8 +250,9 @@ class Sprite(Transformable):
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
+        self._vert_color[:] = self._color
         self.verts = np.hstack([
             self.orig_verts @ xform,
-            self._color
+            self._vert_color,
         ])
         self._dirty = True

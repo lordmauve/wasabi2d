@@ -3,12 +3,12 @@ import numpy as np
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
-from ..sprites import Transformable
+from ..sprites import Colorable, Transformable
 
 from ..vendor.earcut import earcut
 
 
-class AbstractShape(Transformable):
+class AbstractShape(Colorable, Transformable):
     def _migrate_stroke(self, vao: VAO):
         """Migrate the stroke into the given VAO."""
         # TODO: dealloc from an existing VAO
@@ -43,6 +43,7 @@ class AbstractShape(Transformable):
         self.layer.objects.discard(self)
         self.vao.free(self.lst)
         self.lst = None
+        self.layer = None
 
 
 class Polygon(AbstractShape):

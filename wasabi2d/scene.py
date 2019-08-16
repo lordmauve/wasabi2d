@@ -116,7 +116,7 @@ class Camera:
         basis = np.array([theta, + math.pi * 0.5])
         self._cam_offset[:] = dist * np.sin(basis)
         self._xform[-1][:2] = self._cam_offset - self._pos
-        clock.schedule_interval(self._steady_cam, 0.01)
+        clock.schedule_unique(self._steady_cam, 0.01)
 
     def _steady_cam(self):
         dt = 0.05  # guarantee stable behaviour
@@ -127,6 +127,7 @@ class Camera:
         if np.sum(self._cam_vel ** 2) < 1e-3 \
                 and np.sum(self._cam_offset ** 2) < 1e-2:
             self._cam_offset[:] = self._cam_vel[:] = 0
-            clock.unschedule(self._steady_cam)
+        else:
+            clock.schedule_unique(self._steady_cam, 0.01)
         self._xform[-1][:2] = self._cam_offset - self._pos
 

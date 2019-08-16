@@ -2,7 +2,7 @@ import random
 import colorsys
 from collections import deque
 from math import copysign
-from wasabi2d import event, run, Scene
+from wasabi2d import event, run, Scene, animate
 
 
 WIDTH = 600
@@ -112,6 +112,7 @@ def update_step(dt):
         if idx != -1:
             scene.camera.screen_shake()
             brick = bricks[idx]
+
             # Work out what side we collided on
             dx = (ball.centerx - brick.centerx) / BRICK_W
             dy = (ball.centery - brick.centery) / BRICK_H
@@ -119,8 +120,18 @@ def update_step(dt):
                 vx = copysign(abs(vx), dx)
             else:
                 vy = copysign(abs(vy), dy)
-            brick.delete()
             del bricks[idx]
+            animate(
+                brick,
+                tween='bounce_end',
+                scale=0
+            )
+            animate(
+                brick,
+                on_finished=brick.delete,
+                color=(0, 0, 0, 1),
+                angle=random.uniform(-1, 1),
+            )
 
     ball.vel = (vx, vy)
 
