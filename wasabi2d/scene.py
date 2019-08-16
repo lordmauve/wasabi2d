@@ -79,19 +79,27 @@ class Camera:
     def __init__(self, width, height):
         self.width = width
         self.height = height
+        hw = self.width * 0.5
+        hh = self.height * 0.5
         self._proj = Matrix44.orthogonal_projection(
-            left=0, right=width, top=height, bottom=0, near=-1000, far=1000,
+            left=-hw,
+            right=hw,
+            top=hh,
+            bottom=-hh,
+            near=-1000,
+            far=1000
         ).astype('f4')
         self._xform = np.identity(4, dtype='f4')
+        self.pos = hw, hh
 
     @property
     def pos(self):
-        return self._xform[-1][:2]
+        return -self._xform[-1][:2]
 
     @pos.setter
     def pos(self, v):
         assert len(v) == 2
-        self._xform[:2][-1] = v
+        self._xform[-1][:2] = -np.array(v, dtype='f4')
 
     @property
     def proj(self):
