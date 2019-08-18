@@ -1,6 +1,7 @@
 import os
 import os.path
 import sys
+import weakref
 
 import pygame.image
 import pygame.mixer
@@ -87,9 +88,9 @@ class ResourceLoader:
     Dotted paths can be used to traverse directories.
 
     """
-    def __init__(self, subpath):
+    def __init__(self, subpath, cache=True):
         self._subpath = subpath
-        self._cache = {}
+        self._cache = {} if cache else weakref.WeakValueDictionary()
         self._have_root = False
 
     def validate_root(self, name):
@@ -227,6 +228,6 @@ class FontLoader(ResourceLoader):
         return pygame.font.Font(path, fontsize)
 
 
-images = ImageLoader('images')
+images = ImageLoader('images', cache=False)
 sounds = SoundLoader('sounds')
 fonts = FontLoader('fonts')
