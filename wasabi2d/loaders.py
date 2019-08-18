@@ -180,7 +180,7 @@ class ImageLoader(ResourceLoader):
     TYPE = 'image'
 
     def _load(self, path):
-        return pygame.image.load(path).convert_alpha()
+        return pygame.image.load(path)
 
 
 class UnsupportedFormat(Exception):

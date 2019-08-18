@@ -6,7 +6,7 @@ scene = Scene(antialias=8)
 scene.background = (0, 0.02, 0.1)
 
 ship = scene.layers[0].add_sprite(
-    'ship.png',
+    'ship',
     pos=(scene.width / 2, scene.height / 2)
 )
 circ = scene.layers[0].add_circle(
@@ -58,18 +58,13 @@ bullets = []
 
 
 @event
-def on_mouse_down(pos):
-    print(pos)
-
-
-@event
 def on_key_down(key):
     if key == key.F12:
         scene.screenshot()
 
     elif key == key.SPACE:
         bullet = scene.layers[0].add_sprite(
-            'tiny_bullet.png',
+            'tiny_bullet',
             pos=ship.pos
         )
         bullet.color = (1, 0, 0, 1)

@@ -1,6 +1,8 @@
 import numpy as np
 from pyrr import vector3, matrix33
 
+from .color import convert_color
+
 
 Z = vector3.create_unit_length_z()
 
@@ -216,7 +218,7 @@ class Colorable:
 
     @color.setter
     def color(self, v):
-        self._color[:] = v
+        self._color[:] = convert_color(v)
         self._set_dirty()
 
 
@@ -242,6 +244,7 @@ class Sprite(Colorable, Transformable):
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
         self.array.delete(self)
+        self.layer = None
 
     def _set_dirty(self):
         self.layer._dirty.add(self)

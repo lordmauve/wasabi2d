@@ -48,7 +48,7 @@ class Layer:
             a.render()
 
     def add_sprite(self, image, pos=(0, 0), angle=0):
-        tex, uvs, vs = self.group.atlas[image]
+        tex, uvs, vs = self.group.atlas.get(image)
         spr = Sprite(
             layer=self,
             image=image,
@@ -187,7 +187,7 @@ class LayerGroup(dict):
     def __init__(self, ctx):
         self.ctx = ctx
         self.shadermgr = ShaderManager(self.ctx)
-        self.atlas = Atlas(ctx, ['ship.png', 'tiny_bullet.png'])
+        self.atlas = Atlas(ctx)
 
     def __missing__(self, k):
         if not isinstance(k, (float, int)):
@@ -196,6 +196,7 @@ class LayerGroup(dict):
         return layer
 
     def render(self, proj, t, dt):
+        self.atlas._update()
         self.shadermgr.set_proj(proj)
         for k in sorted(self):
             self[k].render(t, dt)
