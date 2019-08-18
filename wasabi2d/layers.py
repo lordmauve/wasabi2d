@@ -6,6 +6,7 @@ from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect
+from .primitives.text import Label, FontAtlas, text_vao
 
 
 class ShaderManager:
@@ -30,6 +31,24 @@ class ShaderManager:
         """Set the projection matrix."""
         for prog in self.programs.values():
             prog['proj'].write(proj.tobytes())
+
+
+class FontManager:
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.font_atlases = {}
+
+    def get(self, font_name):
+        try:
+            return self.font_atlases[font_name]
+        except KeyError:
+            fa = self.font_atlases[font_name] = FontAtlas(self.ctx, font_name)
+            return fa
+
+    def update(self):
+        """Send any dirty textures to the GL."""
+        for f in self.font_atlases.values():
+            f._update()
 
 
 class Layer:
@@ -83,6 +102,14 @@ class Layer:
         vao = self.arrays.get(k)
         if not vao:
             vao = self.arrays[k] = shape_vao(self.ctx, self.group.shadermgr)
+        return vao
+
+    def _text_vao(self, font):
+        """Get a VAO for objects made of font glyphs."""
+        k = 'text', font
+        vao = self.arrays.get(k)
+        if not vao:
+            vao = self.arrays[k] = text_vao(self.ctx, self.group.shadermgr)
         return vao
 
     def add_circle(
@@ -179,6 +206,28 @@ class Layer:
             c._migrate_stroke(self._lines_vao())
         return c
 
+    def add_label(self,
+                  text: str,
+                  font: str,
+                  *,
+                  align: str = 'left',
+                  pos: Tuple[float, float] = (0, 0),
+                  color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+                  ) -> Rect:
+
+        fa = self.group.fontmgr.get(font)
+        c = Label(
+            text,
+            fa,
+            self,
+            align=align,
+            pos=pos,
+            color=color
+        )
+        self.objects.add(c)
+        c._migrate(self._text_vao(font))
+        return c
+
 
 class LayerGroup(dict):
     def __new__(cls, ctx):
@@ -187,6 +236,7 @@ class LayerGroup(dict):
     def __init__(self, ctx):
         self.ctx = ctx
         self.shadermgr = ShaderManager(self.ctx)
+        self.fontmgr = FontManager(self.ctx)
         self.atlas = Atlas(ctx)
 
     def __missing__(self, k):
@@ -197,6 +247,7 @@ class LayerGroup(dict):
 
     def render(self, proj, t, dt):
         self.atlas._update()
+        self.fontmgr.update()
         self.shadermgr.set_proj(proj)
         for k in sorted(self):
             self[k].render(t, dt)

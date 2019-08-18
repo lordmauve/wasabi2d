@@ -279,14 +279,24 @@ class Atlas:
 
         self.surfs_texs = []
         self._dirty = set()
-
         self.tex_for_name = {}
+
+    def _load(self, name):
+        """Load the image for the given name."""
+        return images.load(name)
+
+    def mksurftex(self, size):
+        """Make a new surface and corresponding texture of the given size."""
+        surf = pygame.Surface(size, pygame.SRCALPHA, depth=32)
+        tex = self.ctx.texture(size, 4)
+        self.surfs_texs.append((surf, tex))
+        return surf, tex
 
     def get(self, sprite_name):
         if sprite_name in self.tex_for_name:
             return self.tex_for_name[sprite_name]
 
-        img = images.load(sprite_name)
+        img = self._load(sprite_name)
 
         pad = self.padding * 2
 
@@ -306,9 +316,7 @@ class Atlas:
             surf, tex = self.surfs_texs[bin]
         except IndexError:
             size = (self.texsize, self.texsize)
-            surf = pygame.Surface(size, pygame.SRCALPHA, depth=32)
-            tex = self.ctx.texture(size, 4)
-            self.surfs_texs.append((surf, tex))
+            surf, tex = self.mksurftex(size)
         self._dirty.add(bin)
 
         rotated = False
@@ -341,18 +349,25 @@ class Atlas:
                 (l, b),
             ], dtype='f4')
         verts = np.array([
-            (0, orig.h, 1),
-            (orig.w, orig.h, 1),
-            (orig.w, 0, 1),
             (0, 0, 1),
+            (orig.w, 0, 1),
+            (orig.w, orig.h, 1),
+            (0, orig.h, 1),
         ], dtype='f4')
         verts -= (orig.w / 2, orig.h / 2, 0)
         res = self.tex_for_name[sprite_name] = (tex, texcoords, verts)
         return res
 
     def _update(self):
+        """Copy updated surfaces to the GL texture objects."""
         for bin in self._dirty:
             surf, tex = self.surfs_texs[bin]
             tex.write(pygame.image.tostring(surf, "RGBA", 1))
             tex.build_mipmaps(max_level=2)
         self._dirty.clear()
+
+    def dump(self):
+        """Save screenshots of all the textures."""
+        for i, (surf, _) in enumerate(self.surfs_texs):
+            fname = f'atlas{i}.png'
+            pygame.image.save(surf, fname)

@@ -5,6 +5,7 @@ import weakref
 
 import pygame.image
 import pygame.mixer
+import pygame.font
 
 
 # Root directory for loaders

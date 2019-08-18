@@ -38,11 +38,11 @@ TEXTURED_QUADS_PROGRAM = dict(
         }
     ''',
 )
+QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
 
 
 class SpriteArray:
     """Vertex array object to hold textured quads."""
-    QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
     PROGRAM = TEXTURED_QUADS_PROGRAM
 
     def __init__(self, ctx, prog, tex, sprites):
@@ -65,7 +65,7 @@ class SpriteArray:
                 s._update()
 
         self.indexes = np.vstack([
-            self.QUAD + 4 * i
+            QUAD + 4 * i
             for i in range(self.allocated + extra)
         ])
         self.uvs = np.vstack(
