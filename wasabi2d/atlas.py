@@ -354,9 +354,13 @@ class Atlas:
             (orig.w, orig.h, 1),
             (0, orig.h, 1),
         ], dtype='f4')
-        verts -= (orig.w / 2, orig.h / 2, 0)
+        self.set_anchor(verts, orig.w, orig.h)
         res = self.tex_for_name[sprite_name] = (tex, texcoords, verts)
         return res
+
+    def set_anchor(self, verts, w, h):
+        """Set the anchor position to the center of the sprite."""
+        verts -= (w / 2, h / 2, 0)
 
     def _update(self):
         """Copy updated surfaces to the GL texture objects."""

@@ -28,12 +28,20 @@ scene.layers[0].add_circle(
     color='#ff000088',
 )
 lbl = scene.layers[0].add_label(
-    "Hello World!",
+    "Hello y World!",
     font='bubblegum_sans',
     pos=(40, 560),
 )
 lbl.scale = 3
 lbl.color = 'yellow'
+r = scene.layers[0].add_rect(
+    pos=(140, 560),
+    width=200,
+    height=2,
+    color='yellow',
+)
+
+
 r = scene.layers[0].add_rect(
     width=400,
     height=50,

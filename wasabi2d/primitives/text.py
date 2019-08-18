@@ -40,6 +40,10 @@ class FontAtlas(Atlas):
         super().__init__(ctx)
         self.font = fonts.load(font_name, fontsize=48)
 
+    def set_anchor(self, verts, w, h):
+        """Set the anchor position to the bottom-left of the glyph."""
+        verts -= (w, h, 0)
+
     def _load(self, name):
         """Load the image for the given name."""
         return self.font.render(name, True, (255, 255, 255))
@@ -98,8 +102,8 @@ class Label(Colorable, Transformable):
         metrics = np.array(font.metrics(self._text), dtype='f4')
         cx = np.cumsum(metrics[:, 4]).reshape(-1, 1)
         xpos = metrics[:, 0:2] + cx
-        ypos = metrics[:, 2:4]
 
+        descent = font.get_descent()
         n_chars = len(metrics)
 
         assert n_chars == len(self._text)
@@ -113,10 +117,14 @@ class Label(Colorable, Transformable):
             tex, glyph_uvs, glyph_verts = self.font_atlas.get(char)
             tex_ids.add(tex.glo)
 
+            # The kerning seems pretty bad on Pygame fonts...
+#            glyph_width = glyph_verts[1, 0] - glyph_verts[0, 0]
+#            metrics_width = xpos[idx, 1] - xpos[idx, 0]
+#            print(repr(char), glyph_width, metrics_width, metrics[idx, 4])
+
             x = xpos[idx, 0]
-            y = ypos[idx, 0]
             glyph_slice = slice(idx * 4, idx * 4 + 4)
-            verts[glyph_slice] = glyph_verts + (x, y, 0)
+            verts[glyph_slice] = glyph_verts + (x, -descent, 0)
             uvs[glyph_slice] = glyph_uvs
             indices[6 * idx:6 * idx + 6] = QUAD + 4 * idx
 
