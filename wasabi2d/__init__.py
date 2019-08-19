@@ -13,6 +13,7 @@ from . import music
 from . import clock
 from .scene import Scene
 from .animation import animate
+from .storage import Storage
 
 event = EventMapper()
 del EventMapper

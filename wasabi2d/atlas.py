@@ -292,6 +292,28 @@ class Atlas:
         self.surfs_texs.append((surf, tex))
         return surf, tex
 
+    def npot_tex(self, sprite_name, img):
+        """Get a non-power-of-two texture for this image."""
+        w, h = size = img.get_size()
+        tex = self.ctx.texture(size, 4)
+        tex.write(pygame.image.tostring(img, "RGBA", 1))
+        tex.build_mipmaps(max_level=2)
+        texcoords = np.array([
+            (0, 1),
+            (1, 1),
+            (1, 0),
+            (0, 0),
+        ], dtype='f4')
+        verts = np.array([
+            (0, 0, 1),
+            (w, 0, 1),
+            (w, h, 1),
+            (0, h, 1),
+        ], dtype='f4')
+        self.set_anchor(verts, w, h)
+        res = self.tex_for_name[sprite_name] = (tex, texcoords, verts)
+        return res
+
     def get(self, sprite_name):
         if sprite_name in self.tex_for_name:
             return self.tex_for_name[sprite_name]
@@ -304,7 +326,11 @@ class Atlas:
         r = Rect(orig)
         r.w += pad
         r.h += pad
-        bin, packed = self.packer.add(r)
+        try:
+            bin, packed = self.packer.add(r)
+        except NoFit:
+            # Does not fit in packer bounds
+            return self.npot_tex(sprite_name, img)
 
         p = Rect(packed)
         p.left += self.padding

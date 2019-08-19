@@ -147,12 +147,14 @@ class SpriteArray:
         for i, s in enumerate(self.sprites):
             if s._dirty:
                 self.verts[i * 4:i * 4 + 4] = s.verts
+                self.uvs[i * 4:i * 4 + 4] = s.uvs
                 s._dirty = False
                 dirty = True
         assert self.verts.dtype == 'f4', \
             f"Dtype of verts is {self.verts.dtype}"
         if dirty:
             self.vbo.write(self.verts)
+            self.uvbo.write(self.uvs)
         self.vao.render(vertices=self.allocated * 6)
 
 
@@ -179,6 +181,26 @@ class Transformable:
     def pos(self, v):
         assert len(v) == 2
         self._xlate[2][:2] = v
+        self._set_dirty()
+        self.verts = None
+
+    @property
+    def x(self):
+        return self._xlate[2, 0]
+
+    @x.setter
+    def x(self, v):
+        self._xlate[2, 0] = v
+        self._set_dirty()
+        self.verts = None
+
+    @property
+    def y(self):
+        return self._xlate[2, 1]
+
+    @y.setter
+    def y(self, v):
+        self._xlate[2, 1] = v
         self._set_dirty()
         self.verts = None
 
@@ -227,17 +249,43 @@ class Sprite(Colorable, Transformable):
             self,
             layer,
             image,
-            uvs,
-            orig_verts,
-            array=None,
-            offset=None):
+            anchor=None):
         super().__init__()
         self.layer = layer
-        self.image = image
-        self.uvs = uvs
-        self.orig_verts = orig_verts
-        self._dirty = True
+        self.array = None
+        self._image = None
         self._vert_color = np.ones((4, 4), dtype='f4')
+        self.image = image  # trigger sprite load and migration
+
+    @property
+    def image(self):
+        """Get the name of the image for this sprite."""
+        return self._image
+
+    @image.setter
+    def image(self, name):
+        """Set the image."""
+        if name == self._image:
+            return
+
+        self._image = name
+        tex, uvs, vs = self.layer.group.atlas.get(name)
+        self.uvs = np.copy(uvs)
+        self.orig_verts = np.copy(vs)
+        xs = self.orig_verts[:, 0]
+        ys = self.orig_verts[:, 1]
+        self.width = np.fabs(np.min(xs) - np.max(xs))
+        self.height = np.fabs(np.min(ys) - np.max(ys))
+        # TODO: apply anchor to the verts
+        self._dirty = True
+
+        if not self.array:
+            # initial migration into an array
+            self.layer._migrate_sprite(self, tex)
+        elif tex != self.array.tex:
+            # migrate to a different vao
+            self.array.delete(self)
+            self.layer._migrate_sprite(self, tex)
 
     def delete(self):
         """Delete this sprite."""

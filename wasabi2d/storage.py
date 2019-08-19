@@ -184,6 +184,3 @@ class Storage(dict):
             else:
                 typename = t.__qualname__
             yield json_path, typename
-
-
-storage = Storage()

@@ -15,7 +15,12 @@ from .layers import LayerGroup
 class Scene:
     """Top-level interface for renderable objects."""
 
-    def __init__(self, width=800, height=600, antialias=0):
+    def __init__(
+            self,
+            width=800,
+            height=600,
+            antialias=0,
+            title="wasabi2d"):
         self.width = width
         self.height = height
 
@@ -42,7 +47,7 @@ class Scene:
             flags=pygame.OPENGL | pygame.DOUBLEBUF,
             depth=24
         )
-        pygame.display.set_caption("wasabi2d")
+        self.title = title
         ctx = self.ctx = moderngl.create_context()
 
         self.layers = LayerGroup(ctx)
@@ -56,6 +61,15 @@ class Scene:
         event(self.draw)
 
         self.background = (0.0, 0.0, 0.0)
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, title):
+        self._title = title
+        pygame.display.set_caption(title)
 
     def screenshot(self, filename=None):
         """Take a screenshot."""

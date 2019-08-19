@@ -66,17 +66,19 @@ class Layer:
         for a in self.arrays.values():
             a.render()
 
-    def add_sprite(self, image, pos=(0, 0), angle=0):
-        tex, uvs, vs = self.group.atlas.get(image)
+    def add_sprite(self, image, pos=(0, 0), angle=0, anchor=None):
         spr = Sprite(
             layer=self,
             image=image,
-            uvs=np.copy(uvs),
-            orig_verts=np.copy(vs),
+            anchor=anchor
         )
         spr.pos = pos
         spr.angle = angle
-        spr.uvs = uvs
+        self.objects.add(spr)
+        return spr
+
+    def _migrate_sprite(self, spr, tex):
+        """Move sprite spr into the correct vertex array."""
         k = ('sprite', tex.glo)
         array = self.arrays.get(k)
         if not array:
@@ -85,8 +87,6 @@ class Layer:
             self.arrays[k] = array
         else:
             array.add(spr)
-        self.objects.add(spr)
-        return spr
 
     def _lines_vao(self):
         """Get a VAO for objects made of line strips."""
@@ -211,6 +211,7 @@ class Layer:
                   font: str,
                   *,
                   align: str = 'left',
+                  fontsize: int = 20,
                   pos: Tuple[float, float] = (0, 0),
                   color: Tuple[float, float, float, float] = (1, 1, 1, 1),
                   ) -> Rect:
@@ -221,6 +222,7 @@ class Layer:
             fa,
             self,
             align=align,
+            fontsize=fontsize,
             pos=pos,
             color=color
         )

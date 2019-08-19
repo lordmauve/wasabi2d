@@ -109,6 +109,7 @@ clock.schedule_interval(rotate_star, 2.0)
 def update(t, dt, keyboard):
     ship.vel *= 0.3 ** dt
     lbl.text = f"Speed: {ship.vel.magnitude() / 10:0.1f}m/s"
+    lbl.scale = (ship.vel.magnitude() / 100) ** 2 + 1
 
     accel = 300 * dt
     if keyboard.right:
