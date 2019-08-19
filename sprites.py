@@ -30,7 +30,8 @@ scene.layers[0].add_circle(
 lbl = scene.layers[0].add_label(
     "Time: 0s",
     font='bubblegum_sans',
-    pos=(40, 560),
+    pos=(scene.width * 0.5, 560),
+    align='right'
 )
 lbl.color = 'yellow'
 
@@ -69,6 +70,13 @@ bullets = []
 def on_key_down(key):
     if key == key.F12:
         scene.screenshot()
+
+    elif key == key.K_1:
+        lbl.align = 'left'
+    elif key == key.K_2:
+        lbl.align = 'center'
+    elif key == key.K_3:
+        lbl.align = 'right'
 
     elif key == key.SPACE:
         bullet = scene.layers[0].add_sprite(

@@ -68,6 +68,14 @@ class FontAtlas(Atlas):
         return self.font.render(name, True, (255, 255, 255))
 
 
+# Text alignments as a fraction of text layout width
+ALIGNMENTS = {
+    'left': 0,
+    'center': 0.5,
+    'right': 1,
+}
+
+
 class Label(Colorable, Transformable):
     """A single-line text block with no additional layout/wrapping."""
 
@@ -81,18 +89,33 @@ class Label(Colorable, Transformable):
             fontsize=20,
             pos=(0, 0),
             color=(1, 1, 1, 1)):
-
+        assert align in ALIGNMENTS, f"{align!r} is not a valid text alignment."
         super().__init__()
         self.lst = None
+        self._verts = None
+        self.align = align
         self.layer = layer
         self.fontsize = fontsize
         self.font_atlas = font_atlas
         self.pos = pos
         self.color = color
-        self.text = text
+        self.text = text  # trigger layout
 
     def _set_dirty(self):
         self.layer._dirty.add(self)
+
+    @property
+    def align(self):
+        """Get the alignment of the text relative to pos."""
+        return self._align
+
+    @align.setter
+    def align(self, align):
+        if align not in ALIGNMENTS:
+            raise ValueError(f"{align!r} is not a valid text alignment.")
+        self._align = align
+        if self._verts is not None:
+            self._layout()
 
     @property
     def text(self) -> str:
@@ -123,6 +146,9 @@ class Label(Colorable, Transformable):
         cx = np.cumsum(metrics[:, 4]).reshape(-1, 1)
         xpos = metrics[:, 0:2] + cx
 
+        layout_width = cx[-1] + metrics[-1, 1]
+        align_offset = ALIGNMENTS[self._align] * layout_width
+
         descent = font.get_descent()
         n_chars = len(metrics)
 
@@ -144,7 +170,7 @@ class Label(Colorable, Transformable):
 
             x = xpos[idx, 0]
             glyph_slice = slice(idx * 4, idx * 4 + 4)
-            verts[glyph_slice] = glyph_verts + (x, -descent, 0)
+            verts[glyph_slice] = glyph_verts + (x - align_offset, -descent, 0)
             uvs[glyph_slice] = glyph_uvs
             indices[6 * idx:6 * idx + 6] = QUAD + 4 * idx
 
@@ -173,7 +199,11 @@ class Label(Colorable, Transformable):
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
-        self.lst.vertbuf['in_vert'] = (self._verts @ xform)[:, :2]
+        np.matmul(
+            self._verts,
+            xform[:, :2],
+            self.lst.vertbuf['in_vert']
+        )
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
 

@@ -168,7 +168,6 @@ class Transformable:
 
     def __init__(self):
         super().__init__()
-        self.verts = None
         self._scale = identity()
         self._rot = identity()
         self._xlate = identity()
@@ -182,7 +181,6 @@ class Transformable:
         assert len(v) == 2
         self._xlate[2][:2] = v
         self._set_dirty()
-        self.verts = None
 
     @property
     def x(self):
@@ -192,7 +190,6 @@ class Transformable:
     def x(self, v):
         self._xlate[2, 0] = v
         self._set_dirty()
-        self.verts = None
 
     @property
     def y(self):
@@ -202,7 +199,6 @@ class Transformable:
     def y(self, v):
         self._xlate[2, 1] = v
         self._set_dirty()
-        self.verts = None
 
     @property
     def scale(self):
@@ -213,7 +209,6 @@ class Transformable:
     def scale(self, v):
         self._scale[0, 0] = self._scale[1, 1] = v
         self._set_dirty()
-        self.verts = None
 
     @property
     def angle(self):
@@ -251,6 +246,7 @@ class Sprite(Colorable, Transformable):
             image,
             anchor=None):
         super().__init__()
+        self.verts = None
         self.layer = layer
         self.array = None
         self._image = None

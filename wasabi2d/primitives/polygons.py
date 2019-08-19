@@ -33,7 +33,11 @@ class AbstractShape(Colorable, Transformable):
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
-        self.lst.vertbuf['in_vert'] = (self.orig_verts @ xform)[:, :2]
+        np.matmul(
+            self.orig_verts,
+            xform[:, :2],
+            self.lst.vertbuf['in_vert']
+        )
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
 
