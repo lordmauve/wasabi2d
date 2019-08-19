@@ -165,15 +165,15 @@ class Label(Colorable, Transformable):
 
         # TODO: update self.lst, set dirty OR reallocate self.lst for new size
         if self.lst:
-            self.lst.num_indices = len(indices)
-            self.lst.indexbuf[:len(indices)] = indices
-            self.lst.vertbuf['in_uv'][:len(uvs)] = uvs
+            self.lst.realloc(len(self._verts), len(indices))
+            self.lst.indexbuf[:] = indices
+            self.lst.vertbuf['in_uv'] = uvs
             self._update()
 
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
-        self.lst.vertbuf['in_vert'][:len(self._verts)] = (self._verts @ xform)[:, :2]
+        self.lst.vertbuf['in_vert'] = (self._verts @ xform)[:, :2]
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
 
@@ -183,8 +183,7 @@ class Label(Colorable, Transformable):
         idxs = self._indices
         self.vao = vao
         self.vao.tex = self.tex
-        self.lst = vao.alloc(len(self._verts) + 4 * 8, len(idxs) + 6 * 8)
-        self.lst.num_indices = len(idxs)
-        self.lst.indexbuf[:len(idxs)] = idxs
-        self.lst.vertbuf['in_uv'][:len(self._uvs)] = self._uvs
+        self.lst = vao.alloc(len(self._verts), len(idxs))
+        self.lst.indexbuf[:] = idxs
+        self.lst.vertbuf['in_uv'] = self._uvs
         self._update()

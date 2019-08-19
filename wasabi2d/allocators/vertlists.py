@@ -62,13 +62,13 @@ class VAOList:
     dirty: bool = False
 
     @property
-    def num_indices(self):
+    def num_indexes(self):
         """Get the number of indices to draw."""
         pos = self.buf.allocs.index(self)
         return self.buf.indirect[pos, 0]
 
-    @num_indices.setter
-    def num_indices(self, n):
+    @num_indexes.setter
+    def num_indexes(self, n):
         """Set the number of indices to draw.
 
         If a larger segment is allocated, this can be used to very cheaply
@@ -83,6 +83,15 @@ class VAOList:
         # TODO: linear cost
         pos = self.buf.allocs.index(self)
         self.buf.indirect[pos, 0] = n
+
+    def realloc(self, num_verts, num_indexes):
+        """Reallocate the list to a new size. Invalidate the data."""
+        if num_verts == len(self.vertbuf) \
+                and num_indexes == len(self.indexbuf):
+            return
+        # TODO: if we alread have a greater allocation, do not realloc,
+        # just present a view of a subset of the allocation
+        self.buf.realloc(self, num_verts, num_indexes)
 
     def free(self):
         self.buf.free(self)
@@ -145,20 +154,7 @@ class VAO:
 
     def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
-        try:
-            vs = self.allocator.alloc(num_verts)
-        except NoCapacity as e:
-            self.allocator.grow(e.recommended)
-            self._initialise()
-            vs = self.allocator.alloc(num_verts)
-
-        try:
-            ixs = self.index_allocator.alloc(num_indexes)
-        except NoCapacity as e:
-            self.index_allocator.grow(e.recommended)
-            self._initialise()
-            ixs = self.index_allocator.alloc(num_indexes)
-
+        vs, ixs = self._alloc_slices(num_verts, num_indexes)
         lst = VAOList(
             buf=self,
             vertbuf=self.verts[vs],
@@ -178,6 +174,52 @@ class VAO:
             self.indirect_dirty = True
 
         return lst
+
+    def _alloc_slices(
+            self,
+            num_verts: int,
+            num_indexes: int
+            ) -> typing.Tuple[slice, slice]:
+        """Allocate slices of the vertex and index buffers.
+
+        Return a tuple (verts, indexes), both slice objects.
+
+        """
+        try:
+            vs = self.allocator.alloc(num_verts)
+        except NoCapacity as e:
+            self.allocator.grow(e.recommended)
+            self._initialise()
+            vs = self.allocator.alloc(num_verts)
+
+        try:
+            ixs = self.index_allocator.alloc(num_indexes)
+        except NoCapacity as e:
+            self.index_allocator.grow(e.recommended)
+            self._initialise()
+            ixs = self.index_allocator.alloc(num_indexes)
+
+        return vs, ixs
+
+    def realloc(self, lst: VAOList, num_verts: int, num_indexes: int):
+        """Reallocate a list, typically to grow the size of it.
+
+        No data will be copied to the new list but it will retain its draw
+        order.
+        """
+        pos = self.allocs.index(lst)
+
+        self.allocator.free(lst.vertoff)
+        self.index_allocator.free(lst.indexoff)
+        vs, ixs = self._alloc_slices(num_verts, num_indexes)
+        lst.vertbuf = self.verts[vs]
+        lst.vertoff = vs
+        lst.indexbuf = self.indexes[ixs]
+        lst.indexoff = ixs
+        lst.dirty = True
+
+        self.indirect[pos] = (num_indexes, 1, ixs.start, vs.start, 0)
+        self.indirect_dirty = True
 
     def free(self, lst):
         """Remove a list from the array."""
