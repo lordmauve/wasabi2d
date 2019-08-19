@@ -18,6 +18,25 @@ class TextVAO(VAO):
         super().render()
 
 
+# Slight modification to the textured quads: we only use the texture's alpha
+# channel because pygame pre-multiplies alpha in text rendering.
+TEXT_PROGRAM = {
+    **TEXTURED_QUADS_PROGRAM,
+    'fragment_shader': '''
+        #version 330
+
+        out vec4 f_color;
+        in vec2 uv;
+        in vec4 color;
+        uniform sampler2D tex;
+
+        void main() {
+            f_color = vec4(color.rgb, color.a * texture(tex, uv).a);
+        }
+    ''',
+}
+
+
 def text_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
@@ -25,7 +44,7 @@ def text_vao(
     return TextVAO(
         mode=moderngl.TRIANGLES,
         ctx=ctx,
-        prog=shadermgr.get(**TEXTURED_QUADS_PROGRAM),
+        prog=shadermgr.get(**TEXT_PROGRAM),
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
@@ -64,6 +83,7 @@ class Label(Colorable, Transformable):
             color=(1, 1, 1, 1)):
 
         super().__init__()
+        self.lst = None
         self.layer = layer
         self.fontsize = fontsize
         self.font_atlas = font_atlas
@@ -144,11 +164,16 @@ class Label(Colorable, Transformable):
         self._indices = indices
 
         # TODO: update self.lst, set dirty OR reallocate self.lst for new size
+        if self.lst:
+            self.lst.num_indices = len(indices)
+            self.lst.indexbuf[:len(indices)] = indices
+            self.lst.vertbuf['in_uv'][:len(uvs)] = uvs
+            self._update()
 
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
-        self.lst.vertbuf['in_vert'] = (self._verts @ xform)[:, :2]
+        self.lst.vertbuf['in_vert'][:len(self._verts)] = (self._verts @ xform)[:, :2]
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
 
@@ -158,7 +183,8 @@ class Label(Colorable, Transformable):
         idxs = self._indices
         self.vao = vao
         self.vao.tex = self.tex
-        self.lst = vao.alloc(len(self._verts), len(idxs))
-        self.lst.indexbuf[:] = idxs
-        self.lst.vertbuf['in_uv'] = self._uvs
+        self.lst = vao.alloc(len(self._verts) + 4 * 8, len(idxs) + 6 * 8)
+        self.lst.num_indices = len(idxs)
+        self.lst.indexbuf[:len(idxs)] = idxs
+        self.lst.vertbuf['in_uv'][:len(self._uvs)] = self._uvs
         self._update()

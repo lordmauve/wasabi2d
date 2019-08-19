@@ -1,3 +1,4 @@
+import typing
 from dataclasses import dataclass
 
 import moderngl
@@ -21,7 +22,7 @@ TYPE_MAP = {
 }
 
 
-def dtype_to_moderngl(dtype: np.dtype):
+def dtype_to_moderngl(dtype: np.dtype) -> tuple:
     """Convert a numpy dtype object to a ModernGL buffer type."""
     names = dtype.names
     assert names is not None, "Only structured numpy dtypes are allowed."
@@ -45,7 +46,7 @@ def dtype_to_moderngl(dtype: np.dtype):
 
 
 @dataclass(eq=False)
-class List:
+class VAOList:
     """A list allocated within a VAO."""
     buf: 'VAO'
 
@@ -59,6 +60,29 @@ class List:
 
     #: True if needs syncing to the GL
     dirty: bool = False
+
+    @property
+    def num_indices(self):
+        """Get the number of indices to draw."""
+        pos = self.buf.allocs.index(self)
+        return self.buf.indirect[pos, 0]
+
+    @num_indices.setter
+    def num_indices(self, n):
+        """Set the number of indices to draw.
+
+        If a larger segment is allocated, this can be used to very cheaply
+        resize it.
+
+        It is not yet supported to resize the index allocation at this point.
+        """
+        size = len(self.indexbuf)
+        if n > size:
+            raise ValueError(f"Only allocated {size} indices.")
+
+        # TODO: linear cost
+        pos = self.buf.allocs.index(self)
+        self.buf.indirect[pos, 0] = n
 
     def free(self):
         self.buf.free(self)
@@ -82,7 +106,7 @@ class VAO:
         self.indirect_capacity = 50
         self.allocator = AbstractAllocator(capacity)
         self.index_allocator = AbstractAllocator(index_capacity)
-        self.allocs = []
+        self.allocs: typing.List[VAOList] = []
         self._initialise()
         self._initialise_indirect()
 
@@ -119,7 +143,7 @@ class VAO:
         self.indirectbo = self.ctx.buffer(self.indirect, dynamic=True)
         self.indirect_dirty = False
 
-    def alloc(self, num_verts: int, num_indexes: int) -> List:
+    def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
         try:
             vs = self.allocator.alloc(num_verts)
@@ -135,7 +159,7 @@ class VAO:
             self._initialise()
             ixs = self.index_allocator.alloc(num_indexes)
 
-        lst = List(
+        lst = VAOList(
             buf=self,
             vertbuf=self.verts[vs],
             vertoff=vs,

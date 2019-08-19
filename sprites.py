@@ -3,7 +3,7 @@ from wasabi2d import event, run, sounds, Scene, Vector2, clock, animate
 
 
 scene = Scene(antialias=8)
-scene.background = (0, 0.02, 0.1)
+scene.background = (0, 0.03, 0.1)
 
 ship = scene.layers[0].add_sprite(
     'ship',
@@ -28,18 +28,11 @@ scene.layers[0].add_circle(
     color='#ff000088',
 )
 lbl = scene.layers[0].add_label(
-    "Hello y World!",
+    "Time: 0s",
     font='bubblegum_sans',
     pos=(40, 560),
 )
-lbl.scale = 3
 lbl.color = 'yellow'
-r = scene.layers[0].add_rect(
-    pos=(140, 560),
-    width=200,
-    height=2,
-    color='yellow',
-)
 
 
 r = scene.layers[0].add_rect(
@@ -113,8 +106,9 @@ clock.schedule_interval(rotate_star, 2.0)
 
 
 @event
-def update(dt, keyboard):
+def update(t, dt, keyboard):
     ship.vel *= 0.3 ** dt
+    lbl.text = f"Speed: {ship.vel.magnitude() / 10:0.1f}m/s"
 
     accel = 300 * dt
     if keyboard.right:
@@ -127,6 +121,7 @@ def update(dt, keyboard):
         ship.vel[1] += accel
 
     ship.pos += ship.vel * dt
+    #lbl.pos = ship.pos + Vector2(20, -20)
 
     if not (-1e-6 < ship.vel.magnitude_squared() < 1e-6):
         vx, vy = ship.vel
