@@ -23,7 +23,7 @@ score_label = scene.layers[5].add_label(
     font='roboto_regular',
     color='white',
     pos=(scene.width / 2, 80),
-    align='middle',
+    align='center',
     fontsize=70,
 )
 
@@ -81,6 +81,7 @@ highscore_label = scene.layers[5].add_label(
     "Best: {}".format(storage['highscore']),
     font='roboto_regular',
     color=(200, 170, 0),
+    align='center',
     pos=(scene.width / 2, scene.height - 10),
     fontsize=30,
 )
@@ -118,8 +119,8 @@ def update_bird():
             bird.sprite.image = 'bird1'
 
     px = pipes.x
-    pipes_left = px - pipes.w / 2
-    pipes_right = px + pipes.w / 2
+    pipes_left = px - pipes.w / 2 - bird.sprite.width / 2
+    pipes_right = px + pipes.w / 2 - bird.sprite.height / 2
     if pipes_left < bird.sprite.x < pipes_right \
             and not pipes.gap - GAP // 2 < y < pipes.gap + GAP // 2:
         bird.dead = True
