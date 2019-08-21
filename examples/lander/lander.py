@@ -11,15 +11,15 @@
 """
 import random
 import math
-from wasabi2d import Scene, event, run, clock
+from wasabi2d import Scene, event, run, clock, keys
 
 
-WIDTH = 800  # Screen width
-HEIGHT = 600  # Screen height
+WIDTH = 1600  # Screen width
+HEIGHT = 1200  # Screen height
 
 # Landscape is broken down into steps. Define number of pixels on the x axis
 # per step.
-STEP_SIZE = 6
+STEP_SIZE = 12
 
 scene = Scene(WIDTH, HEIGHT, antialias=4)
 
@@ -65,10 +65,10 @@ class Landscape:
     world_steps = int(
         WIDTH / STEP_SIZE
     )  # How many steps can we fit horizontally on the screen
-    SMALL_HEIGHT_CHANGE = 3  # Controls how bumpy the landscape is
-    LARGE_HEIGHT_CHANGE = 10  # Controls how steep the landscape is
+    SMALL_HEIGHT_CHANGE = 6  # Controls how bumpy the landscape is
+    LARGE_HEIGHT_CHANGE = 20  # Controls how steep the landscape is
     FEATURES = ["mountain", "valley", "field"]  # What features to generate
-    N_STARS = 200  # How many stars to put in the background
+    N_STARS = 100  # How many stars to put in the background
     n_spots = 4  # Max number of landing spots to generate
 
     def __init__(self):
@@ -126,7 +126,7 @@ class Landscape:
         feature_steps = 0  # Keep track of how many steps we are into a feature
 
         # Start the landscape between 300 and 500 pixels down
-        self.world_height.append(random.randint(300, 500))
+        self.world_height.append(random.randint(600, 1000))
         for step in range(1, Landscape.world_steps):
             # If feature_step is zero, we need to choose a new feature and how long it goes on for
             if feature_steps == 0:
@@ -155,28 +155,28 @@ class Landscape:
             self.world_height.append(next_height)
             feature_steps -= 1
             # Stop mountains getting too high, or valleys too low
-            if next_height > 570:
+            if next_height > 570 * 2:
                 current_feature = "mountain"  # Too low! Force a mountain
-            elif next_height < 200:
+            elif next_height < 200 * 2:
                 current_feature = "valley"  # Too high! Force a valley
 
         self.horizon = scene.layers[-2].add_line(
             self.points(),
-            stroke_width=1.5,
+            stroke_width=3,
             color='#555555'
         )
         for spot in self.landing_spots:
             scene.layers[-1].add_rect(
                 pos=(spot.px_x, spot.px_y),
                 width=spot.px_width,
-                height=4,
+                height=8,
                 color='yellow'
             )
             scene.layers[-3].add_label(
                 f'{spot.bonus}x',
                 align='center',
-                pos=(spot.px_x, spot.px_y - 10),
-                fontsize=20,
+                pos=(spot.px_x, spot.px_y - 20),
+                fontsize=40,
                 color="#888800",
             )
 
@@ -197,7 +197,7 @@ class Landscape:
                 color=(mag,) * 3,
                 pos=(star_x, star_y),
             )
-            star.scale = mag * 0.3
+            star.scale = mag
             star.angle = math.radians(45)
 
     def points(self):
@@ -213,9 +213,9 @@ class Ship:
     """ Holds the state of the player's ship and handles movement """
 
     max_fuel = 1000  # How much fuel the player starts with
-    booster_power = 0.05  # Power of the ship's thrusters
-    rotate_speed = 10  # How fast the ship rotates in degrees per frame
-    gravity = [0.0, 0.01]  # Strength of gravity in the x and y directions
+    booster_power = 0.1  # Power of the ship's thrusters
+    rotate_speed = 3  # How fast the ship rotates in degrees per frame
+    gravity = [0.0, 0.02]  # Strength of gravity in the x and y directions
 
     def __init__(self):
         """ Create the variables which will describe the players ship """
@@ -227,7 +227,7 @@ class Ship:
         self.velocity = [0, 0]  # The x and y velocity of the players ship
         self.acceleration = [0, 0]  # The x and y acceleration of the players ship
         self.sprite = scene.layers[0].add_sprite('lander')
-        self.sprite.scale = 0.7
+        self.sprite.scale = 1.4
 
     def reset(self):
         """ Set the ships position, velocity and angle to their new-game values """
@@ -350,8 +350,8 @@ class Game:
             self.ship.position[0] <= 0
             or self.ship.position[0] >= WIDTH
             or self.landscape.get_within_landing_spot(ship_step) == False
-            or abs(self.ship.velocity[0]) > 0.5
-            or abs(self.ship.velocity[1]) > 0.5
+            or abs(self.ship.velocity[0]) > 1
+            or abs(self.ship.velocity[1]) > 1
             or (self.ship.angle > 20 and self.ship.angle < 340)
         ):
             self.end_game(
@@ -375,7 +375,7 @@ game_label = scene.layers[5].add_label(
     pos=(WIDTH / 2, HEIGHT / 5),
     align="center",
     color="green",
-    fontsize=30,
+    fontsize=60,
 )
 
 # Create the game object
@@ -395,30 +395,36 @@ hud = scene.layers[2]
 
 score_label = hud.add_label(
     "SCORE: " + str(round(game.score)),
-    pos=(10, 25),
+    pos=(10, 55),
+    fontsize=40,
 )
 time_label = hud.add_label(
     "TIME: " + str(round(game.time)),
-    pos=(10, 45),
+    pos=(10, 95),
+    fontsize=40,
 )
 fuel_label = hud.add_label(
     "FUEL: " + str(game.ship.fuel),
-    pos=(10, 65),
+    pos=(10, 135),
+    fontsize=40,
 )
 alt_label = hud.add_label(
     "ALTITUDE: " + str(round(game.ship.altitude)),
-    pos=(WIDTH - 10, 25),
+    pos=(WIDTH - 10, 55),
     align='right',
+    fontsize=40,
 )
 vx_label = hud.add_label(
     "HORIZONTAL SPEED: {0:.2f}".format(game.ship.velocity[0]),
-    pos=(WIDTH - 10, 45),
+    pos=(WIDTH - 10, 95),
     align='right',
+    fontsize=40,
 )
 vy_label = hud.add_label(
     "VERTICAL SPEED: {0:.2f}".format(-game.ship.velocity[1]),
-    pos=(WIDTH - 10, 65),
+    pos=(WIDTH - 10, 135),
     align='right',
+    fontsize=40,
 )
 
 
@@ -442,23 +448,12 @@ def update_hud():
 def update_physics(dt, keyboard):
     """Updates the game physics 30 times every second."""
     game.time_elapsed += dt
-    if game.time_elapsed < 1.0 / game.game_speed:
-        return  # A 30th of a second has not passed yet
-    game.time_elapsed -= 1.0 / game.game_speed
 
     # New frame - do all the simulations
     game.n_frames += 1
-    if (
-        game.n_frames % game.game_speed == 0
-    ):  # If n_frames is an exact multiple of the game FPS: so once per second
-        game.blink = (
-            not game.blink
-        )  # Invert blink so True becomes False or False becomes True
 
     # Start the game if the player presses space when the game is not on
-    if keyboard.space and game.game_on == False:
-        game.restart()
-    elif game.game_on == False:
+    if game.game_on == False:
         return
 
     # If the game is on, update the movement and the physics
@@ -477,6 +472,14 @@ def update_physics(dt, keyboard):
     game.time += dt
     game.ship.update_physics()
     game.check_game_over()
+
+
+@event
+def on_key_down(key):
+    if key == keys.F12:
+        scene.toggle_recording()
+    elif key == keys.SPACE and game.game_on == False:
+        game.restart()
 
 
 run()

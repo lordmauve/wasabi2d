@@ -24,6 +24,8 @@ class Scene:
         self.width = width
         self.height = height
 
+        self._recording = False
+
         pygame.init()
 
         glconfig = {
@@ -84,11 +86,70 @@ class Scene:
         img = pygame.transform.flip(img, False, True)
         pygame.image.save(img, filename)
 
+    def record_video(self, filename=None):
+        """Start recording a video.
+
+        This requires an ffmpeg binary to be located on $PATH.
+        """
+        import subprocess
+        import datetime
+        if not filename:
+            now = datetime.datetime.now()
+            filename = f'video_{now:%Y-%m-%d_%H:%M:%S.%f}.mp4'
+        self._recording = filename
+        command = [
+            'ffmpeg',
+            '-y',  # (optional) overwrite output file if it exists
+            '-f', 'rawvideo',
+            '-vcodec', 'rawvideo',
+            '-s', f'{self.width}x{self.height}',  # size of one frame
+            '-pix_fmt', 'rgb24',
+            '-r', '60',  # frames per second
+            '-i', '-',  # The imput comes from a pipe
+            '-vf', 'vflip',
+            '-an',  # Tells FFMPEG not to expect any audio
+            filename,
+        ]
+        self._ffmpeg = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE,
+            bufsize=10**8
+        )
+        print("Recording video...")
+
+    def stop_recording(self):
+        """Stop recording videos."""
+        self._ffmpeg.stdin.close()
+        ret = self._ffmpeg.wait()
+        if ret == 0:
+            print("Saved recording to", self._recording)
+        else:
+            print("Error writing video.")
+        self._recording = None
+
+    def toggle_recording(self) -> bool:
+        """Start or stop recording.
+
+        Return True if recording started.
+        """
+        if not self._recording:
+            self.record_video()
+            return True
+        else:
+            self.stop_recording()
+
+    def _vid_frame(self):
+        data = self.ctx.screen.read(components=3)
+        self._ffmpeg.stdin.write(data)
+        self._ffmpeg.stdin.flush()
+
     def draw(self, t, dt):
         assert len(self.background) == 3, \
             "Scene.background must be a 3-element tuple."
         self.ctx.clear(*self.background)
         self.layers.render(self.camera.proj, t, dt)
+        if self._recording:
+            self._vid_frame()
 
 
 class Camera:
