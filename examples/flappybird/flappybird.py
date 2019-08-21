@@ -1,5 +1,6 @@
 import random
 from wasabi2d import Scene, run, event, Storage, Vector2
+from wasabi2d.actor import Actor
 
 
 scene = Scene(
@@ -28,10 +29,8 @@ score_label = scene.layers[5].add_label(
 )
 
 
-class Bird:
-    dead = False
+class Score:
     _score = 0
-    vy = 0
 
     @property
     def score(self):
@@ -43,12 +42,19 @@ class Bird:
         score_label.text = str(s)
 
 
-bird = Bird()
+score = Score()
 
 
-scene.layers[-2].add_sprite('background', pos=(scene.width / 2, scene.height / 2))
-
-bird.sprite = scene.layers[0].add_sprite('bird1', pos=(75, 200))
+scene.layers[-2].add_sprite(
+    'background',
+    pos=(scene.width / 2, scene.height / 2)
+)
+bird = Actor(
+    scene.layers[0].add_sprite('bird1'),
+    pos=(75, 200)
+)
+bird.dead = False
+bird.vy = 0
 
 
 class Pipes:
@@ -78,7 +84,7 @@ class Pipes:
 
 pipes = Pipes()
 highscore_label = scene.layers[5].add_label(
-    "Best: {}".format(storage['highscore']),
+    f"Best: {storage['highscore']}",
     font='roboto_regular',
     color=(200, 170, 0),
     align='center',
@@ -101,35 +107,36 @@ def update_pipes():
     if pipes.x < -0.5 * pipes.w:
         reset_pipes()
         if not bird.dead:
-            bird.score += 1
-            if bird.score > storage['highscore']:
-                storage['highscore'] = bird.score
-                highscore_label.text = f"Best: {bird.score}"
+            score.score += 1
+            if score.score > storage['highscore']:
+                storage['highscore'] = score.score
+                highscore_label.text = f"Best: {score.score}"
 
 
 def update_bird():
     uy = bird.vy
     bird.vy += GRAVITY
-    y = bird.sprite.y = bird.sprite.y + (uy + bird.vy) / 2
+    bird.y += (uy + bird.vy) / 2
 
     if not bird.dead:
         if bird.vy < -3:
-            bird.sprite.image = 'bird2'
+            bird.image = 'bird2'
         else:
-            bird.sprite.image = 'bird1'
+            bird.image = 'bird1'
 
     px = pipes.x
-    pipes_left = px - pipes.w / 2 - bird.sprite.width / 2
-    pipes_right = px + pipes.w / 2 - bird.sprite.height / 2
-    if pipes_left < bird.sprite.x < pipes_right \
-            and not pipes.gap - GAP // 2 < y < pipes.gap + GAP // 2:
-        bird.dead = True
-        bird.sprite.image = 'birddead'
 
-    if not 0 < bird.sprite.y < 720:
-        bird.sprite.y = 200
+    pipes_left = px - pipes.w / 2
+    pipes_right = px + pipes.w / 2
+    if pipes_left < bird.right and bird.left < pipes_right \
+            and not pipes.gap - GAP // 2 < bird.y < pipes.gap + GAP // 2:
+        bird.dead = True
+        bird.image = 'birddead'
+
+    if not 0 < bird.y < 720:
+        bird.y = 200
         bird.dead = False
-        bird.score = 0
+        score.score = 0
         bird.vy = 0
         reset_pipes()
 

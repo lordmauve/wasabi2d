@@ -10,5 +10,5 @@ def convert_color(c: Union[str, tuple]) -> Tuple[float, float, float, float]:
         col = Color(c)
         return np.array(memoryview(col), dtype='u1').astype('f4') / 255.0
     else:
-        assert 2 < len(c) < 5, "Invalid color length"
+        assert 3 <= len(c) <= 4, "Invalid color length"
         return np.array(c + (1,) * (4 - len(c)), dtype='f4')
