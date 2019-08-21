@@ -95,8 +95,8 @@ class PolyLine(Polygon):
         """Indexes for drawing the line as a LINE_STRIP."""
         verts = len(self.orig_verts)
         idxs = np.arange(verts)
-        idxs[-1] = 0
-        return idxs[[0, *range(verts), -1]]
+        last = verts - 1
+        return [0, *idxs, last, last]
 
     def _fill_indices(self):
         raise NotImplementedError(

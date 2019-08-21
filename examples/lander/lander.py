@@ -68,7 +68,7 @@ class Landscape:
     SMALL_HEIGHT_CHANGE = 3  # Controls how bumpy the landscape is
     LARGE_HEIGHT_CHANGE = 10  # Controls how steep the landscape is
     FEATURES = ["mountain", "valley", "field"]  # What features to generate
-    n_stars = 30  # How many stars to put in the background
+    N_STARS = 200  # How many stars to put in the background
     n_spots = 4  # Max number of landing spots to generate
 
     def __init__(self):
@@ -182,15 +182,15 @@ class Landscape:
 
         # Third: Randomise the star field
         del self.star_locations[:]
-        for star in range(0, Landscape.n_stars):
+        for star in range(0, Landscape.N_STARS):
             star_step = random.randint(0, Landscape.world_steps - 1)
             star_x = star_step * STEP_SIZE
             star_y = random.randint(
                 0, self.world_height[star_step]
             )  # Keep the stars above the landscape
             scene.layers[-4].add_circle(
-                radius=1,
-                color='white',
+                radius=random.random() * 1.5,
+                color=(random.random(),) * 3,
                 pos=(star_x, star_y)
             )
 
