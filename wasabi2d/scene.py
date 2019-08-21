@@ -107,6 +107,11 @@ class Scene:
             '-r', '60',  # frames per second
             '-i', '-',  # The imput comes from a pipe
             '-vf', 'vflip',
+
+            # These options are needed for uploads to Twitter
+            '-vcodec', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-strict', '-2',
             '-an',  # Tells FFMPEG not to expect any audio
             filename,
         ]

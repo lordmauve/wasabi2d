@@ -2,14 +2,15 @@ import random
 import colorsys
 from collections import deque
 from math import copysign
-from wasabi2d import event, run, Scene, animate
+from wasabi2d import event, run, Scene, animate, keys
 from wasabi2d.actor import Actor
+import pygame.mouse
 
 
 WIDTH = 600
 HEIGHT = 800
 scene = Scene(WIDTH, HEIGHT)
-
+pygame.mouse.set_visible(False)
 
 BALL_SIZE = 6
 MARGIN = 50
@@ -172,6 +173,12 @@ def on_mouse_move(pos):
         bat.left = 0
     elif bat.right > WIDTH:
         bat.right = WIDTH
+
+
+@event
+def on_key_down(key):
+    if key == keys.F12:
+        scene.toggle_recording()
 
 
 run()
