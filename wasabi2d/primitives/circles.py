@@ -42,12 +42,14 @@ WIDE_LINE = dict(
 
         in vec2 in_vert;
         in vec4 in_color;
+        in float in_linewidth;
         out vec4 g_color;
-        out float width;
+        out float widths;
 
         void main() {
             gl_Position = vec4(in_vert, 0.0, 1.0);
             g_color = in_color;
+            widths = in_linewidth;
         }
     ''',
     geometry_shader="""
@@ -57,11 +59,10 @@ layout (lines_adjacency) in;
 layout (triangle_strip, max_vertices = 4) out;
 
 in vec4 g_color[];
-in float width[];
+in float widths[];
 out vec4 color;
 
 const float MITRE_LIMIT = 6.0;
-const float WIDTH = 2.3;
 
 vec2 rot90(vec2 v) {
     return vec2(-v.y, v.x);
@@ -70,7 +71,7 @@ vec2 rot90(vec2 v) {
 uniform mat4 proj;
 
 
-void mitre(vec2 a, vec2 b, vec2 c) {
+void mitre(vec2 a, vec2 b, vec2 c, float width) {
     vec2 ab = normalize(b - a);
     vec2 bc = normalize(c - b);
 
@@ -88,7 +89,7 @@ void mitre(vec2 a, vec2 b, vec2 c) {
 
     //This kind of works Ok although it does cause the width to change
     // scale = min(scale, MITRE_LIMIT);  // limit extension of the mitre
-    vec2 across = WIDTH * across_mitre * scale;
+    vec2 across = width * across_mitre * scale;
 
     gl_Position = proj * vec4(b + across, 0.0, 1.0);
     EmitVertex();
@@ -106,8 +107,8 @@ void main() {
     vec2 c = gl_in[2].gl_Position.xy;
     vec2 d = gl_in[3].gl_Position.xy;
 
-    mitre(a, b, c);
-    mitre(b, c, d);
+    mitre(a, b, c, widths[1]);
+    mitre(b, c, d, widths[2]);
 
     EndPrimitive();
 }
@@ -152,6 +153,7 @@ def line_vao(
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
+            ('in_linewidth', 'f4'),
         ])
     )
 
