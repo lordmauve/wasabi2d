@@ -19,7 +19,7 @@ HEIGHT = 600  # Screen height
 
 # Landscape is broken down into steps. Define number of pixels on the x axis
 # per step.
-STEP_SIZE = 3
+STEP_SIZE = 6
 
 scene = Scene(WIDTH, HEIGHT)
 
@@ -94,6 +94,7 @@ class Landscape:
 
     def reset(self):
         """Generates a new landscape."""
+        scene.layers[-4].clear()
         scene.layers[-3].clear()
         scene.layers[-2].clear()
         scene.layers[-1].clear()
@@ -368,7 +369,7 @@ game_label = scene.layers[5].add_label(
     pos=(WIDTH / 2, HEIGHT / 5),
     align="center",
     color="green",
-    fontsize=48,
+    fontsize=30,
 )
 
 # Create the game object

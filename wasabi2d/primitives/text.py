@@ -160,38 +160,51 @@ class Label(Colorable, Transformable):
         """Generate indices, uvs and verts for the text."""
         font = self.font_atlas.font
 
-        # (min_x, max_x, min_y, max_y, horizontal_advance_x)
-        metrics = np.array(font.metrics(self._text), dtype='f4')
-        cx = np.cumsum(metrics[:, 4]).reshape(-1, 1)
-        xpos = metrics[:, 0:2] + cx
-
-        layout_width = cx[-1] + metrics[-1, 1]
-        align_offset = ALIGNMENTS[self._align] * layout_width
-
         descent = font.get_descent()
-        n_chars = len(metrics)
-
-        assert n_chars == len(self._text)
+        n_chars = len(self._text) - self._text.count('\n')
         verts = np.ones((4 * n_chars, 3), dtype='f4')
         uvs = np.zeros((4 * n_chars, 2), dtype='f4')
-        indices = np.zeros(len(metrics) * 6, dtype='u4')
+        indices = np.zeros(n_chars * 6, dtype='u4')
 
-        tex = None
-        tex_ids = set()
-        for idx, char in enumerate(self._text):
-            tex, glyph_uvs, glyph_verts = self.font_atlas.get(char)
-            tex_ids.add(tex.glo)
+        lines = self._text.split('\n')
 
-            # The kerning seems pretty bad on Pygame fonts...
-#            glyph_width = glyph_verts[1, 0] - glyph_verts[0, 0]
-#            metrics_width = xpos[idx, 1] - xpos[idx, 0]
-#            print(repr(char), glyph_width, metrics_width, metrics[idx, 4])
+        # We lay out based on 48px tex so line size is scaled later
+        line_height = 48 * 1.3
 
-            x = xpos[idx, 0]
-            glyph_slice = slice(idx * 4, idx * 4 + 4)
-            verts[glyph_slice] = glyph_verts + (x - align_offset, -descent, 0)
-            uvs[glyph_slice] = glyph_uvs
-            indices[6 * idx:6 * idx + 6] = QUAD + 4 * idx
+        curchar = 0
+        for lineno, line in enumerate(lines):
+            if not line:
+                continue
+            # (min_x, max_x, min_y, max_y, horizontal_advance_x)
+            metrics = np.array(font.metrics(line), dtype='f4')
+            cx = np.cumsum(metrics[:, 4]).reshape(-1, 1)
+            xpos = metrics[:, 0:2] + cx
+
+            layout_width = cx[-1] + metrics[-1, 1]
+            align_offset = ALIGNMENTS[self._align] * layout_width
+            yoff = lineno * line_height
+
+            tex = None
+            tex_ids = set()
+            for idx, char in enumerate(line):
+                tex, glyph_uvs, glyph_verts = self.font_atlas.get(char)
+                tex_ids.add(tex.glo)
+
+                # The kerning seems pretty bad on Pygame fonts...
+    #            glyph_width = glyph_verts[1, 0] - glyph_verts[0, 0]
+    #            metrics_width = xpos[idx, 1] - xpos[idx, 0]
+    #            print(repr(char), glyph_width, metrics_width, metrics[idx, 4])
+
+                x = xpos[idx, 0]
+
+                quadnum = idx + curchar
+                start = quadnum * 4
+                glyph_slice = slice(start, start + 4)
+                verts[glyph_slice] = glyph_verts + (x - align_offset, yoff - descent, 0)
+                uvs[glyph_slice] = glyph_uvs
+                indices[6 * quadnum:6 * quadnum + 6] = QUAD + 4 * quadnum
+
+            curchar += len(line)
 
         # Scale coordinates
         resize = np.identity(3, dtype='f4')
