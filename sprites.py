@@ -13,7 +13,8 @@ circ = scene.layers[0].add_circle(
     radius=30,
     pos=(100, 100),
     color='cyan',
-    fill=False
+    fill=False,
+    stroke_width=3.0,
 )
 star = scene.layers[0].add_star(
     points=6,

@@ -1,12 +1,28 @@
 import unicodedata
+import pkgutil
+import io
 
 import moderngl
 import numpy as np
+import pygame.font
 
 from ..allocators.vertlists import VAO
 from ..loaders import fonts
 from ..sprites import Colorable, Transformable, TEXTURED_QUADS_PROGRAM, QUAD
 from ..atlas import Atlas
+
+
+FONT_LOAD_SIZE = 48
+default_font = None
+
+
+def get_default_font():
+    """Get the default font."""
+    global default_font
+    if not default_font:
+        ttf_data = pkgutil.get_data('wasabi2d', 'data/roboto_regular.ttf')
+        default_font = pygame.font.Font(io.BytesIO(ttf_data), FONT_LOAD_SIZE)
+    return default_font
 
 
 class TextVAO(VAO):
@@ -57,7 +73,10 @@ class FontAtlas(Atlas):
     """The combination of a font and the texture atlas it uses."""
     def __init__(self, ctx, font_name):
         super().__init__(ctx)
-        self.font = fonts.load(font_name, fontsize=48)
+        if font_name is None:
+            self.font = get_default_font()
+        else:
+            self.font = fonts.load(font_name, fontsize=FONT_LOAD_SIZE)
 
     def set_anchor(self, verts, w, h):
         """Set the anchor position to the bottom-left of the glyph."""

@@ -18,7 +18,8 @@ class Polygon(AbstractShape):
             vertices,
             *,
             pos=(0, 0),
-            color=(1, 1, 1, 1)):
+            color=(1, 1, 1, 1),
+            stroke_width=1.0):
 
         verts = np.array(vertices, dtype='f4')
         if verts.shape != (ANY, 2):
@@ -32,6 +33,7 @@ class Polygon(AbstractShape):
 
         self.orig_verts = np.ones((len(verts), 3), dtype='f4')
         self.orig_verts[:, :2] = verts
+        self._stroke_width = stroke_width
 
         self._color = convert_color(color)
         self._set_dirty()
@@ -39,12 +41,7 @@ class Polygon(AbstractShape):
     def _stroke_indices(self):
         """Indexes for drawing the stroke as a LINE_STRIP."""
         verts = len(self.orig_verts)
-        idxs = np.linspace(
-            0,
-            verts,
-            verts + 1,
-            dtype='i4'
-        )
+        idxs = np.arange(verts + 1, dtype='i4')
         idxs[-1] = 0
         return idxs[[-1, *range(verts), 0, 1, 2]]
 
@@ -89,3 +86,19 @@ class Rect(Polygon):
 
     def _vertices(self):
         return np.copy(self.VERTS) * (self.width, self.height)
+
+
+class PolyLine(Polygon):
+    """An unclosed line sequence."""
+
+    def _stroke_indices(self):
+        """Indexes for drawing the line as a LINE_STRIP."""
+        verts = len(self.orig_verts)
+        idxs = np.arange(verts)
+        idxs[-1] = 0
+        return idxs[[0, *range(verts), -1]]
+
+    def _fill_indices(self):
+        raise NotImplementedError(
+            "Lines may not be filled."""
+        )

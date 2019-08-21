@@ -185,11 +185,13 @@ class Circle(AbstractShape):
             pos=(0, 0),
             radius=100,
             color=(1, 1, 1, 1),
+            stroke_width=1.0,
             segments=None):
         super().__init__()
         self.layer = layer
         self.segments = segments or max(4, round(math.pi * radius))
         self.pos = pos
+        self._stroke_width = stroke_width
 
         # Generate verts now
         theta = np.linspace(0, 2 * np.pi, self.segments).reshape((-1, 1))

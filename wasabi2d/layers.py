@@ -1,11 +1,9 @@
-from typing import Tuple
-
-import numpy as np
+from typing import Tuple, Optional
 
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
-from .primitives.polygons import Polygon, Rect
+from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
 
 
@@ -56,10 +54,23 @@ class Layer:
         self.ctx = ctx
         self.group = group
         self.arrays = {}
+        self.visible = True
         self.objects = set()
         self._dirty = set()
 
+    def clear(self):
+        """Remove everything from the layer."""
+        # We don't need to call .delete() on anything, faster to throw away
+        # absolutely everything including VAOs.
+        self.arrays.clear()
+        self.objects.clear()
+        self._dirty.clear()
+
     def render(self, t, dt):
+        """Render the layer."""
+        if not self.visible:
+            return
+
         for o in self._dirty:
             o._update()
         self._dirty.clear()
@@ -112,18 +123,20 @@ class Layer:
             vao = self.arrays[k] = text_vao(self.ctx, self.group.shadermgr)
         return vao
 
-    def add_circle(
-            self,
-            *,
-            radius: float,
-            pos: Tuple[float, float] = (0, 0),
-            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-            fill: bool = True) -> Circle:
+    def add_circle(self,
+                   *,
+                   radius: float,
+                   pos: Tuple[float, float] = (0, 0),
+                   color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+                   fill: bool = True,
+                   stroke_width: float = 1.0,
+                   ) -> Circle:
         c = Circle(
             layer=self,
             radius=radius,
             pos=pos,
-            color=color
+            color=color,
+            stroke_width=stroke_width,
         )
         if fill:
             c._migrate_fill(self._fill_vao())
@@ -141,6 +154,7 @@ class Layer:
             pos: Tuple[float, float] = (0, 0),
             fill: bool = True,
             color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            stroke_width: float = 1.0,
     ) -> Circle:
         assert points >= 3, "Stars must have at least 3 points."
 
@@ -152,7 +166,8 @@ class Layer:
             segments=2 * points + 1,
             radius=1.0,
             pos=pos,
-            color=color
+            color=color,
+            stroke_width=stroke_width,
         )
         if fill:
             c._migrate_fill(self._fill_vao())
@@ -163,24 +178,49 @@ class Layer:
         c.orig_verts[1::2, :2] *= inner_radius
         return c
 
-    def add_polygon(
-            self,
-            vertices,
-            *,
-            pos: Tuple[float, float] = (0, 0),
-            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-            fill: bool = True) -> Polygon:
+    def add_polygon(self,
+                    vertices,
+                    *,
+                    pos: Tuple[float, float] = (0, 0),
+                    color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+                    fill: bool = True,
+                    stroke_width: float = 1.0,
+                    ) -> Polygon:
         c = Polygon(
             layer=self,
             vertices=vertices,
             pos=pos,
-            color=color
+            color=color,
+            stroke_width=stroke_width,
         )
         self.objects.add(c)
         if fill:
             c._migrate_fill(self._fill_vao())
         else:
             c._migrate_stroke(self._lines_vao())
+        return c
+
+    def add_line(self,
+                 vertices,
+                 *,
+                 pos: Tuple[float, float] = (0, 0),
+                 color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+                 stroke_width: float = 1.0,
+                 ) -> PolyLine:
+        """Add a line strip.
+
+        To create a single line segment of two points, pass two vertices!
+
+        """
+        c = PolyLine(
+            layer=self,
+            vertices=vertices,
+            pos=pos,
+            color=color,
+            stroke_width=stroke_width,
+        )
+        self.objects.add(c)
+        c._migrate_stroke(self._lines_vao())
         return c
 
     def add_rect(
@@ -208,8 +248,8 @@ class Layer:
 
     def add_label(self,
                   text: str,
-                  font: str,
                   *,
+                  font: Optional[str] = None,
                   align: str = 'left',
                   fontsize: int = 20,
                   pos: Tuple[float, float] = (0, 0),
