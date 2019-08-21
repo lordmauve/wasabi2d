@@ -3,6 +3,7 @@ from pyrr import vector3, matrix33
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
+from ..rect import ZRect
 
 
 Z = vector3.create_unit_length_z()
@@ -11,6 +12,32 @@ Z = vector3.create_unit_length_z()
 def identity():
     """Return an identity transformation matrix."""
     return np.identity(3, dtype='f4')
+
+
+def bounds_from_verts(vertices: np.ndarray) -> ZRect:
+    """Given an array of vertices, get the bounds of the object."""
+    # Ensure we only have 2D vertices
+    vertices = vertices[:, :2]
+
+    # Calculate the bounds
+    mins = np.min(vertices, axis=0)
+    maxs = np.max(vertices, axis=0)
+    return ZRect(mins, maxs - mins)
+
+
+class Bounds:
+    """Descriptor for a property that returns bounds based on vertices.
+
+    We compile an expression to access the vertices in order to be faster and
+    save code.
+
+    """
+
+    def __init__(self, expr="self.lst.vertbuf['in_vert']"):
+        self.getter = eval(f"lambda self: {expr}")
+
+    def __get__(self, inst, cls=None):
+        return bounds_from_verts(self.getter(inst))
 
 
 class Transformable:
@@ -125,6 +152,8 @@ class AbstractShape(Colorable, Transformable):
         self._stroke_width = v
         self._set_dirty()
 
+    bounds = Bounds()
+
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate
 
@@ -145,6 +174,3 @@ class AbstractShape(Colorable, Transformable):
         self.vao.free(self.lst)
         self.lst = None
         self.layer = None
-
-
-

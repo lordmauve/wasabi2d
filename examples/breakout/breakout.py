@@ -3,6 +3,7 @@ import colorsys
 from collections import deque
 from math import copysign
 from wasabi2d import event, run, Scene, animate
+from wasabi2d.actor import Actor
 
 
 WIDTH = 600
@@ -19,18 +20,22 @@ BRICK_W = (WIDTH - 2 * MARGIN) / BRICKS_X
 BRICK_H = 25
 
 
-ball = scene.layers[0].add_circle(
+ball = Actor(
+    scene.layers[0].add_circle(
+        radius=BALL_SIZE,
+        color='#cccccc',
+        fill=False,
+    ),
     pos=(WIDTH / 2, HEIGHT / 2),
-    radius=BALL_SIZE,
-    color='#cccccc',
-    fill=False,
 )
-bat = scene.layers[0].add_rect(
-    pos=(WIDTH / 2, HEIGHT - 50),
-    width=120,
-    height=12,
-    color='pink',
-    fill=True,
+bat = Actor(
+    scene.layers[0].add_rect(
+        width=120,
+        height=12,
+        color='pink',
+        fill=True,
+    ),
+    pos=(WIDTH / 2, HEIGHT - 50)
 )
 
 
@@ -47,13 +52,16 @@ def reset():
         for y in range(BRICKS_Y):
             hue = (x + y) / BRICKS_X
             saturation = (y / BRICKS_Y) * 0.5 + 0.5
-            brick = scene.layers[0].add_rect(
-                pos=((x + 0.5) * BRICK_W + MARGIN,
-                     (y + 0.5) * BRICK_H + MARGIN),
+            rect = scene.layers[0].add_rect(
                 color=colorsys.hsv_to_rgb(hue, saturation, 0.8),
                 width=BRICK_W,
                 height=BRICK_H,
                 fill=True,
+            )
+            brick = Actor(
+                rect,
+                pos=((x + 0.5) * BRICK_W + MARGIN,
+                     (y + 0.5) * BRICK_H + MARGIN),
             )
             #brick.highlight = hsv_color(hue, saturation * 0.7, 1.0)
             bricks.append(brick)
@@ -121,14 +129,16 @@ def update_step(dt):
             else:
                 vy = copysign(abs(vy), dy)
             del bricks[idx]
+
+            rect = brick.prim
             animate(
-                brick,
+                rect,
                 tween='bounce_end',
                 scale=0
             )
             animate(
-                brick,
-                on_finished=brick.delete,
+                rect,
+                on_finished=rect.delete,
                 color=(0, 0, 0, 1),
                 angle=random.uniform(-1, 1),
             )

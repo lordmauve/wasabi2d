@@ -92,7 +92,7 @@ def on_key_down(key):
 
 
 def update_circ():
-    circ.scale += 0.01
+    circ.radius += 1
     poly.stroke_width += 0.01
     x, y = r.pos
     r.pos = (x, y - 1)

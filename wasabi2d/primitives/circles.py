@@ -5,6 +5,7 @@ import moderngl
 from ..color import convert_color
 from ..allocators.vertlists import VAO
 from .polygons import AbstractShape
+from ..rect import ZRect
 
 
 #: Shader for a plain color fill
@@ -189,19 +190,42 @@ class Circle(AbstractShape):
         self.layer = layer
         self.segments = segments or max(4, round(math.pi * radius))
         self.pos = pos
-        self._radius = radius
 
-        theta = np.linspace(0, 2 * np.pi, self.segments)
-        self.orig_verts = np.vstack([
-            radius * np.cos(theta),
-            radius * np.sin(theta),
-            np.ones(self.segments)
-        ]).T.astype('f4')
+        # Generate verts now
+        theta = np.linspace(0, 2 * np.pi, self.segments).reshape((-1, 1))
+        self.base_verts = np.hstack([
+            np.cos(theta),
+            np.sin(theta),
+        ]).astype('f4')
 
         # There's a duplicate vertex so move the first vertex to the center
-        self.orig_verts[0][:2] = 0
+        self.base_verts[0][:2] = 0
+
+        # Placeholder for scaled verts
+        self.orig_verts = np.ones((self.segments, 3), dtype='f4')
+
+        # Assigning radius generates self.orig_verts
+        self.radius = radius
 
         self._color = convert_color(color)
+        self._set_dirty()
+
+    @property
+    def radius(self):
+        """Get the radius of this circle."""
+        return self._radius
+
+    @radius.setter
+    def radius(self, r):
+        """Set the radius of the circle; rebuild the vertices now."""
+        self._radius = r
+
+        np.multiply(
+            self.base_verts,
+            r,
+            self.orig_verts[:, :2]
+        )
+
         self._set_dirty()
 
     def _stroke_indices(self):
@@ -222,59 +246,10 @@ class Circle(AbstractShape):
         return idxs.reshape((-1))
 
     @property
-    def left(self):
-        return self.pos[0] - self._radius
-
-    @left.setter
-    def left(self, v):
-        self.pos[0] = v + self._radius
-        self._set_dirty()
-
-    @property
-    def right(self):
-        return self.pos[0] + self._radius
-
-    @right.setter
-    def right(self, v):
-        self.pos[0] = v - self._radius
-        self._set_dirty()
-
-    @property
-    def top(self):
-        return self.pos[1] - self._radius
-
-    @top.setter
-    def top(self, v):
-        self.pos[1] = v + self._radius
-        self._set_dirty()
-
-    @property
-    def bottom(self):
-        return self.pos[1] + self._radius
-
-    @bottom.setter
-    def bottom(self, v):
-        self.pos[1] = v - self._radius
-        self._set_dirty()
-
-    def colliderect(self, ano):
-        return not (
-            self.left > ano.right
-            or self.right < ano.left
-            or self.top > ano.bottom
-            or self.bottom < ano.top
+    def bounds(self):
+        x, y = self.pos
+        r = self.radius * self.scale
+        return ZRect(
+            (x - r, y - r),
+            (r * 2, r * 2),
         )
-
-    def collidelist(self, lst):
-        for idx, o in enumerate(lst):
-            if self.colliderect(o):
-                return idx
-        return -1
-
-    @property
-    def centerx(self):
-        return self.pos[0]
-
-    @property
-    def centery(self):
-        return self.pos[1]

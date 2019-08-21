@@ -1,5 +1,5 @@
 """An object that connects a graphics primitive with a collision shape."""
-from .rect import ZRect, Rect
+from .rect import Rect
 
 
 ANCHORS = {
@@ -51,10 +51,7 @@ class Actor:
     def __init__(self, prim, pos=None, anchor=None, **kwargs):
         self.prim = prim  # The primitive we are wrapping
 
-        w = self.prim.width
-        h = self.prim.height
-
-        self.__dict__["bounds"] = ZRect((0, 0), (w, h))
+        self.__dict__["bounds"] = self.prim.bounds
         # Initialise it at (0, 0) for size (0, 0).
         # We'll move it to the right place and resize it later
         self._init_position(pos, anchor, **kwargs)
@@ -124,3 +121,7 @@ class Actor:
 
         setter_name, position = symbolic_pos_dict.popitem()
         setattr(self, setter_name, position)
+
+    def delete(self):
+        self.prim.delete()
+        self.prim = None

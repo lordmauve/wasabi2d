@@ -1,6 +1,6 @@
 import numpy as np
 
-from .primitives.base import Colorable, Transformable
+from .primitives.base import Colorable, Transformable, Bounds
 
 
 TEXTURED_QUADS_PROGRAM = dict(
@@ -208,6 +208,8 @@ class Sprite(Colorable, Transformable):
     def _set_dirty(self):
         self.layer._dirty.add(self)
         self.verts = None
+
+    bounds = Bounds('self.orig_verts[:, :2]')
 
     def _update(self):
         xform = self._scale @ self._rot @ self._xlate

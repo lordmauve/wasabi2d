@@ -6,6 +6,8 @@ from ..color import convert_color
 from ..vendor.earcut import earcut
 from .base import AbstractShape
 
+from ..rect import ZRect
+
 
 class Polygon(AbstractShape):
     """An arbitrary polygon."""
@@ -87,47 +89,3 @@ class Rect(Polygon):
 
     def _vertices(self):
         return np.copy(self.VERTS) * (self.width, self.height)
-
-    @property
-    def left(self):
-        return self.pos[0] - self.width / 2
-
-    @left.setter
-    def left(self, v):
-        self.pos[0] = v + self.width / 2
-        self._set_dirty()
-
-    @property
-    def right(self):
-        return self.pos[0] + self.width / 2
-
-    @right.setter
-    def right(self, v):
-        self.pos[0] = v - self.width / 2
-        self._set_dirty()
-
-    @property
-    def top(self):
-        return self.pos[1] - self.height / 2
-
-    @top.setter
-    def top(self, v):
-        self.pos[1] = v + self.height / 2
-        self._set_dirty()
-
-    @property
-    def bottom(self):
-        return self.pos[1] + self.height / 2
-
-    @bottom.setter
-    def bottom(self, v):
-        self.pos[1] = v - self.height / 2
-        self._set_dirty()
-
-    @property
-    def centerx(self):
-        return self.pos[0]
-
-    @property
-    def centery(self):
-        return self.pos[1]
