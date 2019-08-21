@@ -21,7 +21,7 @@ HEIGHT = 600  # Screen height
 # per step.
 STEP_SIZE = 6
 
-scene = Scene(WIDTH, HEIGHT)
+scene = Scene(WIDTH, HEIGHT, antialias=4)
 
 
 class LandingSpot:
@@ -188,11 +188,17 @@ class Landscape:
             star_y = random.randint(
                 0, self.world_height[star_step]
             )  # Keep the stars above the landscape
-            scene.layers[-4].add_circle(
-                radius=random.random() * 1.5,
-                color=(random.random(),) * 3,
-                pos=(star_x, star_y)
+
+            mag = random.random()
+            star = scene.layers[-4].add_star(
+                points=4,
+                inner_radius=2,
+                outer_radius=10,
+                color=(mag,) * 3,
+                pos=(star_x, star_y),
             )
+            star.scale = mag * 0.3
+            star.angle = math.radians(45)
 
     def points(self):
         points = []
