@@ -2,67 +2,9 @@ from unittest.mock import ANY
 import numpy as np
 
 from ..color import convert_color
-from ..allocators.vertlists import VAO
-from ..sprites import Colorable, Transformable
 
 from ..vendor.earcut import earcut
-
-
-class AbstractShape(Colorable, Transformable):
-    _stroke_width = 1.0
-
-    def _migrate_stroke(self, vao: VAO):
-        """Migrate the stroke into the given VAO."""
-        # TODO: dealloc from an existing VAO
-        idxs = self._stroke_indices()
-        self.vao = vao
-        self.lst = vao.alloc(len(self.orig_verts), len(idxs))
-        self.lst.indexbuf[:] = idxs
-        self._update()
-
-    def _migrate_fill(self, vao: VAO):
-        """Migrate the fill into the given VAO."""
-        # TODO: dealloc from an existing VAO
-        idxs = self._fill_indices()
-        self.vao = vao
-        self.lst = vao.alloc(len(self.orig_verts), len(idxs))
-        self.lst.indexbuf[:] = idxs
-        self._update()
-
-    def _set_dirty(self):
-        self.layer._dirty.add(self)
-
-    @property
-    def stroke_width(self):
-        """Get the stroke width, in pixels."""
-        return self._stroke_width
-
-    @stroke_width.setter
-    def stroke_width(self, v):
-        """Set the stroke width in pixels."""
-        self._stroke_width = v
-        self._set_dirty()
-
-    def _update(self):
-        xform = self._scale @ self._rot @ self._xlate
-
-        np.matmul(
-            self.orig_verts,
-            xform[:, :2],
-            self.lst.vertbuf['in_vert']
-        )
-        self.lst.vertbuf['in_color'] = self._color
-        if 'in_linewidth' in self.lst.vertbuf.dtype.fields:
-            self.lst.vertbuf['in_linewidth'] = self._stroke_width
-        self.lst.dirty = True
-
-    def delete(self):
-        """Delete this primitive."""
-        self.layer._dirty.discard(self)
-        self.layer.objects.discard(self)
-        self.vao.free(self.lst)
-        self.lst = None
-        self.layer = None
+from .base import AbstractShape
 
 
 class Polygon(AbstractShape):
