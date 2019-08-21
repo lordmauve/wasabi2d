@@ -4,7 +4,7 @@
  * Run with 'pgzrun pi_lander.py', control with the LEFT, RIGHT and UP arrow
    keys
  * Original Author Tim Martin: www.Tim-Martin.co.uk
- * Ported to Wasabi2D by Daniel POpe
+ * Ported to Wasabi2D by Daniel Pope
  * Licence: Creative Commons Attribution-ShareAlike 4.0 International
  * http://creativecommons.org/licenses/by-sa/4.0/
 
@@ -21,7 +21,12 @@ HEIGHT = 1200  # Screen height
 # per step.
 STEP_SIZE = 12
 
-scene = Scene(WIDTH, HEIGHT, antialias=4)
+scene = Scene(
+    WIDTH,
+    HEIGHT,
+    antialias=4,
+    title="Lunar Lander",
+)
 
 
 class LandingSpot:
