@@ -239,7 +239,6 @@ class Ship:
         self.velocity = [0, 0]  # The x and y velocity of the players ship
         self.acceleration = [0, 0]  # The x and y acceleration of the players ship
         self.sprite = scene.layers[0].add_sprite('lander')
-        self.sprite.scale = 1.4
 
     def reset(self):
         """ Set the ships position, velocity and angle to their new-game values """
