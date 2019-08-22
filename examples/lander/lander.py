@@ -76,6 +76,13 @@ class Landscape:
     N_STARS = 100  # How many stars to put in the background
     n_spots = 4  # Max number of landing spots to generate
 
+    # the boundary of starting landscape height, dependent on screen height
+    MIN_START_Y = int(0.5 * HEIGHT)
+    MAX_START_Y = int(0.83 * HEIGHT)
+
+    MOUNTAIN_START_THRESHOLD = int(0.95 * HEIGHT)
+    VALLEY_START_THRESHOLD = int(0.33 * HEIGHT)
+
     def __init__(self):
         self.world_height = []  # Holds the height of the landscape at each step
         self.star_locations = []  # Holds the x and y location of the stars
@@ -131,7 +138,7 @@ class Landscape:
         feature_steps = 0  # Keep track of how many steps we are into a feature
 
         # Start the landscape between 300 and 500 pixels down
-        self.world_height.append(random.randint(600, 1000))
+        self.world_height.append(random.randint(Landscape.MIN_START_Y, Landscape.MAX_START_Y))
         for step in range(1, Landscape.world_steps):
             # If feature_step is zero, we need to choose a new feature and how long it goes on for
             if feature_steps == 0:
@@ -160,9 +167,9 @@ class Landscape:
             self.world_height.append(next_height)
             feature_steps -= 1
             # Stop mountains getting too high, or valleys too low
-            if next_height > 570 * 2:
+            if next_height > Landscape.MOUNTAIN_START_THRESHOLD:
                 current_feature = "mountain"  # Too low! Force a mountain
-            elif next_height < 200 * 2:
+            elif next_height < Landscape.VALLEY_START_THRESHOLD:
                 current_feature = "valley"  # Too high! Force a valley
 
         self.horizon = scene.layers[-2].add_line(
