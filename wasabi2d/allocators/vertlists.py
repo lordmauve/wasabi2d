@@ -58,6 +58,10 @@ class VAOList:
     indexbuf: np.ndarray
     indexoff: slice
 
+    # Number of verts and indexes in the allocation
+    _hwm_verts: int
+    _hwm_indexes: int
+
     #: True if needs syncing to the GL
     dirty: bool = False
 
@@ -89,8 +93,6 @@ class VAOList:
         if num_verts == len(self.vertbuf) \
                 and num_indexes == len(self.indexbuf):
             return
-        # TODO: if we alread have a greater allocation, do not realloc,
-        # just present a view of a subset of the allocation
         self.buf.realloc(self, num_verts, num_indexes)
 
     def free(self):
@@ -161,6 +163,8 @@ class VAO:
             vertoff=vs,
             indexbuf=self.indexes[ixs],
             indexoff=ixs,
+            _hwm_verts=num_verts,
+            _hwm_indexes=num_indexes,
             dirty=True
         )
         aidx = len(self.allocs)
@@ -175,43 +179,103 @@ class VAO:
 
         return lst
 
+    def _alloc_verts(self, num_verts: int) -> slice:
+        """Allocate a slice of vertices"""
+        try:
+            return self.allocator.alloc(num_verts)
+        except NoCapacity as e:
+            self.allocator.grow(e.recommended)
+            self._initialise()
+            return self.allocator.alloc(num_verts)
+
+    def _alloc_indexes(self, num_indexes: int) -> slice:
+        """Allocate a slice of indexes."""
+        try:
+            return self.index_allocator.alloc(num_indexes)
+        except NoCapacity as e:
+            self.index_allocator.grow(e.recommended)
+            self._initialise()
+            return self.index_allocator.alloc(num_indexes)
+
     def _alloc_slices(
             self,
             num_verts: int,
-            num_indexes: int
-            ) -> typing.Tuple[slice, slice]:
+            num_indexes: int) -> typing.Tuple[slice, slice]:
         """Allocate slices of the vertex and index buffers.
 
         Return a tuple (verts, indexes), both slice objects.
-
         """
+        grew = False
         try:
             vs = self.allocator.alloc(num_verts)
         except NoCapacity as e:
             self.allocator.grow(e.recommended)
-            self._initialise()
+            grew = True
             vs = self.allocator.alloc(num_verts)
 
         try:
-            ixs = self.index_allocator.alloc(num_indexes)
+            idxs = self.index_allocator.alloc(num_indexes)
         except NoCapacity as e:
             self.index_allocator.grow(e.recommended)
-            self._initialise()
-            ixs = self.index_allocator.alloc(num_indexes)
+            grew = True
+            idxs = self.index_allocator.alloc(num_indexes)
 
-        return vs, ixs
+        if grew:
+            self._initialise()
+        return vs, idxs
 
     def realloc(self, lst: VAOList, num_verts: int, num_indexes: int):
         """Reallocate a list, typically to grow the size of it.
 
-        No data will be copied to the new list but it will retain its draw
+        Data will be copied to the new list and it will retain its draw
         order.
+
+        We maintain high water marks on the allocation for a list and will
+        shrink an existing numpy slice without going back to the allocator.
+        When we do go back, we ask for extra.
         """
         pos = self.allocs.index(lst)
 
-        self.allocator.free(lst.vertoff)
-        self.index_allocator.free(lst.indexoff)
-        vs, ixs = self._alloc_slices(num_verts, num_indexes)
+        vs = ixs = None
+        need_verts = max(0, num_verts - lst._hwm_verts) * 4
+        need_idxs = max(0, num_indexes - lst._hwm_indexes) * 4
+
+        # TODO: this may be overcomplicated. We almost always need more
+        # indices at the same time we need more vertices so the generality to
+        # grow only one may be a net cost.
+
+        if need_verts:
+            self.allocator.free(lst.vertoff)
+        if need_idxs:
+            self.index_allocator.free(lst.indexoff)
+
+        if need_verts and need_idxs:
+            lst._hwm_verts += need_verts
+            lst._hwm_indexes += need_idxs
+            vs, ixs = self._alloc_slices(lst._hwm_verts, lst._hwm_indexes)
+        elif need_verts:
+            lst._hwm_verts += need_verts
+            vs = self._alloc_verts(lst._hwm_verts)
+        elif need_idxs:
+            lst._hwm_indexes += need_idxs
+            ixs = self._alloc_indexes(lst._hwm_indexes)
+
+        if not vs:
+            start = lst.vertoff.start
+            vs = slice(start, start + num_verts)
+        else:
+            vs = slice(vs.start, vs.start + num_verts)
+            # We still have a valid slice to copy to the new location
+            self.verts[vs][:len(lst.vertbuf)] = lst.vertbuf
+
+        if not ixs:
+            start = lst.indexoff.start
+            ixs = slice(start, start + num_indexes)
+        else:
+            ixs = slice(ixs.start, ixs.start + num_indexes)
+            # We still have a valid slice to copy to the new location
+            self.indexes[ixs][:len(lst.indexbuf)] = lst.indexbuf
+
         lst.vertbuf = self.verts[vs]
         lst.vertoff = vs
         lst.indexbuf = self.indexes[ixs]

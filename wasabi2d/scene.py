@@ -1,4 +1,5 @@
 """Wrapper around window creation."""
+import sys
 import math
 import numpy as np
 import pygame
@@ -10,6 +11,7 @@ from pyrr import Matrix44
 
 from . import clock
 from .layers import LayerGroup
+from .loaders import set_root
 
 
 class Scene:
@@ -20,11 +22,16 @@ class Scene:
             width=800,
             height=600,
             antialias=0,
-            title="wasabi2d"):
+            title="wasabi2d",
+            rootdir=None):
         self.width = width
         self.height = height
 
         self._recording = False
+
+        if rootdir is None:
+            rootdir = sys._getframe(1).f_globals['__file__']
+        set_root(rootdir)
 
         pygame.init()
 
@@ -151,10 +158,10 @@ class Scene:
     def draw(self, t, dt):
         assert len(self.background) == 3, \
             "Scene.background must be a 3-element tuple."
-        self.ctx.clear(*self.background)
-        self.layers.render(self.camera.proj, t, dt)
         if self._recording:
             self._vid_frame()
+        self.ctx.clear(*self.background)
+        self.layers.render(self.camera.proj, t, dt)
 
 
 class Camera:

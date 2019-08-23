@@ -29,9 +29,6 @@ def set_root(path):
     sys.path.insert(0, root)
 
 
-set_root(__import__('__main__').__file__)
-
-
 class InvalidCase(Exception):
     """Indicate case errors early so they don't bite cross-platform users."""
 
