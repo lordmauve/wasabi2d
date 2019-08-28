@@ -1,4 +1,6 @@
 import math
+from functools import partial
+
 import numpy as np
 import moderngl
 
@@ -159,15 +161,8 @@ def line_vao(
     )
 
 
-def shape_vao(
-        ctx: moderngl.Context,
-        shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
-    """Build a VAO for rendering shapes."""
-    return color_vao(
-        mode=moderngl.TRIANGLES,
-        ctx=ctx,
-        shadermgr=shadermgr,
-    )
+#: Construct a VAO for rendering the fill of shapes
+shape_vao = partial(color_vao, moderngl.TRIANGLES)
 
 
 class Circle(AbstractShape):

@@ -88,8 +88,13 @@ class VAOList:
         pos = self.buf.allocs.index(self)
         self.buf.indirect[pos, 0] = n
 
-    def realloc(self, num_verts, num_indexes):
+    def realloc(self, num_verts=None, num_indexes=None):
         """Reallocate the list to a new size. Invalidate the data."""
+        if num_verts is None:
+            num_verts = len(self.vertbuf)
+        if num_indexes is None:
+            num_indexes = len(self.indexbuf)
+
         if num_verts == len(self.vertbuf) \
                 and num_indexes == len(self.indexbuf):
             return

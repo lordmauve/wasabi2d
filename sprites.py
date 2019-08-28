@@ -62,6 +62,12 @@ poly = scene.layers[0].add_polygon(
 poly.stroke_width = 0
 
 
+particles = scene.layers[0].add_particle_group(
+    fade=0.7,
+    max_age=1
+)
+
+
 ship.vel = Vector2()
 
 
@@ -119,17 +125,24 @@ clock.schedule_interval(rotate_star, 2.0)
 @event
 def update(t, dt, keyboard):
     ship.vel *= 0.3 ** dt
-    lbl.text = f"Speed: {ship.vel.magnitude() / 10:0.1f}m/s"
-    lbl.scale = (ship.vel.magnitude() / 100) ** 2 + 1
+
+    speed = ship.vel.magnitude()
+    lbl.text = f"Speed: {speed / 10:0.1f}m/s"
+    lbl.scale = (speed / 100) ** 2 + 1
 
     accel = 300 * dt
+    thrust = False
     if keyboard.right:
+        thrust = True
         ship.vel[0] += accel
     elif keyboard.left:
+        thrust = True
         ship.vel[0] -= accel
     if keyboard.up:
+        thrust = True
         ship.vel[1] -= accel
     elif keyboard.down:
+        thrust = True
         ship.vel[1] += accel
 
     ship.pos += ship.vel * dt
@@ -138,6 +151,15 @@ def update(t, dt, keyboard):
     if not (-1e-6 < ship.vel.magnitude_squared() < 1e-6):
         vx, vy = ship.vel
         ship.angle = math.atan2(vy, vx)
+
+    if thrust:
+        particles.emit(
+            dt * 100,
+            vel=-100 * ship.vel.normalize(),
+            vel_spread=20,
+            pos=ship.pos,
+            color='#ffee55',
+        )
 
     for b in bullets.copy():
         b.pos += b.vel * dt

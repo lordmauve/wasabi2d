@@ -5,6 +5,7 @@ from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
+from .primitives.particles import ParticleGroup, points_vao
 
 
 class ShaderManager:
@@ -57,6 +58,7 @@ class Layer:
         self.visible = True
         self.objects = set()
         self._dirty = set()
+        self._dynamic = set()
 
     def clear(self):
         """Remove everything from the layer."""
@@ -65,11 +67,15 @@ class Layer:
         self.arrays.clear()
         self.objects.clear()
         self._dirty.clear()
+        self._dynamic.clear()
 
     def render(self, t, dt):
         """Render the layer."""
         if not self.visible:
             return
+
+        for o in self._dynamic:
+            o._update(t, dt)
 
         for o in self._dirty:
             o._update()
@@ -99,29 +105,28 @@ class Layer:
         else:
             array.add(spr)
 
-    def _lines_vao(self):
-        """Get a VAO for objects made of line strips."""
-        k = 'lines'
+    def _get_or_create_vao(self, k, constructor):
+        """Get a VAO identified by key k, or construct it using constructor."""
         vao = self.arrays.get(k)
         if not vao:
-            vao = self.arrays[k] = line_vao(self.ctx, self.group.shadermgr)
+            vao = self.arrays[k] = constructor(self.ctx, self.group.shadermgr)
         return vao
 
-    def _fill_vao(self):
+    def _lines_vao(self):
         """Get a VAO for objects made of line strips."""
-        k = 'shapes'
-        vao = self.arrays.get(k)
-        if not vao:
-            vao = self.arrays[k] = shape_vao(self.ctx, self.group.shadermgr)
-        return vao
+        return self._get_or_create_vao('lines', line_vao)
+
+    def _fill_vao(self):
+        """Get a VAO for objects made of colored triangles."""
+        return self._get_or_create_vao('shapes', shape_vao)
+
+    def _points_vao(self):
+        """Get a VAO for objects made of points."""
+        return self._get_or_create_vao('points', points_vao)
 
     def _text_vao(self, font):
         """Get a VAO for objects made of font glyphs."""
-        k = 'text', font
-        vao = self.arrays.get(k)
-        if not vao:
-            vao = self.arrays[k] = text_vao(self.ctx, self.group.shadermgr)
-        return vao
+        return self._get_or_create_vao(('text', font), text_vao)
 
     def add_circle(self,
                    *,
@@ -268,6 +273,17 @@ class Layer:
         )
         self.objects.add(c)
         c._migrate(self._text_vao(font))
+        return c
+
+    def add_particle_group(self, **kwargs) -> ParticleGroup:
+        """Create a group of particles.
+
+        We do not actually emit any particles at this time.
+        """
+        c = ParticleGroup(layer=self, **kwargs)
+        self.objects.add(c)
+        self._dynamic.add(c)
+        c._migrate(self._points_vao())
         return c
 
 

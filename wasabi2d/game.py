@@ -170,6 +170,6 @@ class EventMapper:
 
             screen_change = False  # self.reinit_screen()
             if screen_change or updated or pgzclock.fired or self.need_redraw:
-                self.dispatch_event(DrawEvent(DrawEvent, 't', 'dt'))
+                self.dispatch_event(DrawEvent(DrawEvent, t, dt))
                 pygame.display.flip()
                 self.need_redraw = False

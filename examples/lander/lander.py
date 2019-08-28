@@ -383,6 +383,7 @@ class Game:
 
 game_label = scene.layers[5].add_label(
     "Press space to play",
+    font='eunomia_regular',
     pos=(WIDTH / 2, HEIGHT / 5),
     align="center",
     color="green",
@@ -406,33 +407,39 @@ hud = scene.layers[2]
 
 score_label = hud.add_label(
     "SCORE: " + str(round(game.score)),
+    font='eunomia_regular',
     pos=(10, 55),
     fontsize=40,
 )
 time_label = hud.add_label(
     "TIME: " + str(round(game.time)),
+    font='eunomia_regular',
     pos=(10, 95),
     fontsize=40,
 )
 fuel_label = hud.add_label(
     "FUEL: " + str(game.ship.fuel),
+    font='eunomia_regular',
     pos=(10, 135),
     fontsize=40,
 )
 alt_label = hud.add_label(
     "ALTITUDE: " + str(round(game.ship.altitude)),
+    font='eunomia_regular',
     pos=(WIDTH - 10, 55),
     align='right',
     fontsize=40,
 )
 vx_label = hud.add_label(
     "HORIZONTAL SPEED: {0:.2f}".format(game.ship.velocity[0]),
+    font='eunomia_regular',
     pos=(WIDTH - 10, 95),
     align='right',
     fontsize=40,
 )
 vy_label = hud.add_label(
     "VERTICAL SPEED: {0:.2f}".format(-game.ship.velocity[1]),
+    font='eunomia_regular',
     pos=(WIDTH - 10, 135),
     align='right',
     fontsize=40,
