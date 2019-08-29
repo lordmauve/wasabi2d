@@ -78,6 +78,14 @@ class AbstractAllocator:
             err.recommended = self.capacity + new_capacity
             raise err
 
+        # We have located where we want to reserve, insert it
+        return self._reserve(pos, num)
+
+    def _reserve(self, pos, num) -> slice:
+        """Update the free list with the given reservation.
+
+        Return the reserved slice.
+        """
         block_size, offset = self._free.pop(pos)
 
         # Release the rest of the block in power-of-2 blocks
@@ -94,6 +102,34 @@ class AbstractAllocator:
         # Store the size of the block that we allocated
         self.allocs[offset] = num
         return slice(offset, end_off)
+
+    def realloc(self, offset: Union[int, slice], new_size: int) -> slice:
+        """Reallocate the given block.
+
+        This is optimised so that if there is extra space in the original
+        allocation, it can be done without moving the block.
+
+        This operation can fail, raising NoCapacity.
+
+        """
+        if isinstance(offset, slice):
+            offset = offset.start
+
+        try:
+            size = self.allocs[offset]
+        except KeyError:
+            raise KeyError(f"Offset {offset} is not allocated.") from None
+        if new_size <= size:
+            return slice(offset, offset + new_size)
+
+        del self.allocs[offset]
+        self._release(offset, size)
+        try:
+            return self.alloc(new_size)
+        except NoCapacity:
+            # We don't have enough capacity, re-insert before raising
+            self._reserve(offset, size)
+            raise
 
     def free(self, offset: Union[int, slice]):
         """Free the block at offset."""

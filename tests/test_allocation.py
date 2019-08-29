@@ -87,3 +87,15 @@ def test_grow(alloc):
     alloc.grow(target)
 
     assert alloc.avail() == expected_avail
+
+
+def test_realloc(alloc):
+    """We can reallocate a block to a smaller size without moving it."""
+    # Do a couple of allocations so that second is not at the start
+    first = alloc.alloc(10)
+    second = alloc.alloc(100)
+    alloc.free(first)
+
+    # Could reallocate to the beginning here, but assert we don't
+    third = alloc.realloc(second, 10)
+    assert third.start == second.start

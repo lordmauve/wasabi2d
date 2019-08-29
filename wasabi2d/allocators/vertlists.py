@@ -1,4 +1,5 @@
 import typing
+from typing import Tuple
 from dataclasses import dataclass
 from collections import OrderedDict
 
@@ -103,7 +104,10 @@ class VAOList:
         self.buf.realloc(self, num_verts, num_indexes)
 
     def free(self):
-        self.buf.free(self)
+        if self.buf:
+            self.buf.free(self)
+
+    __del__ = free
 
 
 class IndirectBuffer:
@@ -168,6 +172,56 @@ class IndirectBuffer:
         self.buffer = None
 
 
+class MemoryBackedBuffer:
+    """Maintain a GL buffer plus a numpy arrays for storage."""
+
+    def __init__(self, ctx, capacity, dtype):
+        self.ctx = ctx
+        self.allocator = AbstractAllocator(capacity)
+        self.dtype = dtype
+        self.array = np.empty(capacity, dtype=self.dtype)
+        self.buffer = None
+
+    def allocate(self, num: int) -> Tuple[slice, np.ndarray]:
+        """Allocate a slice of the array.
+
+        Return a slice and view.
+
+        """
+        try:
+            allocated = self.allocator.alloc(num)
+        except NoCapacity as e:
+            new_size = e.recommended
+            new_array = np.empty(new_size, dtype=self.dtype)
+            new_array[:len(self.array)] = self.array
+            self.array = new_array
+            self.allocator.grow(e.recommended)
+            self.buffer = None
+            allocated = self.allocator.alloc(num)
+        return allocated, self.array[allocated]
+
+    def get_buffer(self, dirty=False) -> moderngl.Buffer:
+        """Get the buffer."""
+        if not self.buffer:
+            self.buffer = self.ctx.buffer(self.array, dynamic=True)
+        elif dirty:
+            self.buffer.write(self.array)
+        return self.buffer
+
+    def realloc(self, offset: slice, size: int) -> Tuple[slice, np.ndarray]:
+        """Resize the allocation at offset. Return the new slice and view."""
+        # TODO: use self.allocator.realloc here
+        self.allocator.free(offset)
+        newoff, new_view = self.allocate(size)
+        copy_size = min(size, offset.stop - offset.start)
+        new_view[:copy_size] = self.array[offset][:copy_size]
+        return newoff, new_view
+
+    def free(self, offset: typing.Union[int, slice]):
+        """Free the allocation."""
+        self.allocator.free(offset)
+
+
 class VAO:
     """Manage vertex lists within a VAO."""
 
@@ -182,100 +236,44 @@ class VAO:
         self.mode = mode
         self.ctx = ctx
         self.prog = prog
-        self.dtype = dtype
-        self.allocator = AbstractAllocator(capacity)
-        self.index_allocator = AbstractAllocator(index_capacity)
-        self.allocs: typing.List[VAOList] = []
-        self._initialise()
-
+        self.dtype = dtype_to_moderngl(dtype)
+        self.verts = MemoryBackedBuffer(ctx, capacity, dtype)
+        self.indexes = MemoryBackedBuffer(ctx, index_capacity, 'i4')
         self.indirect = IndirectBuffer(ctx)
+        self.allocs: typing.List[VAOList] = []
+        self.vao = None
 
     def _initialise(self):
-        self.verts = np.zeros(self.allocator.capacity, dtype=self.dtype)
-        self.indexes = np.zeros(self.index_allocator.capacity, dtype='i4')
-
-        # Sync allocs into the new buffer
-        for a in self.allocs:
-            self.verts[a.vertoff] = a.vertbuf
-            self.indexes[a.indexoff] = a.indexbuf
-            a.vertbuf = self.verts[a.vertoff]
-            a.indexbuf = self.indexes[a.indexbuf]
-            a.dirty = False
-
-        # Create OpenGL objects
-        self.vbo = self.ctx.buffer(self.verts, dynamic=True)
-        self.ibo = self.ctx.buffer(self.indexes, dynamic=True)
+        """Create OpenGL objects."""
+        self.vbo = self.verts.get_buffer()
+        self.ibo = self.indexes.get_buffer()
         self.vao = self.ctx.vertex_array(
             self.prog,
             [
-                (self.vbo, *dtype_to_moderngl(self.dtype)),
+                (self.vbo, *self.dtype),
             ],
             self.ibo
         )
 
     def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
-        vs, ixs = self._alloc_slices(num_verts, num_indexes)
+        vs, vertbuf = self.verts.allocate(num_verts)
+        ixs, indexbuf = self.indexes.allocate(num_indexes)
+
         cmd = self.indirect.append(num_indexes, 1, ixs.start, vs.start, 0)
         lst = VAOList(
             buf=self,
             command=cmd,
-            vertbuf=self.verts[vs],
+            vertbuf=vertbuf,
             vertoff=vs,
-            indexbuf=self.indexes[ixs],
+            indexbuf=indexbuf,
             indexoff=ixs,
             _hwm_verts=num_verts,
             _hwm_indexes=num_indexes,
             dirty=True
         )
         self.allocs.append(lst)
-
         return lst
-
-    def _alloc_verts(self, num_verts: int) -> slice:
-        """Allocate a slice of vertices"""
-        try:
-            return self.allocator.alloc(num_verts)
-        except NoCapacity as e:
-            self.allocator.grow(e.recommended)
-            self._initialise()
-            return self.allocator.alloc(num_verts)
-
-    def _alloc_indexes(self, num_indexes: int) -> slice:
-        """Allocate a slice of indexes."""
-        try:
-            return self.index_allocator.alloc(num_indexes)
-        except NoCapacity as e:
-            self.index_allocator.grow(e.recommended)
-            self._initialise()
-            return self.index_allocator.alloc(num_indexes)
-
-    def _alloc_slices(
-            self,
-            num_verts: int,
-            num_indexes: int) -> typing.Tuple[slice, slice]:
-        """Allocate slices of the vertex and index buffers.
-
-        Return a tuple (verts, indexes), both slice objects.
-        """
-        grew = False
-        try:
-            vs = self.allocator.alloc(num_verts)
-        except NoCapacity as e:
-            self.allocator.grow(e.recommended)
-            grew = True
-            vs = self.allocator.alloc(num_verts)
-
-        try:
-            idxs = self.index_allocator.alloc(num_indexes)
-        except NoCapacity as e:
-            self.index_allocator.grow(e.recommended)
-            grew = True
-            idxs = self.index_allocator.alloc(num_indexes)
-
-        if grew:
-            self._initialise()
-        return vs, idxs
 
     def realloc(self, lst: VAOList, num_verts: int, num_indexes: int):
         """Reallocate a list, typically to grow the size of it.
@@ -287,55 +285,28 @@ class VAO:
         shrink an existing numpy slice without going back to the allocator.
         When we do go back, we ask for extra.
         """
-        pos = self.allocs.index(lst)
-
-        vs = ixs = None
-        need_verts = max(0, num_verts - lst._hwm_verts) * 4
-        need_idxs = max(0, num_indexes - lst._hwm_indexes) * 4
-
-        # TODO: this may be overcomplicated. We almost always need more
-        # indices at the same time we need more vertices so the generality to
-        # grow only one may be a net cost.
+        need_verts = num_verts != len(lst.vertbuf)
+        need_idxs = num_indexes != len(lst.indexbuf)
 
         if need_verts:
-            self.allocator.free(lst.vertoff)
+            lst.vertoff, lst.vertbuf = self.verts.realloc(
+                lst.vertoff,
+                num_verts,
+            )
         if need_idxs:
-            self.index_allocator.free(lst.indexoff)
+            lst.indexoff, lst.indexbuf = self.indexes.realloc(
+                lst.indexoff,
+                num_indexes,
+            )
 
-        if need_verts and need_idxs:
-            lst._hwm_verts += need_verts
-            lst._hwm_indexes += need_idxs
-            vs, ixs = self._alloc_slices(lst._hwm_verts, lst._hwm_indexes)
-        elif need_verts:
-            lst._hwm_verts += need_verts
-            vs = self._alloc_verts(lst._hwm_verts)
-        elif need_idxs:
-            lst._hwm_indexes += need_idxs
-            ixs = self._alloc_indexes(lst._hwm_indexes)
-
-        if not vs:
-            start = lst.vertoff.start
-            vs = slice(start, start + num_verts)
-        else:
-            vs = slice(vs.start, vs.start + num_verts)
-            # We still have a valid slice to copy to the new location
-            self.verts[vs][:len(lst.vertbuf)] = lst.vertbuf
-
-        if not ixs:
-            start = lst.indexoff.start
-            ixs = slice(start, start + num_indexes)
-        else:
-            ixs = slice(ixs.start, ixs.start + num_indexes)
-            # We still have a valid slice to copy to the new location
-            self.indexes[ixs][:len(lst.indexbuf)] = lst.indexbuf
-
-        lst.vertbuf = self.verts[vs]
-        lst.vertoff = vs
-        lst.indexbuf = self.indexes[ixs]
-        lst.indexoff = ixs
         lst.dirty = True
-
-        self.indirect[lst.command] = (num_indexes, 1, ixs.start, vs.start, 0)
+        self.indirect[lst.command] = (
+            num_indexes,
+            1,
+            lst.indexoff.start,
+            lst.vertoff.start,
+            0
+        )
 
     def free(self, lst):
         """Remove a list from the array."""
@@ -343,28 +314,42 @@ class VAO:
         del self.indirect[lst.command]
 
         # Free space in allocators
-        self.allocator.free(lst.vertoff)
-        self.index_allocator.free(lst.indexoff)
+        self.verts.free(lst.vertoff)
+        self.indexes.free(lst.indexoff)
 
         lst.buf = None
         lst.vertbuf = None
         lst.indexbuf = None
 
-    def render(self):
-        """Render all lists."""
-        if not self.allocs:
-            return
-
+    def get_vao(self):
+        # TODO: use the dirty list to more accurately indicate which parts of
+        # a buffer need updating.
         dirty = False
         for a in self.allocs:
             if a.dirty:
                 dirty = True
                 a.dirty = False
-        if dirty:
-            self.vbo.write(self.verts)
-            self.ibo.write(self.indexes)
 
-        self.vao.render_indirect(
-            self.indirect.get_buffer(),
+        vbo = self.verts.get_buffer(dirty)
+        ibo = self.indexes.get_buffer(dirty)
+
+        # TODO: only recreate the VAO if buffers have changed
+        vao = self.ctx.vertex_array(
+            self.prog,
+            [
+                (vbo, *self.dtype),
+            ],
+            ibo
+        )
+        return vao
+
+    def render(self):
+        """Render all lists."""
+        if not self.allocs:
+            return
+        vao = self.get_vao()
+        indirect = self.indirect.get_buffer()
+        vao.render_indirect(
+            indirect,
             mode=self.mode,
         )
