@@ -1,5 +1,6 @@
 import typing
 from dataclasses import dataclass
+from collections import OrderedDict
 
 import moderngl
 import numpy as np
@@ -49,6 +50,7 @@ def dtype_to_moderngl(dtype: np.dtype) -> tuple:
 class VAOList:
     """A list allocated within a VAO."""
     buf: 'VAO'
+    command: int
 
     # View of the vertex buffer, and slice
     vertbuf: np.ndarray
@@ -104,6 +106,68 @@ class VAOList:
         self.buf.free(self)
 
 
+class IndirectBuffer:
+    """Abstraction over managing indirect allocations.
+
+    Indirect draw commands always have the same 5 u4 parameters:
+
+    (count, instanceCount, firstIndex, baseVertex, baseInstance)
+
+    """
+    def __init__(self, ctx, capacity=50):
+        self.ctx = ctx
+        self.capacity = capacity
+        self.next_key = 0
+        self.allocations = OrderedDict()
+        self.buffer = None
+
+    def _initialise(self):
+        self.indirect = np.zeros((self.capacity, 5), dtype='u4')
+        for aidx, lst in enumerate(self.allocs):
+            num_indexes = lst.indexoff.stop - lst.indexoff.start
+            ixs_start = lst.indexoff.start
+            vs_start = lst.vertoff.start
+            self.indirect[aidx] = (num_indexes, 1, ixs_start, vs_start, 0)
+        self.buffer = self.ctx.buffer(self.indirect, dynamic=True)
+        self.dirty = False
+
+    def get_buffer(self):
+        """Get the buffer object.
+
+        Create a new buffer object if dirty.
+
+        """
+        if not self.buffer:
+            self.buffer = self.ctx.buffer(
+                np.array(list(self.allocations.values()), dtype='u4'),
+            )
+        return self.buffer
+
+    def append(self, vs, insts, base_idx, base_v, base_inst) -> int:
+        """Append an indirect draw command.
+
+        Return an opaque key that can be used to update or delete the command.
+        """
+        key = self.next_key
+        self.next_key += 1
+
+        self.allocations[key] = np.array(
+            [vs, insts, base_idx, base_v, base_inst],
+            dtype='u4'
+        )
+        self.buffer = None
+        return key
+
+    def __delitem__(self, key):
+        del self.allocations[key]
+        self.buffer = None
+
+    def __setitem__(self, key, vals):
+        assert len(vals) == 5, "Invalid indirect draw command"
+        self.allocations[key][:] = vals
+        self.buffer = None
+
+
 class VAO:
     """Manage vertex lists within a VAO."""
 
@@ -119,12 +183,12 @@ class VAO:
         self.ctx = ctx
         self.prog = prog
         self.dtype = dtype
-        self.indirect_capacity = 50
         self.allocator = AbstractAllocator(capacity)
         self.index_allocator = AbstractAllocator(index_capacity)
         self.allocs: typing.List[VAOList] = []
         self._initialise()
-        self._initialise_indirect()
+
+        self.indirect = IndirectBuffer(ctx)
 
     def _initialise(self):
         self.verts = np.zeros(self.allocator.capacity, dtype=self.dtype)
@@ -149,21 +213,13 @@ class VAO:
             self.ibo
         )
 
-    def _initialise_indirect(self):
-        self.indirect = np.zeros((self.indirect_capacity, 5), dtype='u4')
-        for aidx, lst in enumerate(self.allocs):
-            num_indexes = lst.indexoff.stop - lst.indexoff.start
-            ixs_start = lst.indexoff.start
-            vs_start = lst.vertoff.start
-            self.indirect[aidx] = (num_indexes, 1, ixs_start, vs_start, 0)
-        self.indirectbo = self.ctx.buffer(self.indirect, dynamic=True)
-        self.indirect_dirty = False
-
     def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
         vs, ixs = self._alloc_slices(num_verts, num_indexes)
+        cmd = self.indirect.append(num_indexes, 1, ixs.start, vs.start, 0)
         lst = VAOList(
             buf=self,
+            command=cmd,
             vertbuf=self.verts[vs],
             vertoff=vs,
             indexbuf=self.indexes[ixs],
@@ -172,15 +228,7 @@ class VAO:
             _hwm_indexes=num_indexes,
             dirty=True
         )
-        aidx = len(self.allocs)
         self.allocs.append(lst)
-
-        if len(self.allocs) > self.indirect_capacity:
-            self.indirect_capacity *= 2
-            self._initialise_indirect()
-        else:
-            self.indirect[aidx] = (num_indexes, 1, ixs.start, vs.start, 0)
-            self.indirect_dirty = True
 
         return lst
 
@@ -287,20 +335,12 @@ class VAO:
         lst.indexoff = ixs
         lst.dirty = True
 
-        self.indirect[pos] = (num_indexes, 1, ixs.start, vs.start, 0)
-        self.indirect_dirty = True
+        self.indirect[lst.command] = (num_indexes, 1, ixs.start, vs.start, 0)
 
     def free(self, lst):
         """Remove a list from the array."""
-        pos = self.allocs.index(lst)
-
-        # Update indirect buffer
-        n_allocs = len(self.allocs)
         self.allocs.remove(lst)
-
-        # Move subsequent lists. Caution: linear cost per free
-        self.indirect[pos:len(self.allocs)] = self.indirect[pos + 1:n_allocs]
-        self.indirect_dirty = True
+        del self.indirect[lst.command]
 
         # Free space in allocators
         self.allocator.free(lst.vertoff)
@@ -323,12 +363,8 @@ class VAO:
         if dirty:
             self.vbo.write(self.verts)
             self.ibo.write(self.indexes)
-        if self.indirect_dirty:
-            self.indirectbo.write(self.indirect)
-            self.indirect_dirty = False
 
         self.vao.render_indirect(
-            self.indirectbo,
+            self.indirect.get_buffer(),
             mode=self.mode,
-            count=len(self.allocs)
         )
