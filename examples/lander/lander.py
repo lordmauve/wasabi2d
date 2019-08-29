@@ -11,7 +11,7 @@
 """
 import random
 import math
-from wasabi2d import Scene, event, run, clock, keys
+from wasabi2d import Scene, event, run, clock, keys, Vector2
 
 
 WIDTH = 1600  # Screen width
@@ -239,6 +239,10 @@ class Ship:
         self.velocity = [0, 0]  # The x and y velocity of the players ship
         self.acceleration = [0, 0]  # The x and y acceleration of the players ship
         self.sprite = scene.layers[0].add_sprite('lander')
+        self.particles = scene.layers[0].add_particle_group(
+            fade=0.4,
+            max_age=2,
+        )
 
     def reset(self):
         """ Set the ships position, velocity and angle to their new-game values """
@@ -274,11 +278,20 @@ class Ship:
         """ When booster is firing we accelerate in the opposite direction, 180 degrees, from the way the ship is facing """
         self.booster = True
         self.sprite.image = 'lander-thrust'
-        self.acceleration[0] = Ship.booster_power * math.sin(
-            math.radians(self.angle + 180)
-        )
-        self.acceleration[1] = Ship.booster_power * math.cos(
-            math.radians(self.angle + 180)
+
+        angle_r = math.radians(self.angle + 180)
+
+        accel = Vector2(math.sin(angle_r), math.cos(angle_r))
+
+        self.acceleration[:] = Ship.booster_power * accel
+
+        self.particles.emit(
+            5,
+            pos=self.position,
+            pos_spread=2,
+            vel=accel * -200 + Vector2(*self.velocity) * 60,
+            vel_spread=50,
+            color='yellow'
         )
         self.fuel -= 2
 
@@ -460,7 +473,7 @@ def update_hud():
 
     vx, vy = game.ship.velocity
     vx_label.text = f"HORIZONTAL SPEED: {vx:.2f}"
-    vx_label.text = f"VERTICAL SPEED: {-vy:.2f}"
+    vy_label.text = f"VERTICAL SPEED: {-vy:.2f}"
 
 
 def update_physics(dt, keyboard):
