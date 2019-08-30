@@ -1,4 +1,5 @@
 import math
+import pygame
 from wasabi2d import event, run, sounds, Scene, Vector2, clock, animate
 
 
@@ -78,10 +79,16 @@ ship.vel = Vector2()
 bullets = []
 
 
+SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
+
+
 @event
-def on_key_down(key):
+def on_key_down(key, mod):
     if key == key.F12:
-        scene.screenshot()
+        if mod & SHIFT:
+            scene.toggle_recording()
+        else:
+            scene.screenshot()
 
     elif key == key.K_1:
         lbl.align = 'left'
