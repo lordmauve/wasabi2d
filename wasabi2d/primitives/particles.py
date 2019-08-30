@@ -17,13 +17,19 @@ PARTICLE_PROGRAM = dict(
         in vec2 in_vert;
         in vec4 in_color;
         in float in_size;
+        in float in_angle;
         out vec4 g_color;
         out float size;
+        out mat2 rots;
 
         void main() {
             gl_Position = vec4(in_vert, 0.0, 1.0);
             g_color = in_color;
             size = in_size;
+
+            float c = cos(in_angle);
+            float s = sin(in_angle);
+            rots = mat2(c, -s, s, c);
         }
     ''',
     geometry_shader="""
@@ -31,6 +37,7 @@ PARTICLE_PROGRAM = dict(
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
+in mat2 rots[];
 in vec4 g_color[];
 in float size[];
 out vec4 color;
@@ -39,21 +46,22 @@ uniform mat4 proj;
 
 void main() {
     color = g_color[0];
-    float sz = size[0] * 0.5;
     vec2 pos = gl_in[0].gl_Position.xy;
+    mat2 rot = rots[0];
 
-    gl_Position = proj * vec4(pos.x - sz, pos.y + sz, 0.0, 1.0);
-    EmitVertex();
+    float sz = size[0] * 0.5;
+    // Vector to the corner
+    vec2 corners[4] = vec2[4](
+        vec2(-sz, sz),
+        vec2(sz, sz),
+        vec2(-sz, -sz),
+        vec2(sz, -sz)
+    );
 
-    gl_Position = proj * vec4(pos.x + sz, pos.y + sz, 0.0, 1.0);
-    EmitVertex();
-
-    gl_Position = proj * vec4(pos.x - sz, pos.y - sz, 0.0, 1.0);
-    EmitVertex();
-
-    gl_Position = proj * vec4(pos.x + sz, pos.y - sz, 0.0, 1.0);
-    EmitVertex();
-
+    for (int i = 0; i < 4; i++) {
+        gl_Position = proj * vec4(pos + rot * corners[i], 0.0, 1.0);
+        EmitVertex();
+    }
     EndPrimitive();
 }
 """,
@@ -82,6 +90,7 @@ def particles_vao(
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
             ('in_size', 'f4'),
+            ('in_angle', 'f4'),
         ])
     )
 
@@ -103,6 +112,7 @@ class ParticleGroup:
         self.fade = fade
         self.grow = grow
         self.ages = np.zeros([0])
+        self.spins = np.zeros([0])
         self.vels = np.zeros([0, 2])
 
     def emit(
@@ -115,7 +125,10 @@ class ParticleGroup:
             vel_spread: float = 0,
             color: Any = (1, 1, 1, 1),
             size: float = 1.0,
-            size_spread: float = 0.0):
+            size_spread: float = 0.0,
+            spin: float = 0.0,
+            spin_spread: float = 0.0,
+            ):
         """Emit num particles."""
         num = round(num)
         color = convert_color(color)
@@ -133,10 +146,12 @@ class ParticleGroup:
         new_vel = np.random.normal(vel, vel_spread, [num, 2])
         new_pos = np.random.normal(pos, pos_spread, [num, 2])
         new_size = np.random.normal(size, size_spread, num)
+        new_spins = np.random.normal(spin, spin_spread, num)
 
         verts = self.lst.vertbuf
         self.ages = np.hstack([self.ages[alive], [0] * num])
         self.vels = np.vstack([self.vels[alive], new_vel])
+        self.spins = np.hstack([self.spins[alive], new_spins])
         verts[:num_alive] = verts_alive
         verts[num_alive:]['in_color'] = color
         verts[num_alive:]['in_vert'] = new_pos
@@ -151,6 +166,7 @@ class ParticleGroup:
         self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4')
         self.ages = self.ages[alive].copy()
         self.vels = self.vels[alive].copy()
+        self.spins = self.spins[alive].copy()
         self.lst.vertbuf[:] = verts_alive
 
     def _update(self, t, dt):
@@ -161,6 +177,7 @@ class ParticleGroup:
         self.lst.vertbuf['in_vert'] += self.vels * dt
         self.lst.vertbuf['in_color'] *= self.fade ** dt
         self.lst.vertbuf['in_size'] *= self.grow ** dt
+        self.lst.vertbuf['in_angle'] += self.spins * dt
         self.lst.dirty = True
 
     def _migrate(self, vao: VAO):

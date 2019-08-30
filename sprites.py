@@ -161,6 +161,7 @@ def update(t, dt, keyboard):
             pos=ship.pos,
             color='#ffee55',
             size=4,
+            spin_spread=3,
         )
 
     for b in bullets.copy():
