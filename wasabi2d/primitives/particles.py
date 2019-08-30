@@ -113,6 +113,8 @@ class ParticleGroup:
             *,
             grow: float = 1.0,
             max_age: float = np.inf,
+            gravity: Tuple[float, float] = (0, 0),
+            drag: float = 1.0,
             fade: float = 1.0):
         super().__init__()
         self.layer = layer
@@ -120,6 +122,8 @@ class ParticleGroup:
         self.max_age = max_age
         self.fade = fade
         self.grow = grow
+        self.gravity = np.array(gravity)
+        self.drag = drag
         self.ages = np.zeros([0])
         self.spins = np.zeros([0])
         self.vels = np.zeros([0, 2])
@@ -183,7 +187,10 @@ class ParticleGroup:
 
         # Update
         self.ages += dt
-        self.lst.vertbuf['in_vert'] += self.vels * dt
+        orig_vels = self.vels
+        self.vels = self.vels * self.drag ** dt + self.gravity * dt
+
+        self.lst.vertbuf['in_vert'] += (self.vels + orig_vels) * (dt * 0.5)
         self.lst.vertbuf['in_color'] *= self.fade ** dt
         self.lst.vertbuf['in_size'] *= self.grow ** dt
         self.lst.vertbuf['in_angle'] += self.spins * dt

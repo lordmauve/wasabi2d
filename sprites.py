@@ -66,7 +66,9 @@ particles = scene.layers[0].add_particle_group(
     texture='smoke',
     fade=0.4,
     grow=4,
-    max_age=2
+    max_age=2,
+    gravity=(0, 100),
+    drag=0.5,
 )
 
 
