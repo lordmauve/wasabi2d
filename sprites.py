@@ -63,8 +63,9 @@ poly.stroke_width = 0
 
 
 particles = scene.layers[0].add_particle_group(
+    texture='smoke',
     fade=0.4,
-    grow=2,
+    grow=4,
     max_age=2
 )
 
@@ -160,7 +161,7 @@ def update(t, dt, keyboard):
             vel_spread=20,
             pos=ship.pos,
             color='#ffee55',
-            size=4,
+            size=8,
             spin_spread=3,
         )
 

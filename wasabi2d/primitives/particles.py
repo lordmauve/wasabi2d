@@ -1,5 +1,4 @@
 from typing import Tuple, Any
-from functools import partial
 
 import numpy as np
 import numpy.random
@@ -7,7 +6,7 @@ import moderngl
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
-from .circles import color_vao
+from .text import TextureVAO
 
 
 PARTICLE_PROGRAM = dict(
@@ -41,6 +40,7 @@ in mat2 rots[];
 in vec4 g_color[];
 in float size[];
 out vec4 color;
+out vec2 uv;
 
 uniform mat4 proj;
 
@@ -57,9 +57,16 @@ void main() {
         vec2(-sz, -sz),
         vec2(sz, -sz)
     );
+    vec2 uvs[4] = vec2[4](
+        vec2(0, 1),
+        vec2(1, 1),
+        vec2(0, 0),
+        vec2(1, 0)
+    );
 
     for (int i = 0; i < 4; i++) {
         gl_Position = proj * vec4(pos + rot * corners[i], 0.0, 1.0);
+        uv = uvs[i];
         EmitVertex();
     }
     EndPrimitive();
@@ -70,9 +77,11 @@ void main() {
 
         out vec4 f_color;
         in vec4 color;
+        in vec2 uv;
+        uniform sampler2D tex;
 
         void main() {
-            f_color = color;
+            f_color = color * texture(tex, uv);
         }
     ''',
 )
@@ -82,7 +91,7 @@ def particles_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a VAO for rendering particles."""
-    return VAO(
+    return TextureVAO(
         mode=moderngl.POINTS,
         ctx=ctx,
         prog=shadermgr.get(**PARTICLE_PROGRAM),

@@ -25,8 +25,8 @@ def get_default_font():
     return default_font
 
 
-class TextVAO(VAO):
-    """A VAO for rendering text."""
+class TextureVAO(VAO):
+    """A VAO with an associated texture."""
 
     def render(self):
         self.prog['tex'].value = 0
@@ -57,7 +57,7 @@ def text_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a BAO for rendering plain colored objects."""
-    return TextVAO(
+    return TextureVAO(
         mode=moderngl.TRIANGLES,
         ctx=ctx,
         prog=shadermgr.get(**TEXT_PROGRAM),
@@ -239,7 +239,7 @@ class Label(Colorable, Transformable):
         self.lst.vertbuf['in_color'] = self._color
         self.lst.dirty = True
 
-    def _migrate(self, vao: TextVAO):
+    def _migrate(self, vao: TextureVAO):
         """Migrate the fill into the given VAO."""
         # TODO: dealloc from an existing VAO
         idxs = self._indices

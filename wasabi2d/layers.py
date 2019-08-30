@@ -1,11 +1,14 @@
 from typing import Tuple, Optional
 
+import pygame.image
+
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
 from .primitives.particles import ParticleGroup, particles_vao
+from .loaders import images
 
 
 class ShaderManager:
@@ -120,9 +123,25 @@ class Layer:
         """Get a VAO for objects made of colored triangles."""
         return self._get_or_create_vao('shapes', shape_vao)
 
-    def _particles_vao(self):
+    def _load_texture(self, name):
+        """Load a texture."""
+        img = images.load(name)
+        data = pygame.image.tostring(img, "RGBA", 1)
+        tex = self.ctx.texture(img.get_size(), 4, data=data)
+        tex.build_mipmaps(max_level=2)
+        return tex
+
+    def _particles_vao(self, texname):
         """Get a VAO for objects made of particles."""
-        return self._get_or_create_vao('particles', particles_vao)
+        def make_vao(ctx, shadermgr):
+            vao = particles_vao(ctx, shadermgr)
+            if texname is None:
+                tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)
+            else:
+                tex = self._load_texture(texname)
+            vao.tex = tex
+            return vao
+        return self._get_or_create_vao(('particles', texname), make_vao)
 
     def _text_vao(self, font):
         """Get a VAO for objects made of font glyphs."""
@@ -275,7 +294,7 @@ class Layer:
         c._migrate(self._text_vao(font))
         return c
 
-    def add_particle_group(self, **kwargs) -> ParticleGroup:
+    def add_particle_group(self, texture=None, **kwargs) -> ParticleGroup:
         """Create a group of particles.
 
         We do not actually emit any particles at this time.
@@ -283,7 +302,7 @@ class Layer:
         c = ParticleGroup(layer=self, **kwargs)
         self.objects.add(c)
         self._dynamic.add(c)
-        c._migrate(self._particles_vao())
+        c._migrate(self._particles_vao(texture))
         return c
 
 
