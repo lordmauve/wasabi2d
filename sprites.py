@@ -63,8 +63,9 @@ poly.stroke_width = 0
 
 
 particles = scene.layers[0].add_particle_group(
-    fade=0.7,
-    max_age=1
+    fade=0.4,
+    grow=2,
+    max_age=2
 )
 
 
@@ -159,6 +160,7 @@ def update(t, dt, keyboard):
             vel_spread=20,
             pos=ship.pos,
             color='#ffee55',
+            size=4,
         )
 
     for b in bullets.copy():

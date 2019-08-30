@@ -5,7 +5,7 @@ from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
-from .primitives.particles import ParticleGroup, points_vao
+from .primitives.particles import ParticleGroup, particles_vao
 
 
 class ShaderManager:
@@ -120,9 +120,9 @@ class Layer:
         """Get a VAO for objects made of colored triangles."""
         return self._get_or_create_vao('shapes', shape_vao)
 
-    def _points_vao(self):
-        """Get a VAO for objects made of points."""
-        return self._get_or_create_vao('points', points_vao)
+    def _particles_vao(self):
+        """Get a VAO for objects made of particles."""
+        return self._get_or_create_vao('particles', particles_vao)
 
     def _text_vao(self, font):
         """Get a VAO for objects made of font glyphs."""
@@ -283,7 +283,7 @@ class Layer:
         c = ParticleGroup(layer=self, **kwargs)
         self.objects.add(c)
         self._dynamic.add(c)
-        c._migrate(self._points_vao())
+        c._migrate(self._particles_vao())
         return c
 
 
