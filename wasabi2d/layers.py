@@ -1,5 +1,6 @@
 from typing import Tuple, Optional
 
+import moderngl
 import pygame.image
 
 from .sprites import SpriteArray, Sprite
@@ -7,7 +8,7 @@ from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
-from .primitives.particles import ParticleGroup, particles_vao
+from .primitives.particles import ParticleGroup, ParticleVAO, PARTICLE_PROGRAM
 from .loaders import images
 
 
@@ -130,18 +131,6 @@ class Layer:
         tex = self.ctx.texture(img.get_size(), 4, data=data)
         tex.build_mipmaps(max_level=2)
         return tex
-
-    def _particles_vao(self, texname):
-        """Get a VAO for objects made of particles."""
-        def make_vao(ctx, shadermgr):
-            vao = particles_vao(ctx, shadermgr)
-            if texname is None:
-                tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)
-            else:
-                tex = self._load_texture(texname)
-            vao.tex = tex
-            return vao
-        return self._get_or_create_vao(('particles', texname), make_vao)
 
     def _text_vao(self, font):
         """Get a VAO for objects made of font glyphs."""
@@ -300,9 +289,23 @@ class Layer:
         We do not actually emit any particles at this time.
         """
         c = ParticleGroup(layer=self, **kwargs)
+
+        vao = self.arrays[c] = ParticleVAO(
+            c,
+            mode=moderngl.POINTS,
+            ctx=self.ctx,
+            prog=self.group.shadermgr.get(**PARTICLE_PROGRAM),
+        )
+        if texture is None:
+            tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)
+        else:
+            tex = self._load_texture(texture)
+        vao.tex = tex
+        vao.color_tex = c.color_tex
+
         self.objects.add(c)
         self._dynamic.add(c)
-        c._migrate(self._particles_vao(texture))
+        c._migrate(vao)
         return c
 
 

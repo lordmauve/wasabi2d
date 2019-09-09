@@ -65,12 +65,15 @@ poly.stroke_width = 0
 
 particles = scene.layers[0].add_particle_group(
     texture='smoke',
-    fade=0.4,
-    grow=4,
+    grow=1.5,
     max_age=2,
     gravity=(0, 100),
     drag=0.5,
 )
+particles.add_color_stop(0, 'red')
+particles.add_color_stop(0.3, 'yellow')
+particles.add_color_stop(1.0, 'gray')
+particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))
 
 
 ship.vel = Vector2()
@@ -169,7 +172,6 @@ def update(t, dt, keyboard):
             vel=-100 * ship.vel.normalize(),
             vel_spread=20,
             pos=ship.pos,
-            color='#ffee55',
             size=8,
             spin_spread=3,
         )
