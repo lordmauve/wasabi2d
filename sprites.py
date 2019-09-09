@@ -1,12 +1,12 @@
 import math
-import pygame
 from wasabi2d import event, run, sounds, Scene, Vector2, clock, animate
+import pygame
 
 
 scene = Scene(antialias=8)
 scene.background = (0, 0.03, 0.1)
 
-ship = scene.layers[0].add_sprite(
+ship = scene.layers[1].add_sprite(
     'ship',
     pos=(scene.width / 2, scene.height / 2)
 )
@@ -65,7 +65,7 @@ poly.stroke_width = 0
 
 particles = scene.layers[0].add_particle_group(
     texture='smoke',
-    grow=1.5,
+    grow=3,
     max_age=2,
     gravity=(0, 100),
     drag=0.5,
@@ -168,8 +168,8 @@ def update(t, dt, keyboard):
 
     if thrust:
         particles.emit(
-            dt * 100,
-            vel=-100 * ship.vel.normalize(),
+            dt * 200,
+            vel=-200 * ship.vel.normalize(),
             vel_spread=20,
             pos=ship.pos,
             size=8,

@@ -26,5 +26,5 @@ __all__ = [
     'run',
     'keys', 'mouse',
     'sounds', 'music', 'clock', 'animate',
-    'Scene',
+    'Scene', 'Storage',
 ]

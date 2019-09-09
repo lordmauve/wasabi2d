@@ -2,7 +2,6 @@ from typing import Tuple, Any
 
 import numpy as np
 import numpy.random
-import moderngl
 from sortedcontainers import SortedList
 
 from ..color import convert_color
@@ -29,7 +28,7 @@ PARTICLE_PROGRAM = dict(
             gl_Position = vec4(in_vert, 0.0, 1.0);
             g_color = in_color;
             size = in_size;
-            age = clamp(in_age, 0, max_age);
+            age = in_age;
 
             float c = cos(in_angle);
             float s = sin(in_angle);
@@ -54,7 +53,8 @@ uniform float max_age;
 uniform float grow;
 
 void main() {
-    color = g_color[0] * texture(color_tex, vec2(age[0] / max_age, 0));
+    float age_frac = clamp(age[0] / max_age, 0.0, 511.0 / 512.0);
+    color = g_color[0] * texture(color_tex, vec2(age_frac, 0.0));
     vec2 pos = gl_in[0].gl_Position.xy;
     mat2 rot = rots[0];
 
@@ -132,13 +132,11 @@ class ParticleGroup:
             grow: float = 1.0,
             max_age: float = np.inf,
             gravity: Tuple[float, float] = (0, 0),
-            drag: float = 1.0,
-            fade: float = 1.0):
+            drag: float = 1.0):
         super().__init__()
         self.layer = layer
         self.num: int = 0  # Number of particles we have
         self.max_age = max_age
-        self.fade = fade
         self.grow = grow
         self.gravity = np.array(gravity)
         self.drag = drag
@@ -230,8 +228,6 @@ class ParticleGroup:
         self.vels = self.vels * self.drag ** dt + self.gravity * dt
 
         self.lst.vertbuf['in_vert'] += (self.vels + orig_vels) * (dt * 0.5)
-        self.lst.vertbuf['in_color'] *= self.fade ** dt
-        self.lst.vertbuf['in_size'] *= self.grow ** dt
         self.lst.vertbuf['in_angle'] += self.spins * dt
         self.lst.dirty = True
 
