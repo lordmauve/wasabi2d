@@ -240,8 +240,9 @@ class Ship:
         self.acceleration = [0, 0]  # The x and y acceleration of the players ship
         self.sprite = scene.layers[0].add_sprite('lander')
         self.particles = scene.layers[0].add_particle_group(
-            fade=0.4,
-            max_age=2,
+            fade=0.1,
+            max_age=1,
+            grow=10,
         )
 
     def reset(self):
@@ -291,7 +292,8 @@ class Ship:
             pos_spread=2,
             vel=accel * -200 + Vector2(*self.velocity) * 60,
             vel_spread=50,
-            color='yellow'
+            size=2,
+            color='#fff0c0',
         )
         self.fuel -= 2
 
