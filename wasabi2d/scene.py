@@ -59,12 +59,11 @@ class Scene:
         self.title = title
         ctx = self.ctx = moderngl.create_context()
 
-        self.layers = LayerGroup(ctx)
+        self.camera = Camera(ctx, width, height)
+        self.layers = LayerGroup(ctx, self.camera)
 
         ctx.enable(moderngl.BLEND)
         ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
-
-        self.camera = Camera(width, height)
 
         from . import event
         event(self.draw)
@@ -165,7 +164,15 @@ class Scene:
 
 
 class Camera:
-    def __init__(self, width, height):
+    """The camera/viewport through which the scene is viewed.
+
+    As well as constructing a projection matrix for the screen, and offering
+    some dynamic effects such as screen shake, a Camera serves as a manager
+    for temporary framebuffers corresponding to the viewport size.
+    """
+
+    def __init__(self, ctx, width, height):
+        self.ctx = ctx
         self.width = width
         self.height = height
         hw = self.width * 0.5
@@ -182,7 +189,26 @@ class Camera:
         self._cam_offset = np.zeros(2, dtype='f4')
         self._cam_vel = np.zeros(2, dtype='f4')
         self._pos = np.zeros(2, dtype='f4')
+        self._fbs = {}
         self.pos = hw, hh
+
+    def _get_temporary_fbs(self, num=1, dtype='f1'):
+        """Get temporary framebuffer objects of the given dtype."""
+        temps = self._fbs.setdefault(dtype, [])
+        while len(temps) < num:
+            fb = self._make_fb(dtype)
+            temps.append(fb)
+        return temps[:num]
+
+    def _make_fb(self, dtype='f1'):
+        """Make a new framebuffer corresponding to this viewport."""
+        return self.ctx.framebuffer([
+            self.ctx.texture(
+                (self.width, self.height),
+                4,
+                dtype=dtype
+            )
+        ])
 
     @property
     def pos(self):

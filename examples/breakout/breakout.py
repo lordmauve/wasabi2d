@@ -22,13 +22,13 @@ BRICK_H = 25
 
 
 ball = Actor(
-    scene.layers[0].add_circle(
+    scene.layers[1].add_circle(
         radius=BALL_SIZE,
         color='#cccccc',
-        fill=False,
     ),
     pos=(WIDTH / 2, HEIGHT / 2),
 )
+scene.layers[1].set_effect('trails', fade=0.2)
 bat = Actor(
     scene.layers[0].add_rect(
         width=120,

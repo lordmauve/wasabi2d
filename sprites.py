@@ -6,7 +6,7 @@ import pygame
 scene = Scene(antialias=8)
 scene.background = (0, 0.03, 0.1)
 
-ship = scene.layers[1].add_sprite(
+ship = scene.layers[2].add_sprite(
     'ship',
     pos=(scene.width / 2, scene.height / 2)
 )
@@ -63,14 +63,15 @@ poly = scene.layers[0].add_polygon(
 poly.stroke_width = 0
 
 
-particles = scene.layers[0].add_particle_group(
+scene.layers[1].set_effect('bloom', threshold=0.9, radius=10)
+particles = scene.layers[1].add_particle_group(
     texture='smoke',
     grow=3,
     max_age=2,
     gravity=(0, 100),
     drag=0.5,
 )
-particles.add_color_stop(0, 'red')
+particles.add_color_stop(0, (4, 0, 0, 1))
 particles.add_color_stop(0.3, 'yellow')
 particles.add_color_stop(1.0, 'gray')
 particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))

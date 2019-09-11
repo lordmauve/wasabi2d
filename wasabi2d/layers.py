@@ -1,4 +1,6 @@
 from typing import Tuple, Optional
+from contextlib import nullcontext
+import importlib
 
 import moderngl
 import pygame.image
@@ -23,17 +25,23 @@ class ShaderManager:
         try:
             return self.programs[k]
         except KeyError:
-            prog = self.programs[k] = self.ctx.program(
-                vertex_shader=vertex_shader,
-                fragment_shader=fragment_shader,
-                geometry_shader=geometry_shader,
-            )
-            return prog
+            pass
+
+        prog = self.programs[k] = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader,
+            geometry_shader=geometry_shader,
+        )
+        return prog
 
     def set_proj(self, proj):
         """Set the projection matrix."""
         for prog in self.programs.values():
-            prog['proj'].write(proj.tobytes())
+            try:
+                uniform = prog['proj']
+            except KeyError:
+                continue
+            uniform.write(proj.tobytes())
 
 
 class FontManager:
@@ -63,6 +71,7 @@ class Layer:
         self.objects = set()
         self._dirty = set()
         self._dynamic = set()
+        self.effect = None
 
     def clear(self):
         """Remove everything from the layer."""
@@ -84,8 +93,24 @@ class Layer:
         for o in self._dirty:
             o._update()
         self._dirty.clear()
+
+        if self.effect:
+            self.effect.enter(t, dt)
+
         for a in self.arrays.values():
             a.render()
+
+        if self.effect:
+            self.effect.exit(t, dt)
+
+    def set_effect(self, name, **kwargs):
+        mod = importlib.import_module(f'wasabi2d.effects.{name}')
+        cls = getattr(mod, name.title())
+        self.effect = cls(self.ctx, self.group.shadermgr, **kwargs)
+        self.effect._set_camera(self.group.camera)
+
+    def clear_effect(self):
+        self.effect = None
 
     def add_sprite(self, image, pos=(0, 0), angle=0, anchor=None):
         spr = Sprite(
@@ -310,11 +335,12 @@ class Layer:
 
 
 class LayerGroup(dict):
-    def __new__(cls, ctx):
+    def __new__(cls, ctx, camera):
         return dict.__new__(cls)
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, camera):
         self.ctx = ctx
+        self.camera = camera
         self.shadermgr = ShaderManager(self.ctx)
         self.fontmgr = FontManager(self.ctx)
         self.atlas = Atlas(ctx)
