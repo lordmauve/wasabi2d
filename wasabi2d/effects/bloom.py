@@ -45,55 +45,40 @@ void main()
 
 # Shader code adapted from https://learnopengl.com/Advanced-Lighting/Bloom
 # First pass, blur vertically
-BLOOM_PROG_1 = """ \
+BLUR_PROG = """ \
 #version 330 core
 
 in vec2 uv;
 out vec4 f_color;
 
 uniform sampler2D image;
+uniform sampler2D gauss_tex;
+uniform float radius;
+uniform vec2 blur_direction;
 
-uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+
+float gauss(float off) {
+    return texture(gauss_tex, vec2(abs(off / radius), 0)).r;
+}
+
 
 void main()
 {
     vec2 tex_offset = 1.0 / textureSize(image, 0); // gets size of single texel
-    vec3 result = texture(image, uv).rgb * weight[0]; // current fragment's contribution
+    vec3 result = texture(image, uv).rgb; // current fragment's contribution
 
-    for(int i = 1; i < 5; ++i)
+    vec2 lookup_stride = tex_offset * blur_direction;
+    float weight_sum = 1.0;
+    float weight;
+    int irad = int(radius);
+    for(int i = 1; i < irad; ++i)
     {
-        result += texture(image, uv + vec2(0.0, tex_offset.y * i)).rgb * weight[i];
-        result += texture(image, uv - vec2(0.0, tex_offset.y * i)).rgb * weight[i];
+        weight = gauss(i);
+        weight_sum += i * 2;
+        result += texture(image, uv + lookup_stride * i).rgb * weight;
+        result += texture(image, uv - lookup_stride * i).rgb * weight;
     }
-    f_color = vec4(result, 1);
-}
-
-"""
-
-
-# Second pass, perform horizontal blur and composite original
-BLOOM_PROG_2 = """ \
-#version 330 core
-
-in vec2 uv;
-out vec4 f_color;
-
-uniform sampler2D vblurred;
-
-uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
-
-void main()
-{
-    vec2 tex_offset = 1.0 / textureSize(vblurred, 0); // gets size of single texel
-    vec3 result = texture(vblurred, uv).rgb * weight[0]; // current fragment's contribution
-
-
-    for(int i = 1; i < 5; ++i)
-    {
-        result += texture(vblurred, uv + vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-        result += texture(vblurred, uv - vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-    }
-    f_color = vec4(result, 1);
+    f_color = vec4(result / radius * 2, 1);
 }
 
 """
@@ -108,8 +93,7 @@ class Bloom:
     radius: float = 10.0
 
     camera: 'wasabi2d.scene.Camera' = None
-    _pass1: PostprocessPass = None
-    _pass2: PostprocessPass = None
+    _blur: PostprocessPass = None
     _fb1: moderngl.Framebuffer = None
     _fb2: moderngl.Framebuffer = None
 
@@ -119,14 +103,16 @@ class Bloom:
         self._fb1, = camera._get_temporary_fbs(1, 'f2')
         self._thresholded = self.ctx.framebuffer([
             self.ctx.texture(
-                (camera.width // 8, camera.height // 8),
+                (camera.width // 4, camera.height // 4),
                 4,
                 dtype='f2'
             )
         ])
+        gauss = gaussian(np.arange(256), 0, 90).astype('f4')
+        self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
         self._fb2 = self.ctx.framebuffer([
             self.ctx.texture(
-                (camera.width // 8, camera.height),
+                (camera.width // 4, camera.height),
                 4,
                 dtype='f2'
             )
@@ -136,15 +122,10 @@ class Bloom:
             self.shadermgr,
             THRESHOLD_PROG,
         )
-        self._pass1 = PostprocessPass(
+        self._blur = PostprocessPass(
             self.ctx,
             self.shadermgr,
-            BLOOM_PROG_1
-        )
-        self._pass2 = PostprocessPass(
-            self.ctx,
-            self.shadermgr,
-            BLOOM_PROG_2
+            BLUR_PROG
         )
         self._copy = self._mkpass(COPY_PROG)
 
@@ -162,14 +143,20 @@ class Bloom:
 
         self._fb2.use()
         self._fb2.clear()
-        self._pass1.render(
+        self._blur.render(
             image=self._thresholded,
+            blur_direction=(0, 1),
+            radius=self.radius,
+            gauss_tex=self._gauss_tex,
         )
         self.ctx.screen.use()
 
         self._copy.render(image=self._fb1)
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE
-        self._pass2.render(
-            vblurred=self._fb2,
+        self._blur.render(
+            image=self._fb2,
+            blur_direction=(1, 0),
+            radius=self.radius,
+            gauss_tex=self._gauss_tex,
         )
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA

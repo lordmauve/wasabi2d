@@ -37,7 +37,6 @@ lbl = scene.layers[0].add_label(
 )
 lbl.color = 'yellow'
 
-
 r = scene.layers[0].add_rect(
     width=400,
     height=50,
@@ -63,7 +62,11 @@ poly = scene.layers[0].add_polygon(
 poly.stroke_width = 0
 
 
-scene.layers[1].set_effect('bloom', threshold=0.9, radius=10)
+scene.layers[1].set_effect(
+    'bloom',
+    threshold=0.9,
+    radius=50
+)
 particles = scene.layers[1].add_particle_group(
     texture='smoke',
     grow=3,
@@ -71,8 +74,8 @@ particles = scene.layers[1].add_particle_group(
     gravity=(0, 100),
     drag=0.5,
 )
-particles.add_color_stop(0, (4, 0, 0, 1))
-particles.add_color_stop(0.3, 'yellow')
+particles.add_color_stop(0, (5, 0, 0, 1))
+particles.add_color_stop(0.3, (1.5, 1.5, 0, 1))
 particles.add_color_stop(1.0, 'gray')
 particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))
 
