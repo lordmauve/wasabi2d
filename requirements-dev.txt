@@ -1,3 +1,4 @@
 pytest
 tox
 pytest-cov
+Sphinx
