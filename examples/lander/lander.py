@@ -243,6 +243,10 @@ class Ship:
             max_age=1,
             grow=10,
         )
+        self.particles.add_color_stop(0, (5, 0, 0, 1))
+        self.particles.add_color_stop(0.2, (1.5, 1.5, 0, 1))
+        self.particles.add_color_stop(0.5, 'gray')
+        self.particles.add_color_stop(0.75, (5, 0, 0, 0))
 
     def reset(self):
         """ Set the ships position, velocity and angle to their new-game values """
@@ -281,19 +285,20 @@ class Ship:
 
         angle_r = math.radians(self.angle + 180)
 
-        accel = Vector2(math.sin(angle_r), math.cos(angle_r))
+        up = Vector2(math.sin(angle_r), math.cos(angle_r))
 
-        self.acceleration[:] = Ship.booster_power * accel
+        self.acceleration[:] = Ship.booster_power * up
 
         self.particles.emit(
             5,
-            pos=self.position,
+            pos=self.position - 25 * up,
             pos_spread=2,
-            vel=accel * -200 + Vector2(*self.velocity) * 60,
+            vel=up * -200 + Vector2(*self.velocity) * 60,
             vel_spread=50,
             size=2,
             color='#fff0c0',
         )
+
         self.fuel -= 2
 
     def booster_off(self):
