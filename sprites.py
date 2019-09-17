@@ -74,8 +74,9 @@ particles = scene.layers[1].add_particle_group(
     gravity=(0, 100),
     drag=0.5,
 )
-particles.add_color_stop(0, (5, 0, 0, 1))
-particles.add_color_stop(0.3, (1.5, 1.5, 0, 1))
+particles.add_color_stop(0, (2, 2, 2, 1))
+particles.add_color_stop(0.3, (2.2, 0.8, 0, 1))
+particles.add_color_stop(0, (1, 0, 0, 1))
 particles.add_color_stop(1.0, 'gray')
 particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))
 
