@@ -147,6 +147,11 @@ class IndirectBuffer:
             )
         return self.buffer
 
+    def render_direct(self, vao, mode):
+        cmds = self.allocations.values()
+        for vs, insts, base_idx, base_v, base_inst in cmds:
+            vao.render(mode, vs, first=base_v, instances=1)
+
     def append(self, vs, insts, base_idx, base_v, base_inst) -> int:
         """Append an indirect draw command.
 
@@ -348,8 +353,11 @@ class VAO:
         if not self.allocs:
             return
         vao = self.get_vao()
-        indirect = self.indirect.get_buffer()
-        vao.render_indirect(
-            indirect,
-            mode=self.mode,
-        )
+        if self.ctx.version_code >= 400:
+            indirect = self.indirect.get_buffer()
+            vao.render_indirect(
+                indirect,
+                mode=self.mode,
+            )
+        else:
+            self.indirect.render_direct(vao, self.mode)
