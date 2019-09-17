@@ -1,6 +1,6 @@
 import io
 import os.path
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 path = os.path.join(os.path.dirname(__file__), 'README.md')
@@ -16,7 +16,8 @@ setup(
     long_description_content_type='text/markdown',
     author='Daniel Pope',
     author_email='mauve@mauveweb.co.uk',
-    packages=['wasabi2d'],
+    packages=find_packages(include='wasabi2d*'),
+    package_data={'wasabi2d': ['data/*']},
     install_requires=open('requirements.txt').read().splitlines(),
     python_requires='>=3.6',
     classifiers=[
