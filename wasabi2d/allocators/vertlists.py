@@ -150,13 +150,14 @@ class IndirectBuffer:
     def render_direct(self, vao, mode):
         cmds = self.allocations.values()
         for vs, insts, base_idx, base_v, base_inst in cmds:
-            vao.render(mode, vs, first=base_v, instances=1)
+            vao.render(mode, vs, first=base_idx, instances=1)
 
     def append(self, vs, insts, base_idx, base_v, base_inst) -> int:
         """Append an indirect draw command.
 
         Return an opaque key that can be used to update or delete the command.
         """
+        assert base_v == 0
         key = self.next_key
         self.next_key += 1
 
@@ -265,7 +266,7 @@ class VAO:
         vs, vertbuf = self.verts.allocate(num_verts)
         ixs, indexbuf = self.indexes.allocate(num_indexes)
 
-        cmd = self.indirect.append(num_indexes, 1, ixs.start, vs.start, 0)
+        cmd = self.indirect.append(num_indexes, 1, ixs.start, 0, 0)
         lst = VAOList(
             buf=self,
             command=cmd,

@@ -192,7 +192,7 @@ class ParticleGroup:
         verts_alive = prev_verts[alive]
 
         self.lst.realloc(need, need)
-        self.lst.indexbuf[:] = np.arange(need, dtype='u4')
+        self.lst.indexbuf[:] = np.arange(need, dtype='u4') + self.lst.vertoff.start
 
         new_vel = np.random.normal(vel, vel_spread, [num, 2])
         new_pos = np.random.normal(pos, pos_spread, [num, 2])
@@ -214,7 +214,7 @@ class ParticleGroup:
         self.num = num_alive = np.sum(alive)
         verts_alive = self.lst.vertbuf[alive]
         self.lst.realloc(num_alive, num_alive)
-        self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4')
+        self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4') + self.lst.vertoff.start
         self.vels = self.vels[alive].copy()
         self.spins = self.spins[alive].copy()
         self.lst.vertbuf[:] = verts_alive
@@ -238,7 +238,7 @@ class ParticleGroup:
         idxs = np.arange(num, dtype='u4')
         # Allocate a large slice (set high water mark)
         self.lst = vao.alloc(num, num)
-        self.lst.indexbuf[:] = idxs
+        self.lst.indexbuf[:] = idxs + self.lst.vertoff.start
 
         # Realloc to how much we actually want
         self.lst.realloc(self.num, self.num)

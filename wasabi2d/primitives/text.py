@@ -224,7 +224,7 @@ class Label(Colorable, Transformable):
         # TODO: update self.lst, set dirty OR reallocate self.lst for new size
         if self.lst:
             self.lst.realloc(len(self._verts), len(indices))
-            self.lst.indexbuf[:] = indices
+            self.lst.indexbuf[:] = indices + self.lst.vertoff.start
             self.lst.vertbuf['in_uv'] = uvs
             self._update()
 
