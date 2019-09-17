@@ -46,6 +46,7 @@ class EventMapper:
     def __init__(self):
         self.keyboard = wasabi2d.keyboard.keyboard
         self.handlers = {}
+        self.lock_fps = False
 
     EVENT_HANDLERS = {
         'on_mouse_down': pygame.MOUSEBUTTONDOWN,
@@ -159,6 +160,11 @@ class EventMapper:
         t = 0
         while True:
             dt = clock.tick(60) / 1000.0
+
+            if self.lock_fps:
+                dt = 1.0 / 60.0
+
+            t += dt
 
             for event in pygame.event.get():
                 self.dispatch_event(event)

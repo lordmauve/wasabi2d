@@ -127,6 +127,8 @@ class Scene:
             bufsize=10**8
         )
         print("Recording video...")
+        from . import event
+        event.lock_fps = True
 
     def stop_recording(self):
         """Stop recording videos."""
@@ -137,6 +139,8 @@ class Scene:
         else:
             print("Error writing video.")
         self._recording = None
+        from . import event
+        event.lock_fps = False
 
     def toggle_recording(self) -> bool:
         """Start or stop recording.
@@ -200,15 +204,15 @@ class Camera:
             temps.append(fb)
         return temps[:num]
 
-    def _make_fb(self, dtype='f1'):
+    def _make_fb(self, dtype='f1', div_x=1, div_y=1):
         """Make a new framebuffer corresponding to this viewport."""
-        return self.ctx.framebuffer([
-            self.ctx.texture(
-                (self.width, self.height),
-                4,
-                dtype=dtype
-            )
-        ])
+        tex = self.ctx.texture(
+            (self.width // div_x, self.height // div_y),
+            4,
+            dtype=dtype
+        )
+        tex.repeat_x = tex.repeat_y = False
+        return self.ctx.framebuffer([tex])
 
     @property
     def pos(self):

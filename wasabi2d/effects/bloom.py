@@ -101,22 +101,10 @@ class Bloom:
         """Resize the effect for this viewport."""
         self.camera = camera
         self._fb1, = camera._get_temporary_fbs(1, 'f2')
-        self._thresholded = self.ctx.framebuffer([
-            self.ctx.texture(
-                (camera.width // 4, camera.height // 4),
-                4,
-                dtype='f2'
-            )
-        ])
+        self._thresholded = camera._make_fb('f2', div_x=4, div_y=4)
         gauss = gaussian(np.arange(256), 0, 90).astype('f4')
         self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
-        self._fb2 = self.ctx.framebuffer([
-            self.ctx.texture(
-                (camera.width // 4, camera.height),
-                4,
-                dtype='f2'
-            )
-        ])
+        self._fb2 = camera._make_fb('f2', div_x=4)
         self._threshold_pass = PostprocessPass(
             self.ctx,
             self.shadermgr,
