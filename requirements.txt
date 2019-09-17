@@ -3,3 +3,4 @@ moderngl==5.*
 numpy
 pyrr
 sortedcontainers
+dataclasses; python_version < '3.7'
