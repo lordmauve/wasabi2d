@@ -21,7 +21,6 @@ SPEED = 3
 
 score_label = scene.layers[5].add_label(
     "0",
-    font='roboto_regular',
     color='white',
     pos=(scene.width / 2, 80),
     align='center',
@@ -85,7 +84,6 @@ class Pipes:
 pipes = Pipes()
 highscore_label = scene.layers[5].add_label(
     f"Best: {storage['highscore']}",
-    font='roboto_regular',
     color=(200, 170, 0),
     align='center',
     pos=(scene.width / 2, scene.height - 10),
