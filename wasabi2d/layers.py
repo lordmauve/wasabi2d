@@ -1,5 +1,4 @@
 from typing import Tuple, Optional
-from contextlib import nullcontext
 import importlib
 
 import moderngl
