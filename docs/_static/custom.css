@@ -1,0 +1,18 @@
+body {
+    font-family: sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: sans-serif !important;
+    color: white !important;
+    background-color: #58c;
+
+    padding: 0.1em 0.3em !important;
+
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+}
+
+li {
+    margin-bottom: 0.3em;
+}

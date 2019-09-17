@@ -18,16 +18,10 @@ Wasabi2d is
     :maxdepth: 2
     :caption: Contents:
 
+    intro
     scene
     effects
+    primitives
     events
-
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    sound
+    clock
