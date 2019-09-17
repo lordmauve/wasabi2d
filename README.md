@@ -192,6 +192,32 @@ Create a text label.
   how the text aligns relative to `pos`.
 
 
+# Post-processing effects
+
+Wasabi2d provides a small number of pre-defined full-screen post processing
+effects. These are defined at the layer level, and affect items in that layer
+only.
+
+The effects are described here as separate calls:
+
+
+`Layer.set_effect('bloom', radius: int=...)`
+
+Create a light bloom effect, where very bright pixels glow, making them look
+exceptionally bright. The radius controls how far the effect reaches.
+
+
+`Layer.set_effect('trails', fade: int=0.1)`
+
+Apply a "motion blur" effect. Fade is the fraction of the full brightness that
+is visible after 1 second.
+
+
+`Layer.clear_effect()`
+
+Remove the active effect.
+
+
 ## Handling events
 
 
