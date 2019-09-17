@@ -240,7 +240,6 @@ class Ship:
         self.acceleration = [0, 0]  # The x and y acceleration of the players ship
         self.sprite = scene.layers[0].add_sprite('lander')
         self.particles = scene.layers[0].add_particle_group(
-            fade=0.1,
             max_age=1,
             grow=10,
         )
