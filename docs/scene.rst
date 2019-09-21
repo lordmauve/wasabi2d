@@ -57,3 +57,20 @@ Camera
 The camera is controlled by `scene.camera`. In particular, `camera.pos` is the
 center position of the camera. Initially, this is `(scene.width / 2,
 scene.height / 2)`.
+
+
+Screenshot and Video Recording
+------------------------------
+
+Wasabi2d can take screenshots in PNG format.
+
+.. automethod:: wasabi2d.Scene.screenshot
+
+
+Recording video requires ``ffmpeg`` to be installed and on the ``$PATH``.
+
+.. automethod:: wasabi2d.Scene.record_video
+
+.. automethod:: wasabi2d.Scene.stop_recording
+
+.. automethod:: wasabi2d.Scene.toggle_recording

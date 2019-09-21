@@ -80,7 +80,12 @@ class Scene:
         pygame.display.set_caption(title)
 
     def screenshot(self, filename=None):
-        """Take a screenshot."""
+        """Take a screenshot.
+
+        If filename is not given, save to a file named screenshot_<time>.png
+        in the current directory.
+
+        """
         import datetime
         if filename is None:
             now = datetime.datetime.now()
@@ -95,7 +100,12 @@ class Scene:
     def record_video(self, filename=None):
         """Start recording a video.
 
+        Video will be encoded in MPEG4 format.
+
         This requires an ffmpeg binary to be located on $PATH.
+
+        If filename is not given, save to a file named video_<time>.mp4
+        in the current directory.
         """
         import subprocess
         import datetime
@@ -131,7 +141,7 @@ class Scene:
         event.lock_fps = True
 
     def stop_recording(self):
-        """Stop recording videos."""
+        """Finish recording the current video."""
         self._ffmpeg.stdin.close()
         ret = self._ffmpeg.wait()
         if ret == 0:
@@ -143,7 +153,7 @@ class Scene:
         event.lock_fps = False
 
     def toggle_recording(self) -> bool:
-        """Start or stop recording.
+        """Start or stop recording video.
 
         Return True if recording started.
         """
