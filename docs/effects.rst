@@ -52,6 +52,18 @@ The effects are described here as separate calls:
         :alt: Example of the pinch effect
 
 
+.. method:: Layer.set_effect('blur', radius: float=10.0)
+
+    Apply a full screen gaussian blur.
+
+    ``radius`` is the maximum radius of the blur.
+
+    The effect runs on the GPU but larger radiuses are more costly to compute.
+    The cost of the effect is *O(radius)*.
+
+    .. image:: _static/effects/blur.png
+        :alt: Example of the blur effect
+
 .. method:: Layer.clear_effect()
 
     Remove the active effect.
