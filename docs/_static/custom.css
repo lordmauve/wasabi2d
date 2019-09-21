@@ -11,14 +11,11 @@ h1, h2, h3, h4, h5, h6 {
 
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
     border-radius: 3px;
+    border: solid #4d5918 1px;
 }
 
 li {
     margin-bottom: 0.3em;
-}
-
-.welcome {
-    display: none;
 }
 
 a,

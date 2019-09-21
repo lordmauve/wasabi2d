@@ -59,4 +59,5 @@ html_theme_options = {
     'logo': 'wasabi2d.png',
     'github_user': 'lordmauve',
     'github_repo': 'wasabi2d',
+    'github_type': 'star',
 }

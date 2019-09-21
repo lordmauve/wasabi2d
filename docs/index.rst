@@ -1,8 +1,3 @@
-.. rst-class:: welcome
-
-    Welcome to Wasabi2d
-    ===================
-
 .. image:: _static/wasabi2d.png
     :alt: Welcome to Wasabi2d
 
