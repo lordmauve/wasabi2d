@@ -126,7 +126,8 @@ class AbstractShape(Colorable, Transformable):
         idxs = self._stroke_indices()
         self.vao = vao
         self.lst = vao.alloc(len(self.orig_verts), len(idxs))
-        self.lst.indexbuf[:] = idxs + self.lst.vertoff.start
+        self.lst.indexbuf[:] = idxs
+        self.lst.indexbuf += self.lst.vertoff.start
         self._update()
 
     def _migrate_fill(self, vao: VAO):
@@ -135,7 +136,8 @@ class AbstractShape(Colorable, Transformable):
         idxs = self._fill_indices()
         self.vao = vao
         self.lst = vao.alloc(len(self.orig_verts), len(idxs))
-        self.lst.indexbuf[:] = idxs + self.lst.vertoff.start
+        self.lst.indexbuf[:] = idxs
+        self.lst.indexbuf += self.lst.vertoff.start
         self._update()
 
     def _set_dirty(self):

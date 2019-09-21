@@ -1,3 +1,8 @@
 include README.md requirements.txt requirements-dev.txt LICENSE
-global-include *.py
-include ship.png tiny_bullet.png
+recursive-include wasabi2d *.py *.png *.ttf
+recursive-include examples *.py *.png *.ttf
+
+prune venv*
+prune examples/v
+prune .tox
+prune moderngl
