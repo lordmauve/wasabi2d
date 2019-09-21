@@ -239,6 +239,12 @@ class Camera:
         return self._xform @ self._proj
 
     def screen_shake(self, dist=25):
+        """Trigger a screen shake effect.
+
+        The camera will be offset from ``.pos`` by ``dist`` in a random
+        direction; then steady itself in a damped harmonic motion.
+
+        """
         theta = np.random.uniform(0, math.tau)
         basis = np.array([theta, + math.pi * 0.5])
         self._cam_offset[:] = dist * np.sin(basis)

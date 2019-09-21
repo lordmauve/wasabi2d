@@ -18,8 +18,8 @@ Create a scene with::
 
 .. attribute:: Scene.background
 
-    The background color of the entire scene as an RGB triple. `(1, 1, 1)` is
-    white and `(0, 0, 0)` is black.
+    Get/set the background color of the entire scene as an RGB triple. `(1, 1,
+    1)` is white and `(0, 0, 0)` is black.
 
 .. attribute:: Scene.layers
 
@@ -27,6 +27,23 @@ Create a scene with::
     and do not need to be explicitly declared.
 
     Layers are drawn from back to front - lowest layer number to highest.
+
+.. attribute:: Scene.title
+
+    Get/set the caption for the window.
+
+.. attribute:: Scene.width
+
+    (read-only) The width of the scene in pixels.
+
+.. attribute:: Scene.height
+
+    (read-only) The height of the scene in pixels.
+
+
+.. attribute:: Scene.camera
+
+    (read-only) The Camera object used to render the scene. See :ref:`camera`.
 
 
 Coordinate system
@@ -38,25 +55,32 @@ downwards.
 
 This allows easier porting of Pygame Zero games.
 
+By default distances are measured in screen pixels.
 
-Specifying colors
------------------
 
-Colors can be specified to any object using the attribute `color`. There are
-many ways to specify color:
-
-* tuples of 3 or 4 floats between 0 and 1 - RGB or RGBA, respectively. If 3
-  numbers are given then the alpha value will be 1 (ie. opaque).
-* Pygame color names like `white`, `yellow` etc,
-* Hex RGB or RGBA color codes like `#eecc6688`
-
+.. _camera:
 
 Camera
 ------
 
-The camera is controlled by `scene.camera`. In particular, `camera.pos` is the
-center position of the camera. Initially, this is `(scene.width / 2,
-scene.height / 2)`.
+The camera for the scene is ``scene.camera``.
+
+.. attribute:: wasabi2d.scene.Camera.pos
+
+    Get/set the center position of the camera, as a 2D vector/pair of floats.
+
+    Initially, this is ``(scene.width / 2, scene.height / 2)``.
+
+
+.. automethod:: wasabi2d.scene.Camera.screen_shake
+
+    Trigger a screen shake effect.
+
+    The camera will be offset from ``.pos`` by ``dist`` in a random
+    direction; then steady itself in a damped harmonic motion.
+
+    The effect is added to the value of ``.pos``; getting/setting pos moves
+    the camera independently of the shake effect.
 
 
 Screenshot and Video Recording

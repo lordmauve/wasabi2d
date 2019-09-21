@@ -22,6 +22,7 @@ Wasabi2d is
     scene
     effects
     primitives
+    particles
     events
     sound
     clock

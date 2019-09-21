@@ -148,7 +148,7 @@ class ParticleGroup:
         self.color_tex.write(self.color_vals)
 
     def add_color_stop(self, age, color):
-        """Add a color stop for particles at age t.
+        """Add a color stop for particles of the given age.
 
         Particles will fade between the colors of the stops as their age
         changes.
