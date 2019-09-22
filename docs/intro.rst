@@ -42,7 +42,7 @@ function to animate an attribute over time::
 
 
     from math import hypot
-    from wasabi2d import event
+    from wasabi2d import animate, event
 
     @event
     def on_mouse_down(pos):
