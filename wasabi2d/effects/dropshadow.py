@@ -82,6 +82,7 @@ class Dropshadow:
         self.blur.enter(t, dt)
 
     def exit(self, t, dt):
+        self._fb.clear()
         self.blur.exit(t, dt)
         self.ctx.screen.use()
         self._composite.render(
