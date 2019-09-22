@@ -16,7 +16,7 @@ Wasabi2d is
 
 .. toctree::
     :maxdepth: 2
-    :caption: Contents:
+    :caption: Contents
 
     intro
     scene
@@ -26,3 +26,10 @@ Wasabi2d is
     events
     sound
     clock
+
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Project
+
+    changelog

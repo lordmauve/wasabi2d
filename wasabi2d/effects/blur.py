@@ -61,17 +61,14 @@ class Blur:
     shadermgr: 'wasabi2d.layers.ShaderManager'
     radius: float = 10.0
 
-    camera: 'wasabi2d.scene.Camera' = None
-    _blur: PostprocessPass = None
-    _fb1: moderngl.Framebuffer = None
-    _fb2: moderngl.Framebuffer = None
-
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
+        self._outer_fb = self.ctx.screen
         self._fb1, self._fb2 = camera._get_temporary_fbs(2, 'f2')
         gauss = gaussian(np.arange(256), 0, 90).astype('f4')
         self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
+        self._gauss_tex.repeat_x = False
         self._blur = PostprocessPass(
             self.ctx,
             self.shadermgr,
@@ -91,7 +88,7 @@ class Blur:
             radius=self.radius,
             gauss_tex=self._gauss_tex,
         )
-        self.ctx.screen.use()
+        self._outer_fb.use()
 
         self._blur.render(
             image=self._fb2,

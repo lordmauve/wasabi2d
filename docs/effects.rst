@@ -64,6 +64,24 @@ The effects are described here as separate calls:
     .. image:: _static/effects/blur.png
         :alt: Example of the blur effect
 
+
+.. method:: Layer.set_effect('dropshadow', radius: float=10.0, opacity: float=1.0, offset: Tuple[float, float]=(1.0, 1.0))
+
+    Apply a drop-shadow effect: draw an offset, blurred copy layer underneath
+    the normal layer contents.
+
+    :param radius: The maximum radius of the blur.
+    :param opacity: The opacity of the shadow; 1.0 is black, lower values make
+                    the shadow partially transparent.
+    :param offset: The offset of the shadow in screen pixels. ``(1, 1)``
+                   offsets the shadow downwards and to the right. Note that
+                   this is a screen-space effect and these coordinates are
+                   always in screen space.
+
+    .. image:: _static/effects/dropshadow.png
+        :alt: Example of the drop shadow effect
+
+
 .. method:: Layer.clear_effect()
 
     Remove the active effect.
