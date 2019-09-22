@@ -73,6 +73,13 @@ Particle Group Configuration
     "terminal velocity" in the direction of the gravity vector.
 
 
+.. attribute:: particle_group.spin_drag
+
+    A drag factor for angular velocity (spin).
+
+    All spins will be multiplied by this factor every second.
+
+
 .. method:: particle_group.add_color_stop(age: float, color: Any)
 
     Add a color stop for particles at age (in seconds).
@@ -107,6 +114,7 @@ particles, call ``.emit()``.
                   multiplies with the color ramp configured for the whole
                   particle group.
     :param size: The diameter of the particles to emit, in pixels.
+    :param angle: The rotation of the emitted particles, in radians.
     :param spin: The rate of rotation (angular velocity) of particles, in
                  radians per second.
 
@@ -120,5 +128,7 @@ particles, call ``.emit()``.
     :param vel_spread: The standard deviation for particle velocities, in
                        pixels per second.
     :param size_spread: The standard deviation for particle sizes, in pixels.
+    :param angle_spread: The standard deviation for the angle of particles, in
+                         radians.
     :param spin_spread: The standard deviation for the rate of rotation of
                         particles, in radians per second.

@@ -132,7 +132,8 @@ class ParticleGroup:
             grow: float = 1.0,
             max_age: float = np.inf,
             gravity: Tuple[float, float] = (0, 0),
-            drag: float = 1.0):
+            drag: float = 1.0,
+            spin_drag: float = 1.0):
         super().__init__()
         self.layer = layer
         self.num: int = 0  # Number of particles we have
@@ -140,6 +141,7 @@ class ParticleGroup:
         self.grow = grow
         self.gravity = np.array(gravity)
         self.drag = drag
+        self.spin_drag = spin_drag
         self.spins = np.zeros([0])
         self.vels = np.zeros([0, 2])
         self._color_stops = SortedList()
@@ -179,6 +181,8 @@ class ParticleGroup:
             size_spread: float = 0.0,
             spin: float = 0.0,
             spin_spread: float = 0.0,
+            angle: float = 0.0,
+            angle_spread: float = 0.0,
             ):
         """Emit num particles."""
         num = round(num)
@@ -197,16 +201,19 @@ class ParticleGroup:
         new_vel = np.random.normal(vel, vel_spread, [num, 2])
         new_pos = np.random.normal(pos, pos_spread, [num, 2])
         new_size = np.random.normal(size, size_spread, num)
+        new_angles = np.random.normal(angle, angle_spread, num)
         new_spins = np.random.normal(spin, spin_spread, num)
 
         verts = self.lst.vertbuf
         self.vels = np.vstack([self.vels[alive], new_vel])
         self.spins = np.hstack([self.spins[alive], new_spins])
         verts[:num_alive] = verts_alive
-        verts[num_alive:]['in_age'] = 0
-        verts[num_alive:]['in_color'] = color
-        verts[num_alive:]['in_size'] = new_size
-        verts[num_alive:]['in_vert'] = new_pos
+        new = verts[num_alive:]
+        new['in_age'] = 0
+        new['in_color'] = color
+        new['in_size'] = new_size
+        new['in_vert'] = new_pos
+        new['in_angle'] = new_angles
         self.lst.dirty = True
 
     def _compact(self):
@@ -225,7 +232,9 @@ class ParticleGroup:
 
         # Update
         orig_vels = self.vels
-        self.vels = self.vels * self.drag ** dt + self.gravity * dt
+        self.vels *= self.drag ** dt
+        self.vels += self.gravity * dt
+        self.spins *= self.spin_drag ** dt
 
         self.lst.vertbuf['in_vert'] += (self.vels + orig_vels) * (dt * 0.5)
         self.lst.vertbuf['in_angle'] += self.spins * dt
