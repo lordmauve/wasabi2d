@@ -1,8 +1,8 @@
 History
 =======
 
-1.1.0 - development
--------------------
+1.1.0 - 2019-09-22
+------------------
 
 * New: ``dropshadow`` :doc:`effect <effects>`.
 * New: Particle group has ``spin_drag``.
