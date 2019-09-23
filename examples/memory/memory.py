@@ -6,9 +6,11 @@
 #       with two-element tuple keys.
 #       Configure window size according to COLS and ROWS
 #
+from wasabi2d import animate, clock, event, mouse, run, Scene
 from wasabi2d.actor import Actor
-from wasabi2d import Scene, run, event, mouse, clock, animate
+from wasabi2d.tone import play
 
+from functools import partial
 import random
 import time
 
@@ -17,7 +19,7 @@ scene = Scene(
     height=600,
     title='Memory',
 )
-scene.background = (1, 1, 1)
+scene.background = (.7, .7, .7)
 
 COLS = 4
 ROWS= 3
@@ -39,12 +41,22 @@ class Card(Actor):
         super().__init__( card_back, *args, **kwargs )
 
     def flip(self):
+        animate(
+            self.prim,
+            duration=0.05,
+            scale=0,
+        )
         if self.prim.image == 'card_back':
             self.prim.image = self.title
         elif self.prim.image == 'checkmark':
             pass
         else:
             self.prim.image = 'card_back'
+        animate(
+            self.prim,
+            duration=0.5,
+            scale=1.,
+        )
 
     def complete(self):
         self.prim.image = 'checkmark'
@@ -74,23 +86,46 @@ for row in range(ROWS):
 
 def findTile(pos):
     y, x = pos
-    result = x // IMSIZE , y // IMSIZE
+    result = x // IMSIZE, y // IMSIZE
     return result
 
 
-def showTile():
-    pass
+def success():
+    # play sound
+    play(440, 0.5)
+    # add cards to list of non-clickable positions
+    for pos in STATUS:
+        ignore.append(pos)
+        board[pos[0]][pos[1]].complete()
+    # reset flipped cards
+    del STATUS[:]
+    if len(ignore) == COLS * ROWS:
+        print('Congratulations!')
+
+
+def failure():
+    # play sound
+    play(220, 0.25)
+    # unflip cards after a timeout
+    clock.schedule_unique(next_turn, 1.0)
+
+
+def next_turn():
+    # hide cards after a timeout
+    for pos in STATUS:
+        board[pos[0]][pos[1]].flip()
+    del STATUS[:]
 
 
 @event
 def on_mouse_down(pos, button):
     if len(STATUS) == 2: # ignore until timeout redisplays
         return
-    if pos in ignore: # has already been matched
-        return
     if button == mouse.LEFT and (pos):
     # not sure why "and (pos)" - especially the parens!
         coords = findTile(pos)
+        if coords in ignore:    # has already been matched
+            return
         board[coords[0]][coords[1]].flip()
         if coords not in STATUS:
             STATUS.append(coords) # now they are
@@ -100,22 +135,9 @@ def on_mouse_down(pos, button):
             elif len(STATUS) == 2: # 2nd click - check for match
                 (x1, y1), (x2, y2) = STATUS # an "unpacking assignment"
                 if board[x1][y1].title == board[x2][y2].title:
-                    print("Success sound")
-                    # add cards to list of non-clickable positions
-                    for pos in STATUS:
-                        ignore.append(pos)
-                        board[pos[0]][pos[1]].complete()
-                    del STATUS[:]
+                    success()
                 else:
-                    print("Failure sound")
-                    clock.schedule_unique(next_turn, 2.0)
-
-
-def next_turn():
-    # hide cards after a timeout
-    for pos in STATUS:
-        board[pos[0]][pos[1]].flip()
-    del STATUS[:]
+                    failure()
 
 
 run()
