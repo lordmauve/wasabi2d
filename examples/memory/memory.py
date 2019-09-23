@@ -20,6 +20,7 @@ scene = Scene(
     title='Memory',
 )
 scene.background = (.7, .7, .7)
+scene.layers[1].set_effect('dropshadow', opacity=2)
 
 COLS = 4
 ROWS= 3
@@ -71,12 +72,12 @@ for row in range(ROWS):
         temp = Card(image_name)
         angle = temp.prim.angle = random.uniform(-1, 1)
         animate(
-            temp, 
+            temp,
             duration=0.3,
             topleft=(col * IMSIZE, row * IMSIZE)
         )
         animate(
-            temp.prim, 
+            temp.prim,
             duration=0.3,
             angle=0.1 * angle,
         )
