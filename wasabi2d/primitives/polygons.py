@@ -96,7 +96,7 @@ class PolyLine(Polygon):
         verts = len(self.orig_verts)
         idxs = np.arange(verts)
         last = verts - 1
-        return [0, *idxs, last, last]
+        return np.array([0, *idxs, last, last])
 
     def _fill_indices(self):
         raise NotImplementedError(

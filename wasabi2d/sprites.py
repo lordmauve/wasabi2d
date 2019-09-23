@@ -93,7 +93,7 @@ class SpriteArray:
         Otherwise we allocate new VBOs.
         """
         s.array = self
-        if not s.verts:
+        if s.verts is None:
             s._update()
         size = len(self.verts) // 4
         if self.allocated < size:

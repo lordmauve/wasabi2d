@@ -150,7 +150,7 @@ class IndirectBuffer:
     def render_direct(self, vao, mode):
         cmds = self.allocations.values()
         for vs, insts, base_idx, base_v, base_inst in cmds:
-            vao.render(mode, vs, first=base_v, instances=1)
+            vao.render(mode, vs, first=base_idx, instances=1)
 
     def append(self, vs, insts, base_idx, base_v, base_inst) -> int:
         """Append an indirect draw command.
