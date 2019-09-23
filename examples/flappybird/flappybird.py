@@ -18,6 +18,9 @@ GRAVITY = 0.3
 FLAP_STRENGTH = 6.5
 SPEED = 3
 
+scene.layers[5].set_effect('dropshadow', radius=0, offset=(2, 2))
+scene.layers[0].set_effect('dropshadow', radius=3, offset=(3, 3))
+
 
 score_label = scene.layers[5].add_label(
     "0",
@@ -48,12 +51,6 @@ scene.layers[-2].add_sprite(
     'background',
     pos=(scene.width / 2, scene.height / 2)
 )
-bird = Actor(
-    scene.layers[0].add_sprite('bird1'),
-    pos=(75, 200)
-)
-bird.dead = False
-bird.vy = 0
 
 
 class Pipes:
@@ -82,6 +79,12 @@ class Pipes:
 
 
 pipes = Pipes()
+bird = Actor(
+    scene.layers[0].add_sprite('bird1'),
+    pos=(75, 200)
+)
+bird.dead = False
+bird.vy = 0
 highscore_label = scene.layers[5].add_label(
     f"Best: {storage['highscore']}",
     color=(200, 170, 0),
@@ -117,10 +120,13 @@ def update_bird():
     bird.y += (uy + bird.vy) / 2
 
     if not bird.dead:
+        bird.angle = 0
         if bird.vy < -3:
             bird.image = 'bird2'
         else:
             bird.image = 'bird1'
+    else:
+        bird.angle += 0.1
 
     px = pipes.x
 
