@@ -10,10 +10,11 @@ with io.open(path, encoding='utf8') as f:
 
 setup(
     name='wasabi2d',
-    version='0.1.0',
+    version='1.1.0',
     description="A convenient 2D OpenGL games framework",
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
+    url='https://github.com/lordmauve/wasabi2d',
     author='Daniel Pope',
     author_email='mauve@mauveweb.co.uk',
     packages=find_packages(include='wasabi2d*'),

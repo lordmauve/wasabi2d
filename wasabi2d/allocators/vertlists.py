@@ -157,6 +157,7 @@ class IndirectBuffer:
 
         Return an opaque key that can be used to update or delete the command.
         """
+        assert base_v == 0
         key = self.next_key
         self.next_key += 1
 
@@ -265,7 +266,7 @@ class VAO:
         vs, vertbuf = self.verts.allocate(num_verts)
         ixs, indexbuf = self.indexes.allocate(num_indexes)
 
-        cmd = self.indirect.append(num_indexes, 1, ixs.start, vs.start, 0)
+        cmd = self.indirect.append(num_indexes, 1, ixs.start, 0, 0)
         lst = VAOList(
             buf=self,
             command=cmd,

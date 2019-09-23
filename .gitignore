@@ -108,3 +108,5 @@ venv.bak/
 
 *.ipynb
 screenshot_*.png
+venv*
+moderngl

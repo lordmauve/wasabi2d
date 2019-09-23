@@ -1,4 +1,6 @@
 pytest
 tox
 pytest-cov
-Sphinx
+Sphinx>=2.2.0
+wheel
+twine

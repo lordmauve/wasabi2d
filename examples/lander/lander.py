@@ -247,6 +247,7 @@ class Ship:
         self.particles.add_color_stop(0.2, (1.5, 1.5, 0, 1))
         self.particles.add_color_stop(0.5, 'gray')
         self.particles.add_color_stop(0.75, (5, 0, 0, 0))
+        scene.layers[0].set_effect('bloom', radius=4)
 
     def reset(self):
         """ Set the ships position, velocity and angle to their new-game values """
@@ -290,13 +291,14 @@ class Ship:
         self.acceleration[:] = Ship.booster_power * up
 
         self.particles.emit(
-            5,
+            15,
             pos=self.position - 25 * up,
             pos_spread=2,
             vel=up * -200 + Vector2(*self.velocity) * 60,
             vel_spread=50,
-            size=2,
-            color='#fff0c0',
+            spin_spread=1,
+            size=1.5,
+            #color='#fff0c0',
         )
 
         self.fuel -= 2

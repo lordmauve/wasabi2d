@@ -132,7 +132,8 @@ class ParticleGroup:
             grow: float = 1.0,
             max_age: float = np.inf,
             gravity: Tuple[float, float] = (0, 0),
-            drag: float = 1.0):
+            drag: float = 1.0,
+            spin_drag: float = 1.0):
         super().__init__()
         self.layer = layer
         self.num: int = 0  # Number of particles we have
@@ -140,6 +141,7 @@ class ParticleGroup:
         self.grow = grow
         self.gravity = np.array(gravity)
         self.drag = drag
+        self.spin_drag = spin_drag
         self.spins = np.zeros([0])
         self.vels = np.zeros([0, 2])
         self._color_stops = SortedList()
@@ -148,7 +150,7 @@ class ParticleGroup:
         self.color_tex.write(self.color_vals)
 
     def add_color_stop(self, age, color):
-        """Add a color stop for particles at age t.
+        """Add a color stop for particles of the given age.
 
         Particles will fade between the colors of the stops as their age
         changes.
@@ -179,6 +181,8 @@ class ParticleGroup:
             size_spread: float = 0.0,
             spin: float = 0.0,
             spin_spread: float = 0.0,
+            angle: float = 0.0,
+            angle_spread: float = 0.0,
             ):
         """Emit num particles."""
         num = round(num)
@@ -192,21 +196,24 @@ class ParticleGroup:
         verts_alive = prev_verts[alive]
 
         self.lst.realloc(need, need)
-        self.lst.indexbuf[:] = np.arange(need, dtype='u4')
+        self.lst.indexbuf[:] = np.arange(need, dtype='u4') + self.lst.vertoff.start
 
         new_vel = np.random.normal(vel, vel_spread, [num, 2])
         new_pos = np.random.normal(pos, pos_spread, [num, 2])
         new_size = np.random.normal(size, size_spread, num)
+        new_angles = np.random.normal(angle, angle_spread, num)
         new_spins = np.random.normal(spin, spin_spread, num)
 
         verts = self.lst.vertbuf
         self.vels = np.vstack([self.vels[alive], new_vel])
         self.spins = np.hstack([self.spins[alive], new_spins])
         verts[:num_alive] = verts_alive
-        verts[num_alive:]['in_age'] = 0
-        verts[num_alive:]['in_color'] = color
-        verts[num_alive:]['in_size'] = new_size
-        verts[num_alive:]['in_vert'] = new_pos
+        new = verts[num_alive:]
+        new['in_age'] = 0
+        new['in_color'] = color
+        new['in_size'] = new_size
+        new['in_vert'] = new_pos
+        new['in_angle'] = new_angles
         self.lst.dirty = True
 
     def _compact(self):
@@ -214,7 +221,7 @@ class ParticleGroup:
         self.num = num_alive = np.sum(alive)
         verts_alive = self.lst.vertbuf[alive]
         self.lst.realloc(num_alive, num_alive)
-        self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4')
+        self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4') + self.lst.vertoff.start
         self.vels = self.vels[alive].copy()
         self.spins = self.spins[alive].copy()
         self.lst.vertbuf[:] = verts_alive
@@ -225,7 +232,9 @@ class ParticleGroup:
 
         # Update
         orig_vels = self.vels
-        self.vels = self.vels * self.drag ** dt + self.gravity * dt
+        self.vels *= self.drag ** dt
+        self.vels += self.gravity * dt
+        self.spins *= self.spin_drag ** dt
 
         self.lst.vertbuf['in_vert'] += (self.vels + orig_vels) * (dt * 0.5)
         self.lst.vertbuf['in_angle'] += self.spins * dt
@@ -238,7 +247,7 @@ class ParticleGroup:
         idxs = np.arange(num, dtype='u4')
         # Allocate a large slice (set high water mark)
         self.lst = vao.alloc(num, num)
-        self.lst.indexbuf[:] = idxs
+        self.lst.indexbuf[:] = idxs + self.lst.vertoff.start
 
         # Realloc to how much we actually want
         self.lst.realloc(self.num, self.num)

@@ -107,6 +107,7 @@ class Layer:
         cls = getattr(mod, name.title())
         self.effect = cls(self.ctx, self.group.shadermgr, **kwargs)
         self.effect._set_camera(self.group.camera)
+        return self.effect
 
     def clear_effect(self):
         self.effect = None

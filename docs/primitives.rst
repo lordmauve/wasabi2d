@@ -13,16 +13,21 @@ Wasabi2d offers many different types of primitives:
 
 .. _colors:
 
+
 Specifying colors
 -----------------
 
-Colors can be specified to any object using the attribute `color`. There are
+Colors can be specified to any object using the attribute ``color``. There are
 many ways to specify color:
 
 * tuples of 3 or 4 floats between 0 and 1 - RGB or RGBA, respectively. If 3
   numbers are given then the alpha value will be 1 (ie. opaque).
-* Pygame color names like `white`, `yellow` etc,
-* Hex RGB or RGBA color codes like `#eecc6688`
+* Pygame color names like ``white``, ``yellow`` etc,
+* Hex RGB or RGBA color codes like ``#eecc66`` or ``#eecc6688``
+
+While color channel values of 0-1 map directly to what a computer display can
+represent (sRGB), you can give values greater than this. This is particularly
+relevant when using :doc:`effects`.
 
 
 Common Attributes
@@ -54,6 +59,12 @@ Common attributes:
     coordinate system in wasabi2d, increasing angle gives a clockwise
     rotation.
 
+
+Common methods:
+
+.. method:: .delete()
+
+    Delete the primitive, removing it from the scene.
 
 
 Creating a sprite

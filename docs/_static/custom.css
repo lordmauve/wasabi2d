@@ -5,14 +5,26 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-family: sans-serif !important;
     color: white !important;
-    background-color: #58c;
+    background-color: #89a02c;
 
     padding: 0.1em 0.3em !important;
 
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
     border-radius: 3px;
+    border: solid #4d5918 1px;
 }
 
 li {
     margin-bottom: 0.3em;
+}
+
+a,
+a.reference {
+    color: #5a691d;
+    border-bottom-color: #89a02c;
+}
+
+pre {
+    background-color: #f3f5ee;
+    border-radius: 3px;
 }
