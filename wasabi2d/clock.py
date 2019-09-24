@@ -50,10 +50,10 @@ class Event:
     Events are ordered by their scheduled execution time.
 
     """
-    def __init__(self, time, cb, repeat=None):
+    def __init__(self, time, cb, strong=False, repeat=None):
         self.time = time
         self.repeat = repeat
-        self.cb = mkref(cb)
+        self.cb = mkref(cb) if not strong else cb
         self.name = str(cb)
         self.repeat = repeat
 
@@ -93,16 +93,19 @@ class Clock:
         self.events.clear()
         self._each_tick.clear()
 
-    def schedule(self, callback, delay):
+    def schedule(self, callback, delay, *, strong=False):
         """Schedule callback to be called once, at `delay` seconds from now.
 
         :param callback: A parameterless callable to be called.
         :param delay: The delay before the call (in clock time / seconds).
 
         """
-        heapq.heappush(self.events, Event(self.t + delay, callback, None))
+        heapq.heappush(
+            self.events,
+            Event(self.t + delay, callback, strong, None)
+        )
 
-    def schedule_unique(self, callback, delay):
+    def schedule_unique(self, callback, delay, *, strong=False):
         """Schedule callback to be called once, at `delay` seconds from now.
 
         If it was already scheduled, postpone its firing.
@@ -112,9 +115,9 @@ class Clock:
 
         """
         self.unschedule(callback)
-        self.schedule(callback, delay)
+        self.schedule(callback, delay, strong=strong)
 
-    def schedule_interval(self, callback, delay):
+    def schedule_interval(self, callback, delay, *, strong=False):
         """Schedule callback to be called every `delay` seconds.
 
         The first occurrence will be after `delay` seconds.
@@ -123,7 +126,10 @@ class Clock:
         :param delay: The interval in seconds.
 
         """
-        heapq.heappush(self.events, Event(self.t + delay, callback, delay))
+        heapq.heappush(
+            self.events,
+            Event(self.t + delay, callback, strong, delay)
+        )
 
     def unschedule(self, callback):
         """Unschedule the given callback.
