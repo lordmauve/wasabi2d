@@ -134,7 +134,7 @@ class Scene:
         self._ffmpeg = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
-            bufsize=10**8
+            bufsize=0
         )
         print("Recording video...")
         from . import event
@@ -166,15 +166,14 @@ class Scene:
     def _vid_frame(self):
         data = self.ctx.screen.read(components=3)
         self._ffmpeg.stdin.write(data)
-        self._ffmpeg.stdin.flush()
 
     def draw(self, t, dt):
         assert len(self.background) == 3, \
             "Scene.background must be a 3-element tuple."
-        if self._recording:
-            self._vid_frame()
         self.ctx.clear(*self.background)
         self.layers.render(self.camera.proj, t, dt)
+        if self._recording:
+            self._vid_frame()
 
 
 class Camera:
