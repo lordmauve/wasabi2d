@@ -1,9 +1,9 @@
 import math
-from wasabi2d import event, run, sounds, Scene, Vector2, clock, animate
-import pygame
+import wasabi2d as w2d
+from wasabi2d import Vector2
 
 
-scene = Scene(antialias=8)
+scene = w2d.Scene(antialias=8)
 scene.background = (0, 0.03, 0.1)
 
 ship = scene.layers[2].add_sprite(
@@ -87,11 +87,12 @@ ship.vel = Vector2()
 bullets = []
 
 
-SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
+SHIFT = w2d.keymods.LSHIFT | w2d.keymods.RSHIFT
 
 
-@event
+@w2d.event
 def on_key_down(key, mod):
+    print(mod)
     if key == key.F12:
         if mod & SHIFT:
             scene.toggle_recording()
@@ -114,7 +115,7 @@ def on_key_down(key, mod):
         bullet.vel = Vector2(600, 0).rotate_rad(ship.angle)
         bullet.power = 1.0
         bullets.append(bullet)
-        sounds.laser.play()
+        w2d.sounds.laser.play()
 
 
 def update_circ():
@@ -124,12 +125,9 @@ def update_circ():
     r.pos = (x, y - 1)
 
 
-clock.schedule_interval(update_circ, 0.1)
-
-
 def rotate_star():
     """Animate the rotation of the star."""
-    animate(
+    w2d.animate(
         star,
         'bounce_end',
         duration=1.0,
@@ -138,10 +136,12 @@ def rotate_star():
 
 
 rotate_star()
-clock.schedule_interval(rotate_star, 2.0)
+
+w2d.clock.schedule_interval(update_circ, 0.1)
+w2d.clock.schedule_interval(rotate_star, 2.0)
 
 
-@event
+@w2d.event
 def update(t, dt, keyboard):
     ship.vel *= 0.3 ** dt
 
@@ -165,7 +165,6 @@ def update(t, dt, keyboard):
         ship.vel[1] += accel
 
     ship.pos += ship.vel * dt
-    #lbl.pos = ship.pos + Vector2(20, -20)
 
     if not (-1e-6 < ship.vel.magnitude_squared() < 1e-6):
         vx, vy = ship.vel
@@ -192,4 +191,4 @@ def update(t, dt, keyboard):
             bullets.remove(b)
 
 
-run()
+w2d.run()

@@ -7,7 +7,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 from pygame.math import Vector2
 from .game import EventMapper
-from .constants import keys, mouse
+from .constants import keys, mouse, keymods
 from .loaders import sounds
 from . import music
 from . import clock
@@ -24,7 +24,7 @@ __all__ = [
     'Vector2',
     'event',
     'run',
-    'keys', 'mouse',
+    'keys', 'mouse', 'keymods',
     'sounds', 'music', 'clock', 'animate',
     'Scene', 'Storage',
 ]
