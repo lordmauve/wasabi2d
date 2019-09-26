@@ -324,8 +324,8 @@ class VAO:
         self.indexes.free(lst.indexoff)
 
         lst.buf = None
-        lst.vertbuf = None
-        lst.indexbuf = None
+        lst.vertbuf = lst.vertoff = None
+        lst.indexbuf = lst.indexoff = None
 
     def get_vao(self):
         # TODO: use the dirty list to more accurately indicate which parts of

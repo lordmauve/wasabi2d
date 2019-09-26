@@ -305,7 +305,6 @@ class Layer:
             color=color
         )
         self.objects.add(c)
-        c._migrate(self._text_vao(font))
         return c
 
     def add_particle_group(self, texture=None, **kwargs) -> ParticleGroup:

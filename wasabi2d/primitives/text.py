@@ -110,6 +110,7 @@ class Label(Colorable, Transformable):
             color=(1, 1, 1, 1)):
         assert align in ALIGNMENTS, f"{align!r} is not a valid text alignment."
         super().__init__()
+        self.layer = layer
         self.lst = None
         self._verts = None
         self.align = align
@@ -118,6 +119,7 @@ class Label(Colorable, Transformable):
         self.font_atlas = font_atlas
         self.pos = pos
         self.color = color
+        self.vao = None
         self.text = text  # trigger layout
 
     def _set_dirty(self):
@@ -172,6 +174,9 @@ class Label(Colorable, Transformable):
         line_height = 48 * 1.3
 
         curchar = 0
+        tex_ids = set()
+        tex = None
+
         for lineno, line in enumerate(lines):
             if not line:
                 continue
@@ -183,9 +188,6 @@ class Label(Colorable, Transformable):
             layout_width = cx[-1] + metrics[-1, 1]
             align_offset = ALIGNMENTS[self._align] * layout_width
             yoff = lineno * line_height
-
-            tex = None
-            tex_ids = set()
             for idx, char in enumerate(line):
                 tex, glyph_uvs, glyph_verts = self.font_atlas.get(char)
                 tex_ids.add(tex.glo)
@@ -215,20 +217,36 @@ class Label(Colorable, Transformable):
         # TODO: handle use of multiple textures. We will be able to handle
         # this eventually by selecting texture unit within the shader, or by
         # making multiple draw calls
-        assert len(tex_ids) == 1, "Label got allocated over multiple textures"
+        assert len(tex_ids) < 2, "Label got allocated over multiple textures"
         self.tex = tex
         self._verts = verts @ resize
         self._uvs = uvs
         self._indices = indices
 
         # TODO: update self.lst, set dirty OR reallocate self.lst for new size
-        if self.lst:
+        if self.tex is None:
+            if self.lst:
+                self.lst.free()
+                self.lst = None
+                self.vao = None
+        elif self.lst:
             self.lst.realloc(len(self._verts), len(indices))
-            self.lst.indexbuf[:] = indices + self.lst.vertoff.start
+            self.lst.indexbuf[:] = indices
+            self.lst.indexbuf += self.lst.vertoff.start
             self.lst.vertbuf['in_uv'] = uvs
             self._update()
+        elif self.tex and not self.vao:
+            self._migrate(self.layer._text_vao(self.font_atlas))
+
+    def delete(self):
+        self.layer.objects.remove(self)
+        self.lst.free()
+        self.layer = None
+        self.vao = None
 
     def _update(self):
+        if not self.lst:
+            return
         xform = self._scale @ self._rot @ self._xlate
 
         np.matmul(
@@ -242,10 +260,14 @@ class Label(Colorable, Transformable):
     def _migrate(self, vao: TextureVAO):
         """Migrate the fill into the given VAO."""
         # TODO: dealloc from an existing VAO
+        if self.lst:
+            self.lst.free()
+            self.lst = None
         idxs = self._indices
         self.vao = vao
         self.vao.tex = self.tex
         self.lst = vao.alloc(len(self._verts), len(idxs))
         self.lst.indexbuf[:] = idxs
+        self.lst.indexbuf += self.lst.vertoff.start
         self.lst.vertbuf['in_uv'] = self._uvs
         self._update()
