@@ -40,6 +40,18 @@ def test_allocate_many(alloc):
                 f"{a} overlaps with {b}"
 
 
+def test_free_adacent(alloc):
+    """We can free a block in the middle."""
+    allocations = [alloc.alloc(sz) for sz in BLOCKS]
+    avail = alloc.avail()
+
+    to_free = allocations[4]
+    free_length = to_free.stop - to_free.start
+    alloc.free(to_free)
+
+    assert alloc.avail() == avail + free_length
+
+
 def test_recover_many(alloc):
     """We can allocate and free many blocks."""
     allocations = [alloc.alloc(sz).start for sz in BLOCKS]

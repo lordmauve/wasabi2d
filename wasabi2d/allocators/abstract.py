@@ -51,14 +51,23 @@ class AbstractAllocator:
             idx = self._free.bisect_left(k)
             if idx >= len(self._free):
                 self._free.add(k)
-                return
+                break
 
             next_length, next_off = self._free[idx]
             if next_off != (length + offset):
-                return
+                self._free.add(k)
+                break
 
             self._free.pop(idx)
             length += next_length
+
+    def check(self):
+        """Check invariants."""
+        free = sum(cap for cap, _ in self._free)
+        allocated = sum(self.allocs.values())
+        assert free + allocated == self.capacity, \
+            f"Free: {free}, Allocated: {allocated}, Capacity: {self.capacity}"
+        return True
 
     def alloc(self, num: int) -> slice:
         """Allocate a block of size num.
