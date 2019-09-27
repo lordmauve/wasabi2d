@@ -221,7 +221,13 @@ class ParticleGroup:
         self.num = num_alive = np.sum(alive)
         verts_alive = self.lst.vertbuf[alive]
         self.lst.realloc(num_alive, num_alive)
-        self.lst.indexbuf[:] = np.arange(num_alive, dtype='u4') + self.lst.vertoff.start
+
+        first_vertex = self.lst.vertoff.start
+        self.lst.indexbuf[:] = np.arange(
+            first_vertex,
+            first_vertex + num_alive,
+            dtype='u4'
+        )
         self.vels = self.vels[alive].copy()
         self.spins = self.spins[alive].copy()
         self.lst.vertbuf[:] = verts_alive
@@ -244,10 +250,15 @@ class ParticleGroup:
         """Migrate the particles into the given VAO."""
         self.vao = vao
         num = max(self.num, 1024)
-        idxs = np.arange(num, dtype='u4')
+
         # Allocate a large slice (set high water mark)
         self.lst = vao.alloc(num, num)
-        self.lst.indexbuf[:] = idxs + self.lst.vertoff.start
+        first_vertex = self.lst.vertoff.start
+        self.lst.indexbuf[:] = np.arange(
+            first_vertex,
+            first_vertex + num,
+            dtype='u4'
+        )
 
         # Realloc to how much we actually want
         self.lst.realloc(self.num, self.num)
