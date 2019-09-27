@@ -110,3 +110,7 @@ venv.bak/
 screenshot_*.png
 venv*
 moderngl
+
+# Videos and screenshots
+video_*.mp4
+screenshot_*.png
