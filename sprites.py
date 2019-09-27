@@ -71,7 +71,7 @@ particles = scene.layers[1].add_particle_group(
     texture='smoke',
     grow=3,
     max_age=2,
-    gravity=(0, 100),
+    gravity=(0, -100),
     drag=0.5,
 )
 particles.add_color_stop(0, (2, 2, 2, 1))
@@ -92,12 +92,15 @@ SHIFT = w2d.keymods.LSHIFT | w2d.keymods.RSHIFT
 
 @w2d.event
 def on_key_down(key, mod):
-    print(mod)
     if key == key.F12:
         if mod & SHIFT:
             scene.toggle_recording()
         else:
             scene.screenshot()
+
+    if key == key.F11:
+        import pdb
+        pdb.set_trace()
 
     elif key == key.K_1:
         lbl.align = 'left'

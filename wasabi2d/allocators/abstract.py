@@ -20,7 +20,7 @@ class AbstractAllocator:
 
     def __init__(self, capacity: int = 8192):
         self.capacity = capacity
-        self.allocs = {}
+        self.allocs = {}  # mapping of offset -> reserved size
         self._free = SortedList([(capacity, 0)])
 
     def avail(self) -> int:
@@ -132,12 +132,14 @@ class AbstractAllocator:
             return slice(offset, offset + new_size)
 
         del self.allocs[offset]
+        free_before = list(self._free)
         self._release(offset, size)
         try:
             return self.alloc(new_size)
         except NoCapacity:
             # We don't have enough capacity, re-insert before raising
-            self._reserve(offset, size)
+            self.allocs[offset] = size
+            self._free = SortedList(free_before)
             raise
 
     def free(self, offset: Union[int, slice]):

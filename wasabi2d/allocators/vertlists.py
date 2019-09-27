@@ -61,10 +61,6 @@ class VAOList:
     indexbuf: np.ndarray
     indexoff: slice
 
-    # Number of verts and indexes in the allocation
-    _hwm_verts: int
-    _hwm_indexes: int
-
     #: True if needs syncing to the GL
     dirty: bool = False
 
@@ -181,12 +177,13 @@ class IndirectBuffer:
 class MemoryBackedBuffer:
     """Maintain a GL buffer plus a numpy arrays for storage."""
 
-    def __init__(self, ctx, capacity, dtype):
+    def __init__(self, ctx, capacity, dtype, on_resize):
         self.ctx = ctx
         self.allocator = AbstractAllocator(capacity)
         self.dtype = dtype
         self.array = np.empty(capacity, dtype=self.dtype)
         self.buffer = None
+        self.on_resize = on_resize
 
     def allocate(self, num: int) -> Tuple[slice, np.ndarray]:
         """Allocate a slice of the array.
@@ -197,30 +194,36 @@ class MemoryBackedBuffer:
         try:
             allocated = self.allocator.alloc(num)
         except NoCapacity as e:
-            new_size = e.recommended
-            new_array = np.empty(new_size, dtype=self.dtype)
-            new_array[:len(self.array)] = self.array
-            self.array = new_array
-            self.allocator.grow(e.recommended)
-            self.buffer = None
+            self._grow(e.recommended)
             allocated = self.allocator.alloc(num)
         return allocated, self.array[allocated]
+
+    def _grow(self, new_size):
+        new_array = np.empty(new_size, dtype=self.dtype)
+        new_array[:len(self.array)] = self.array
+        self.array = new_array
+        self.allocator.grow(new_size)
+        self.buffer = None
+        self.on_resize(self.array)
 
     def get_buffer(self, dirty=False) -> moderngl.Buffer:
         """Get the buffer."""
         if not self.buffer:
             self.buffer = self.ctx.buffer(self.array, dynamic=True)
         elif dirty:
+            self.buffer.orphan()
             self.buffer.write(self.array)
         return self.buffer
 
     def realloc(self, offset: slice, size: int) -> Tuple[slice, np.ndarray]:
         """Resize the allocation at offset. Return the new slice and view."""
-        # TODO: use self.allocator.realloc here
-        self.allocator.free(offset)
-        newoff, new_view = self.allocate(size)
-        copy_size = min(size, offset.stop - offset.start)
-        new_view[:copy_size] = self.array[offset][:copy_size]
+        try:
+            newoff = self.allocator.realloc(offset, size)
+        except NoCapacity as e:
+            self._grow(e.recommended)
+            newoff = self.allocator.realloc(offset, size)
+
+        new_view = self.array[newoff]
         return newoff, new_view
 
     def free(self, offset: typing.Union[int, slice]):
@@ -237,16 +240,38 @@ class VAO:
             ctx: moderngl.Context,
             prog: moderngl.Program,
             dtype: np.dtype,
-            capacity: int = 4096,
-            index_capacity: int = 8192):
+            capacity: int = 256,
+            index_capacity: int = 512):
         self.mode = mode
         self.ctx = ctx
         self.prog = prog
         self.dtype = dtype_to_moderngl(dtype)
-        self.verts = MemoryBackedBuffer(ctx, capacity, dtype)
-        self.indexes = MemoryBackedBuffer(ctx, index_capacity, 'i4')
-        self.indirect = IndirectBuffer(ctx)
         self.allocs: typing.List[VAOList] = []
+        allocs = self.allocs
+
+        def _update_lst_verts(buf):
+            """Callback to sync lists when the vertex buffer is grown."""
+            for lst in allocs:
+                lst.vertbuf = buf[lst.vertoff]
+
+        def _update_lst_idxs(buf):
+            """Callback to sync lists when the index buffer is grown."""
+            for lst in allocs:
+                lst.indexbuf = buf[lst.indexoff]
+
+        self.verts = MemoryBackedBuffer(
+            ctx,
+            capacity,
+            dtype,
+            on_resize=_update_lst_verts
+        )
+        self.indexes = MemoryBackedBuffer(
+            ctx,
+            index_capacity,
+            'i4',
+            on_resize=_update_lst_idxs
+        )
+        self.indirect = IndirectBuffer(ctx)
         self.vao = None
 
     def _initialise(self):
@@ -274,8 +299,6 @@ class VAO:
             vertoff=vs,
             indexbuf=indexbuf,
             indexoff=ixs,
-            _hwm_verts=num_verts,
-            _hwm_indexes=num_indexes,
             dirty=True
         )
         self.allocs.append(lst)
@@ -306,13 +329,7 @@ class VAO:
             )
 
         lst.dirty = True
-        self.indirect[lst.command] = (
-            num_indexes,
-            1,
-            lst.indexoff.start,
-            lst.vertoff.start,
-            0
-        )
+        self.indirect[lst.command] = (num_indexes, 1, lst.indexoff.start, 0, 0)
 
     def free(self, lst):
         """Remove a list from the array."""

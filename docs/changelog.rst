@@ -5,6 +5,7 @@ History
 1.1.1 - unreleased
 ------------------
 
+* Fix: several bugs when resizing vertex/index buffers
 * Fix: ``keymods`` is now exported from wasabi2d as documented.
 * Fix: video recording is glitchy due to recording from back buffer
 * Fix: text labels can now be empty
