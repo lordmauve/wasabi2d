@@ -132,6 +132,9 @@ class AbstractAllocator:
             return slice(offset, offset + new_size)
 
         del self.allocs[offset]
+        # TODO: copying the list before use makes this operation
+        # O(n) (but probably low constant factor) when it should be
+        # O(log n)-ish
         free_before = list(self._free)
         self._release(offset, size)
         try:
