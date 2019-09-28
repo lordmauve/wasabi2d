@@ -206,7 +206,8 @@ class Sprite(Colorable, Transformable):
         self.layer = None
 
     def _set_dirty(self):
-        self.layer._dirty.add(self)
+        if self.layer:
+            self.layer._dirty.add(self)
         self.verts = None
 
     bounds = Bounds('self.orig_verts[:, :2]')
