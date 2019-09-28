@@ -371,7 +371,7 @@ class VAO:
         if not self.allocs:
             return
         vao = self.get_vao()
-        if self.ctx.version_code >= 400:
+        if self.ctx.version_code >= 420:
             indirect = self.indirect.get_buffer()
             vao.render_indirect(
                 indirect,
