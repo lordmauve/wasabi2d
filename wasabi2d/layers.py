@@ -112,7 +112,14 @@ class Layer:
     def clear_effect(self):
         self.effect = None
 
-    def add_sprite(self, image, pos=(0, 0), angle=0, anchor=None):
+    def add_sprite(
+        self,
+        image,
+        pos=(0, 0),
+        angle=0,
+        anchor=None,
+        color=(1, 1, 1, 1),
+    ):
         spr = Sprite(
             layer=self,
             image=image,
@@ -120,6 +127,7 @@ class Layer:
         )
         spr.pos = pos
         spr.angle = angle
+        spr.color = color
         self.objects.add(spr)
         return spr
 

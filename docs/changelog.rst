@@ -2,9 +2,12 @@ History
 =======
 
 
-1.1.1 - unreleased
+1.2.0 - 2019-09-28
 ------------------
 
+* New: add_sprite() takes an argument ``color`` to match other primitives
+* New: ``.scale_x`` and ``.scale_y`` for independently scaling primitives
+* Fix: ``dropshadow`` effect is composited more correctly
 * Fix: several bugs when resizing vertex/index buffers
 * Fix: ``keymods`` is now exported from wasabi2d as documented.
 * Fix: video recording is glitchy due to recording from back buffer

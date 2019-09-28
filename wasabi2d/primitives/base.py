@@ -88,6 +88,24 @@ class Transformable:
         self._set_dirty()
 
     @property
+    def scale_x(self):
+        return self._scale[0, 0]
+
+    @scale_x.setter
+    def scale_x(self, v):
+        self._scale[0, 0] = v
+        self._set_dirty()
+
+    @property
+    def scale_y(self):
+        return self._scale[0, 0]
+
+    @scale_y.setter
+    def scale_y(self, v):
+        self._scale[1, 1] = v
+        self._set_dirty()
+
+    @property
     def angle(self):
         return self._angle
 
