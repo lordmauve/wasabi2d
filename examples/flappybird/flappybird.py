@@ -18,7 +18,12 @@ GRAVITY = 0.3
 FLAP_STRENGTH = 6.5
 SPEED = 3
 
-scene.layers[5].set_effect('dropshadow', radius=0, offset=(2, 2))
+scene.layers[5].set_effect(
+    'dropshadow',
+    radius=0,
+    opacity=0.7,
+    offset=(2, 2)
+)
 scene.layers[0].set_effect('dropshadow', radius=3, offset=(3, 3))
 
 
@@ -87,7 +92,7 @@ bird.dead = False
 bird.vy = 0
 highscore_label = scene.layers[5].add_label(
     f"Best: {storage['highscore']}",
-    color=(200, 170, 0),
+    color=(1, 1, 0),
     align='center',
     pos=(scene.width / 2, scene.height - 10),
     fontsize=30,

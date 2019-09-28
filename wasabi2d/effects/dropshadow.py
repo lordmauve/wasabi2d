@@ -31,19 +31,24 @@ uniform float radius;
 uniform vec2 offset;
 uniform float opacity;
 
+const vec3 BLACK = vec3(0, 0, 0);
+
 
 void main()
 {
-
     vec2 tex_offset = vec2(1.0, -1.0) * offset / textureSize(image, 0);
 
     vec4 image = texture(image, uv);
+
     float shadow_a = texture(blurred, uv - tex_offset).a * opacity;
 
-    vec4 shadow_black = vec4(0, 0, 0, shadow_a);
-
     float alpha = image.a;
-    f_color = alpha * image + (1 - alpha) * shadow_black;
+    float dest_alpha = alpha + (1 - alpha) * shadow_a;
+
+    f_color = vec4(
+        (image.rgb + (1 - alpha) * shadow_a * BLACK) / dest_alpha,
+        dest_alpha
+    );
 }
 
 """
