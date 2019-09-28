@@ -332,6 +332,7 @@ class Layer:
             tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)
         else:
             tex = self._load_texture(texture)
+            tex.repeat_x = tex.repeat_y = False
         vao.tex = tex
         vao.color_tex = c.color_tex
 

@@ -30,8 +30,8 @@ PARTICLE_PROGRAM = dict(
             size = in_size;
             age = in_age;
 
-            float c = cos(in_angle);
-            float s = sin(in_angle);
+            float c = cos(-in_angle);
+            float s = sin(-in_angle);
             rots = mat2(c, -s, s, c);
         }
     ''',
@@ -68,10 +68,10 @@ void main() {
         vec2(sz, -sz)
     );
     vec2 uvs[4] = vec2[4](
-        vec2(0, 1),
-        vec2(1, 1),
         vec2(0, 0),
-        vec2(1, 0)
+        vec2(1, 0),
+        vec2(0, 1),
+        vec2(1, 1)
     );
 
     for (int i = 0; i < 4; i++) {
@@ -268,4 +268,4 @@ class ParticleGroup:
     def delete(self):
         self.layer.objects.discard(self)
         self.layer._dynamic.discard(self)
-        self.lst.delete()
+        self.lst.free()
