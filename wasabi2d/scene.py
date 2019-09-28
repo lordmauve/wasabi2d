@@ -12,6 +12,7 @@ from pyrr import Matrix44
 from . import clock
 from .layers import LayerGroup
 from .loaders import set_root
+from .color import convert_color_rgb
 
 
 class Scene:
@@ -68,7 +69,15 @@ class Scene:
         from . import event
         event(self.draw)
 
-        self.background = (0.0, 0.0, 0.0)
+        self._background = (0.0, 0.0, 0.0)
+
+    @property
+    def background(self):
+        return self._background
+
+    @background.setter
+    def background(self, v):
+        self._background = convert_color_rgb(v)
 
     @property
     def title(self):

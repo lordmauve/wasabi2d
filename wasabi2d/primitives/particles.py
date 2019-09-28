@@ -186,6 +186,8 @@ class ParticleGroup:
             ):
         """Emit num particles."""
         num = round(num)
+        if num == 0:
+            return
         color = convert_color(color)
 
         prev_verts = self.lst.vertbuf

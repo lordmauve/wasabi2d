@@ -112,11 +112,20 @@ class Transformable:
     @angle.setter
     def angle(self, theta):
         assert isinstance(theta, (int, float))
-        self._rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
+        self._rot = None
         self._angle = theta
         self._set_dirty()
 
     def _xform(self):
+        if self._rot is None:
+            theta = self._angle
+            s = np.sin(theta)
+            c = np.cos(theta)
+            self._rot = np.array([
+                [c, s, 0],
+                [-s, c, 0],
+                (0, 0, 1)
+            ], dtype=np.float32)
         return self._scale @ self._rot @ self._xlate
 
 
