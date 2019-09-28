@@ -2,7 +2,7 @@ History
 =======
 
 
-1.2.0 - 2019-09-28
+1.2.0 - 2019-09-29
 ------------------
 
 * New: add_sprite() takes an argument ``color`` to match other primitives
@@ -14,6 +14,7 @@ History
 * Fix: video recording is glitchy due to recording from back buffer
 * Fix: text labels can now be empty
 * Fix: text labels can be deleted
+* Fix: particles display upside down and with rotation reversed
 
 
 1.1.0 - 2019-09-22
