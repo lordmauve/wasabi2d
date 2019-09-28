@@ -212,7 +212,7 @@ class Sprite(Colorable, Transformable):
     bounds = Bounds('self.orig_verts[:, :2]')
 
     def _update(self):
-        xform = self._scale @ self._rot @ self._xlate
+        xform = self._xform()
 
         self._vert_color[:] = self._color
         self.verts = np.hstack([

@@ -98,7 +98,7 @@ class Transformable:
 
     @property
     def scale_y(self):
-        return self._scale[0, 0]
+        return self._scale[1, 1]
 
     @scale_y.setter
     def scale_y(self, v):
@@ -115,6 +115,9 @@ class Transformable:
         self._rot = matrix33.create_from_axis_rotation(Z, theta, dtype='f4')
         self._angle = theta
         self._set_dirty()
+
+    def _xform(self):
+        return self._scale @ self._rot @ self._xlate
 
 
 class Colorable:
@@ -175,7 +178,7 @@ class AbstractShape(Colorable, Transformable):
     bounds = Bounds()
 
     def _update(self):
-        xform = self._scale @ self._rot @ self._xlate
+        xform = self._xform()
 
         np.matmul(
             self.orig_verts,

@@ -8,8 +8,9 @@ import pygame.font
 
 from ..allocators.vertlists import VAO
 from ..loaders import fonts
-from ..sprites import Colorable, Transformable, TEXTURED_QUADS_PROGRAM, QUAD
+from ..sprites import TEXTURED_QUADS_PROGRAM, QUAD
 from ..atlas import Atlas
+from .base import Bounds, Transformable, Colorable
 
 
 FONT_LOAD_SIZE = 48
@@ -238,6 +239,8 @@ class Label(Colorable, Transformable):
         elif self.tex and not self.vao:
             self._migrate(self.layer._text_vao(self.font_atlas))
 
+    bounds = Bounds('self._verts[:, :2]')
+
     def delete(self):
         self.layer.objects.remove(self)
         self.lst.free()
@@ -247,7 +250,7 @@ class Label(Colorable, Transformable):
     def _update(self):
         if not self.lst:
             return
-        xform = self._scale @ self._rot @ self._xlate
+        xform = self._xform()
 
         np.matmul(
             self._verts,
