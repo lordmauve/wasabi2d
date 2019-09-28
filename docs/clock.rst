@@ -67,12 +67,20 @@ referring to a time value and not a count of things.)
         :param callback: A callable that takes no arguments.
         :param interval: The interval in seconds between calls to `callback`.
 
+    .. method:: each_tick(callback)
+
+        Schedule `callback` to be called every tick. The callback in this case
+        is required to accept a parameter `dt` which is the time in seconds
+        since the last tick.
+
+        :param callback: A one argument callable.
+
     .. method:: unschedule(callback)
 
         Unschedule callback if it has been previously scheduled (either because
         it has been scheduled with ``schedule()`` and has not yet been called,
         or because it has been scheduled to repeat with
-        ``schedule_interval()``.
+        ``schedule_interval()`` or ``each_tick()``.
 
 
 Note that the wasabi2d clock only holds weak references to each callback
