@@ -10,7 +10,7 @@ with io.open(path, encoding='utf8') as f:
 
 setup(
     name='wasabi2d',
-    version='1.1.0',
+    version='1.2.0',
     description="A convenient 2D OpenGL games framework",
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
@@ -26,6 +26,7 @@ setup(
         'Intended Audience :: Education',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Education',
         'Topic :: Games/Entertainment',
     ],
