@@ -8,6 +8,7 @@ History
 * New: add_sprite() takes an argument ``color`` to match other primitives
 * New: ``.scale_x`` and ``.scale_y`` for independently scaling primitives
 * New: ``scene.background`` can now be assigned as a color name
+* Fix: pick suitable OpenGL version on OS X
 * Fix: ``dropshadow`` effect is composited more correctly
 * Fix: several bugs when resizing vertex/index buffers
 * Fix: ``keymods`` is now exported from wasabi2d as documented.
