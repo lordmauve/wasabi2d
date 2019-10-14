@@ -5,12 +5,17 @@ classes in Pyglet.
 
 """
 import heapq
+import warnings
 from weakref import ref
+from itertools import chain, count
 from functools import total_ordering
+from collections import namedtuple
 from types import MethodType
 
+
 __all__ = [
-    'Clock', 'schedule', 'schedule_interval', 'unschedule'
+    'Clock', 'schedule', 'schedule_interval', 'unschedule',
+    'schedule_unique', 'each_tick', 'call_soon', 'coro',
 ]
 
 # This type can't be weakreffed in Python 3.4
@@ -68,6 +73,125 @@ class Event:
         return self.cb()
 
 
+WaitDelay = namedtuple('Delay', 'seconds')
+WaitTick = object()
+
+
+class Future:
+    """An object that can be awaited.
+
+    When awaited, yield a value that indicates the event to wait for.
+    """
+    __slots__ = ('val', 'awaited')
+
+    def __init__(self, val):
+        self.val = val
+        self.awaited = False
+
+    def __await__(self):
+        self.awaited = True
+        yield self.val
+
+    def __del__(self):
+        if not self.awaited:
+            warnings.warn(ResourceWarning("wasabi2d future was not awaited"))
+
+
+class Coroutines:
+    """Namespace for coroutine operations on a clock."""
+
+    def __init__(self, clock):
+        self.clock = clock
+
+    async def sleep(self, seconds):
+        """Sleep for the given time in seconds."""
+        await Future(WaitDelay(seconds))
+
+    async def next_frame(self):
+        """Sleep for the given time in seconds."""
+        start = self.clock.t
+        await Future(WaitTick)
+        return self.clock.t - start
+
+    async def frames(self, *, seconds=None, frames=None):
+        """Iterate over multiple frames.
+
+        If seconds or frames are given these are the limit on the duration of
+        the loop; otherwise iterate forever.
+
+        If limiting by seconds, then due to the nature of the game loop the
+        specified duration may be exceeded: in fact, you are guaranteed to
+        receive one event after the specified duration in case you need to
+        handle the case where an operation is completed.
+
+        """
+        if seconds is not None and frames is not None:
+            raise TypeError("Only seconds or frames may be given, not both.")
+
+        if seconds is not None:
+            end = self.clock.t + seconds
+
+        for f in count(1):
+            before = self.clock.t
+            dt = await self.next_frame()
+            if seconds is not None and self.clock.t >= end:
+                dt = end - before
+                yield dt
+                return
+
+            yield dt
+            if f == frames:
+                break
+
+    async def interpolate(self, start, end, duration=1.0, tween='linear'):
+        """Iterate over values between start and end, over the given duration.
+
+        The values of 'tween' are as for animate().
+
+        For example,
+
+            async for pos in clock.coro.tween(ship.pos, target_pos, 1.0):
+                space_ship.pos = pos
+
+        """
+        from . import animation
+        func = animation.TWEEN_FUNCTIONS[tween]
+
+        etime = self.clock.t + duration
+        t = 0
+        async for dt in self.frames(seconds=duration):
+            if self.clock.t >= etime:
+                yield end
+                return
+            t += dt
+            frac = func(min(1.0, t / duration))
+            yield animation.tween_attr(frac, start, end)
+
+    def run(self, coro):
+        """Schedule a coroutine."""
+        clock = self.clock
+
+        def step_coro(dt=None):
+            clock.unschedule(step_coro)
+
+            try:
+                res = coro.send(dt)
+            except StopIteration:
+                return
+
+            if isinstance(res, WaitDelay):
+                clock.schedule(step_coro, res.seconds, strong=True)
+            elif res is WaitTick:
+                clock.call_soon(step_coro)
+            else:
+                raise TypeError(
+                    f"Unable to await {res!r} with "
+                    "clock.coro.run(). wasabi2d coroutines are not "
+                    "compatible with asyncio."
+                )
+        step_coro()
+
+
 class Clock:
     """A clock used for event scheduling.
 
@@ -87,6 +211,8 @@ class Clock:
         self.fired = False
         self.events = []
         self._each_tick = []
+        self._next_tick = []
+        self.coro = Coroutines(self)
 
     def clear(self):
         """Remove all handlers from this clock."""
@@ -144,6 +270,15 @@ class Clock:
         heapq.heapify(self.events)
         self._each_tick = [e for e in self._each_tick if e() != callback]
 
+    def call_soon(self, callback):
+        """Schedule a function to be called on the next tick.
+
+        The function will receive a parameter `dt` indicating the time that
+        has passed.
+
+        """
+        self._next_tick.append(mkref(callback))
+
     def each_tick(self, callback):
         """Schedule a callback to be called every tick.
 
@@ -154,8 +289,12 @@ class Clock:
         self._each_tick.append(mkref(callback))
 
     def _fire_each_tick(self, dt):
-        dead = [None]
-        for r in self._each_tick:
+        dead = [
+            None,  # None means a weak ref has expired, always remove
+        ]
+        to_fire = chain(self._next_tick, self._each_tick)
+        self._next_tick = []
+        for r in to_fire:
             cb = r()
             if cb is not None:
                 self.fired = True
@@ -202,3 +341,5 @@ schedule_interval = clock.schedule_interval
 schedule_unique = clock.schedule_unique
 unschedule = clock.unschedule
 each_tick = clock.each_tick
+call_soon = clock.call_soon
+coro = clock.coro
