@@ -3,6 +3,12 @@
 This is a Pygame implementation of a scheduler inspired by the clock
 classes in Pyglet.
 
+This clock holds weak references to callbacks by default. This is useful to
+avoid accidentally "leaking" objects; with strong references it is very easy
+to accidentally create a situation where a leaked object is perpetually being
+updated even though nothing else references it. Weak references ensure that
+objects are only updated if they are referenced elsewhere.
+
 """
 import heapq
 import warnings
@@ -58,7 +64,7 @@ class Event:
     def __init__(self, time, cb, strong=False, repeat=None):
         self.time = time
         self.repeat = repeat
-        self.cb = mkref(cb) if not strong else cb
+        self.cb = mkref(cb) if not strong else lambda: cb
         self.name = str(cb)
         self.repeat = repeat
 
@@ -90,7 +96,7 @@ class Future:
 
     def __await__(self):
         self.awaited = True
-        yield self.val
+        yield self
 
     def __del__(self):
         if not self.awaited:
@@ -103,18 +109,33 @@ class Coroutines:
     def __init__(self, clock):
         self.clock = clock
 
+    def _delay(self, seconds):
+        """Get a future for a delay."""
+        return Future(WaitDelay(seconds))
+
+    def _frame(self):
+        """Get a future for the next frame."""
+        return Future(WaitTick)
+
     async def sleep(self, seconds):
         """Sleep for the given time in seconds."""
-        await Future(WaitDelay(seconds))
+        await self._delay(seconds)
+        return seconds
 
     async def next_frame(self):
-        """Sleep for the given time in seconds."""
+        """Await the next frame. Return the time elapsed."""
         start = self.clock.t
-        await Future(WaitTick)
+        await self._frame()
         return self.clock.t - start
 
     async def frames(self, *, seconds=None, frames=None):
-        """Iterate over multiple frames.
+        """Iterate over multiple frames, yielding the total time.
+
+        For example::
+
+            async for t in clock.coro.frames(seconds=10):
+                percent = t * 10.0
+                print(f"Waiting {percent}%")
 
         If seconds or frames are given these are the limit on the duration of
         the loop; otherwise iterate forever.
@@ -128,18 +149,15 @@ class Coroutines:
         if seconds is not None and frames is not None:
             raise TypeError("Only seconds or frames may be given, not both.")
 
-        if seconds is not None:
-            end = self.clock.t + seconds
-
+        start = self.clock.t
         for f in count(1):
-            before = self.clock.t
-            dt = await self.next_frame()
-            if seconds is not None and self.clock.t >= end:
-                dt = end - before
-                yield dt
+            await self.next_frame()
+            now = self.clock.t - start
+            if seconds is not None and now >= seconds:
+                yield seconds
                 return
 
-            yield dt
+            yield now
             if f == frames:
                 break
 
@@ -169,27 +187,47 @@ class Coroutines:
 
     def run(self, coro):
         """Schedule a coroutine."""
+        task = Task(self.clock, coro)
+        return task
+
+
+class Task:
+    def __init__(self, clock, coro):
+        self.clock = clock
+        self.coro = coro
+        self.result = None
+        self._step()
+
+    def _step(self, dt=None):
         clock = self.clock
+        clock.unschedule(self._step)
 
-        def step_coro(dt=None):
-            clock.unschedule(step_coro)
+        try:
+            res = self.coro.send(dt)
+        except StopIteration as stop:
+            if stop.args:
+                self.result = stop.args[0]
+            return
 
-            try:
-                res = coro.send(dt)
-            except StopIteration:
-                return
+        if not isinstance(res, Future):
+            raise TypeError(
+                f"Unable to await {res!r} with "
+                "clock.coro.run(). wasabi2d coroutines are not "
+                "compatible with asyncio."
+            )
 
-            if isinstance(res, WaitDelay):
-                clock.schedule(step_coro, res.seconds, strong=True)
-            elif res is WaitTick:
-                clock.call_soon(step_coro)
-            else:
-                raise TypeError(
-                    f"Unable to await {res!r} with "
-                    "clock.coro.run(). wasabi2d coroutines are not "
-                    "compatible with asyncio."
-                )
-        step_coro()
+        val = res.val
+        if isinstance(val, WaitDelay):
+            clock.schedule(self._step, val.seconds, strong=True)
+        elif val is WaitTick:
+            clock.call_soon(self._step)
+        else:
+            raise TypeError("Unexpected value")
+
+    def cancel(self):
+        """Cancel the task."""
+        self.coro.throw(clock.coro.CancelledError)
+        self.clock.unschedule(self._step)
 
 
 class Clock:
@@ -276,17 +314,21 @@ class Clock:
         The function will receive a parameter `dt` indicating the time that
         has passed.
 
-        """
-        self._next_tick.append(mkref(callback))
+        The callback will always be strongly referenced.
 
-    def each_tick(self, callback):
+        """
+        self._next_tick.append(lambda: callback)
+
+    def each_tick(self, callback, strong=False):
         """Schedule a callback to be called every tick.
 
         Unlike the standard scheduler functions, the callable is passed the
         elapsed clock time since the last call (the same value passed to tick).
 
         """
-        self._each_tick.append(mkref(callback))
+        self._each_tick.append(
+            (lambda: callback) if strong else mkref(callback)
+        )
 
     def _fire_each_tick(self, dt):
         dead = [

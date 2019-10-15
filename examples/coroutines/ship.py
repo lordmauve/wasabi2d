@@ -1,9 +1,11 @@
 import math
 import random
-from wasabi2d import Scene, clock, run, Vector2
+import wasabi2d as w2d
+from wasabi2d import clock, Vector2, animate
 
 
-scene = Scene()
+scene = w2d.Scene()
+trail = scene.layers[-1].add_particle_group(max_age=2, grow=0.1)
 ship = scene.layers[0].add_sprite(
     'ship',
     pos=(scene.width / 2, scene.height / 2)
@@ -20,22 +22,50 @@ async def drive_ship():
         dy = ty - y
         angle = math.atan2(dy, dx)
         dist = math.hypot(dx, dy)
+        duration = (dist / 500) ** 0.5
 
-        async for angle in clock.coro.interpolate(ship.angle, angle, 0.5):
-            ship.angle = angle
+        # Rotate to face
+        await animate(ship, duration=0.5, angle=angle)
 
-        scene.layers[0].set_effect('trails', fade=1e-3)
-        async for pos in clock.coro.interpolate(
-            (x, y),
-            (tx, ty),
-            duration=(dist / 500) ** 0.5,
+        # Begin emitting particles
+        clock.coro.run(thrust(duration * 0.5))
+
+        # Move
+        scene.layers[0].set_effect('trails', fade=1e-2)
+        await animate(
+            ship,
+            duration=duration,
             tween='accel_decel',
-        ):
-            ship.pos = pos
+            pos=(tx, ty),
+        )
         scene.layers[0].clear_effect()
 
 
+async def thrust(duration):
+    """Fire a little burst of thrust."""
+    prev_pos = Vector2(*ship.pos)
+    async for _ in clock.coro.frames(seconds=duration):
+        v = Vector2(*ship.pos) - prev_pos
+        num = v.length() // 50
+        if num:
+            trail.emit(
+                num,
+                pos=ship.pos,
+                vel=-v.normalize() * 100,
+                vel_spread=10,
+                size=3,
+                color='#80ffff',
+            )
+
+
+@w2d.event
+def on_key_down(key, mod):
+    if key == key.F12:
+        if mod & (w2d.keymods.LSHIFT | w2d.keymods.RSHIFT):
+            scene.toggle_recording()
+        else:
+            scene.screenshot()
+
 
 clock.coro.run(drive_ship())
-run()
-
+w2d.run()

@@ -47,29 +47,31 @@ def test_await_invalid(clock):
 
 def test_await_frames(clock):
     """We can iterate over a sequence of frames."""
-    dts = []
+    ts = []
 
     async def multi_frame_waiter():
-        async for dt in clock.coro.frames(frames=3):
-            dts.append(dt)
+        async for t in clock.coro.frames(frames=3):
+            ts.append(t)
 
     clock.coro.run(multi_frame_waiter())
     for _ in range(10):
         clock.tick(0.1)
 
-    assert dts == pytest.approx([0.1, 0.1, 0.1])
+    assert ts == pytest.approx([0.1, 0.2, 0.3])
 
 
 def test_await_seconds(clock):
     """We can iterate over a sequence of frames, in seconds."""
-    dts = []
+    ts = []
 
     async def multi_frame_waiter():
-        async for dt in clock.coro.frames(seconds=1.0):
-            dts.append(dt)
+        async for t in clock.coro.frames(seconds=1.0):
+            print(t)
+            ts.append(t)
+        print("dropped out")
 
     clock.coro.run(multi_frame_waiter())
     for _ in range(10):
         clock.tick(0.2)
 
-    assert dts == pytest.approx([0.2] * 5)
+    assert ts == pytest.approx([0.2, 0.4, 0.6, 0.8, 1.0])

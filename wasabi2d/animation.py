@@ -4,7 +4,8 @@
 
 from math import sin, pow, pi
 
-from .clock import each_tick, unschedule
+from .clock import clock as default_clock
+from .clock import Future, WaitDelay
 
 
 TWEEN_FUNCTIONS = {}
@@ -151,8 +152,15 @@ class Animation:
     # key will be valid as long as the animation lives.
     _animation_dict = {}
 
-    def __init__(self, object, tween='linear', duration=1, on_finished=None,
+    def __init__(self,
+                 object,
+                 tween='linear',
+                 duration=1,
+                 *,
+                 on_finished=None,
+                 clock=default_clock,
                  **targets):
+        self.clock = clock
         self.targets = targets
         try:
             self.function = TWEEN_FUNCTIONS[tween]
@@ -177,7 +185,7 @@ class Animation:
             if previous_animation is not None:
                 previous_animation._remove_target(k)
             self._animation_dict[key] = self
-        each_tick(self.update)
+        self.clock.each_tick(self.update)
         self.animations.append(self)
 
     @property
@@ -222,8 +230,18 @@ class Animation:
                 setattr(self.object, k, self.targets[k])
         for k in list(self.targets):
             self._remove_target(k, stop=False)
-        unschedule(self.update)
+        self.clock.unschedule(self.update)
         self.animations.remove(self)
+
+    def __await__(self):
+        """Make the animation awaitable.
+
+        Currently, lacking concurrency primitives, this just sleeps for the
+        remaining duration of the animation.
+        """
+        sleep_for = self.duration - self.t
+        yield self.clock.coro._delay(sleep_for)
+        return sleep_for
 
     def _remove_target(self, target, stop=True):
         del self.targets[target]
