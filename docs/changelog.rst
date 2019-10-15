@@ -1,6 +1,11 @@
 History
 =======
 
+1.3.0 - unreleased
+------------------
+
+* New: add a :doc:`coroutine system <coros>`
+
 
 1.2.0 - 2019-09-29
 ------------------

@@ -143,10 +143,9 @@ class Coroutines:
         If seconds or frames are given these are the limit on the duration of
         the loop; otherwise iterate forever.
 
-        If limiting by seconds, then due to the nature of the game loop the
-        specified duration may be exceeded: in fact, you are guaranteed to
-        receive one event after the specified duration in case you need to
-        handle the case where an operation is completed.
+        If limiting by seconds, you are guaranteed to receive an event after
+        exactly ``seconds``, regardless of frame rate, in order to ensure that
+        any effect is complete.
 
         """
         if seconds is not None and frames is not None:
@@ -163,6 +162,13 @@ class Coroutines:
             yield now
             if f == frames:
                 break
+
+    async def frames_dt(self, *, seconds=None, frames=None):
+        """Iterate over multiple frames, yielding the time per frame."""
+        last_t = 0
+        async for t in self.frames(seconds=seconds, frames=frames):
+            yield t - last_t
+            last_t = t
 
     async def interpolate(self, start, end, duration=1.0, tween='linear'):
         """Iterate over values between start and end, over the given duration.

@@ -1,4 +1,3 @@
-
 .. _clock:
 
 The Clock
@@ -38,7 +37,7 @@ referring to a time value and not a count of things.)
 
 .. class:: Clock
 
-    .. method:: schedule(callback, delay)
+    .. method:: schedule(callback, delay, strong=False)
 
         Schedule `callback` to be called after the given delay.
 
@@ -47,8 +46,9 @@ referring to a time value and not a count of things.)
         :param callback: A callable that takes no arguments.
         :param delay: The delay, in seconds, before the function should be
                       called.
+        :param strong: Hold a strong reference to `callback`.
 
-    .. method:: schedule_unique(callback, delay)
+    .. method:: schedule_unique(callback, delay, strong=False)
 
         Schedule `callback` to be called once after the given delay.
 
@@ -59,19 +59,29 @@ referring to a time value and not a count of things.)
         :param callback: A callable that takes no arguments.
         :param delay: The delay, in seconds, before the function should be
                       called.
+        :param strong: Hold a strong reference to `callback`.
 
-    .. method:: schedule_interval(callback, interval)
+    .. method:: schedule_interval(callback, interval, strong=False)
 
         Schedule `callback` to be called repeatedly.
 
         :param callback: A callable that takes no arguments.
         :param interval: The interval in seconds between calls to `callback`.
+        :param strong: Hold a strong reference to `callback`.
 
-    .. method:: each_tick(callback)
+    .. method:: each_tick(callback, strong=False)
 
         Schedule `callback` to be called every tick. The callback in this case
         is required to accept a parameter `dt` which is the time in seconds
         since the last tick.
+
+        :param callback: A one argument callable.
+        :param strong: Hold a strong reference to `callback`.
+
+    .. method:: call_soon(callback)
+
+        Schedule `callback` to be called on the next tick. Unlike most other
+        clock methods, `callback` will be strongly referenced here.
 
         :param callback: A one argument callable.
 
@@ -82,14 +92,17 @@ referring to a time value and not a count of things.)
         or because it has been scheduled to repeat with
         ``schedule_interval()`` or ``each_tick()``.
 
+    .. attribute:: coro
 
-Note that the wasabi2d clock only holds weak references to each callback
-you give it. It will not fire scheduled events if the objects and methods are
-not referenced elsewhere. This can help prevent the clock keeping objects
-alive and continuing to fire unexpectedly after they are otherwise dead.
+        Interface to asynchronous programming using coroutines, linked to this
+        clock. See :doc:`coros`.
 
-The downside to the weak references is that you won't be able to schedule
-lambdas or any other object that has been created purely to be scheduled. You
-will have to keep a reference to the object.
 
+Note that by default the wasabi2d clock only holds weak references to each
+callback you give it. It will not fire scheduled events if the objects and
+methods are not referenced elsewhere. This can help prevent the clock keeping
+objects alive and continuing to fire unexpectedly after they are otherwise
+dead.
+
+Pass `strong=True` if you want the clock to hold a strong reference instead.
 

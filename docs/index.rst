@@ -25,7 +25,10 @@ Wasabi2d is
     particles
     events
     sound
+    animation
     clock
+    coros
+    storage
 
 
 .. toctree::

@@ -151,6 +151,26 @@ To handle mouse drags, use code such as the following::
     Note that this will not be called if the track is configured to loop.
 
 
+Keyboard State
+--------------
+
+If you'd like to know what keys are pressed on the keyboard, you can query the
+attributes of the ``wasabi2d.keyboard`` object. If, say, the left arrow is held
+down, then ``keyboard.left`` will be ``True``, otherwise it will be ``False``.
+
+There are attributes for every key; some examples::
+
+    keyboard.a  # The 'A' key
+    keyboard.left  # The left arrow key
+    keyboard.rshift  # The right shift key
+    keyboard.kp0  # The '0' key on the keypad
+    keyboard.k_0  # The main '0' key
+
+The full set of key constants is given in the `Buttons and Keys`_
+documentation, but the attributes are lowercase, because these are variables
+not constants.
+
+
 .. _buttons-and-keys:
 
 Buttons and Keys
@@ -335,4 +355,3 @@ Additionally you can access a set of constants that represent modifier keys:
     .. attribute:: NUM
     .. attribute:: CAPS
     .. attribute:: MODE
-
