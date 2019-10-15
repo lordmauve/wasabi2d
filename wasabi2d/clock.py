@@ -106,6 +106,9 @@ class Future:
 class Coroutines:
     """Namespace for coroutine operations on a clock."""
 
+    class Cancelled(Exception):
+        """Raised inside a coroutine when a task is cancelled."""
+
     def __init__(self, clock):
         self.clock = clock
 
@@ -175,14 +178,11 @@ class Coroutines:
         from . import animation
         func = animation.TWEEN_FUNCTIONS[tween]
 
-        etime = self.clock.t + duration
-        t = 0
-        async for dt in self.frames(seconds=duration):
-            if self.clock.t >= etime:
+        async for t in self.frames(seconds=duration):
+            if t >= duration:
                 yield end
                 return
-            t += dt
-            frac = func(min(1.0, t / duration))
+            frac = func(t / duration)
             yield animation.tween_attr(frac, start, end)
 
     def run(self, coro):
@@ -226,8 +226,13 @@ class Task:
 
     def cancel(self):
         """Cancel the task."""
-        self.coro.throw(clock.coro.CancelledError)
-        self.clock.unschedule(self._step)
+        try:
+            self.coro.throw(Coroutines.Cancelled)
+        except StopIteration:
+            # Coroutine halted successfully. If not it may be awaiting
+            # something during exception handling, and we should not unschedule
+            # it.
+            self.clock.unschedule(self._step)
 
 
 class Clock:
