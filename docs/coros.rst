@@ -111,6 +111,12 @@ very hard to express using the ``on_finished`` callbacks alone:
 
     clock.coro.run(explode((400, 400)))
 
+The `full example code is here`__.
+
+.. __: https://github.com/lordmauve/wasabi2d/blob/master/examples/coroutines/explosions.py
+
+.. video:: _static/video/explosions.mp4
+
 
 Example: enemy spawner
 ----------------------
@@ -160,6 +166,13 @@ instance:
         # Explode, using the effect above
         e.delete()
         await explode(pos)
+
+
+The `full example code is here`__.
+
+.. __: https://github.com/lordmauve/wasabi2d/blob/master/examples/coroutines/run.py
+
+.. video:: _static/video/run.mp4
 
 
 Coroutine API

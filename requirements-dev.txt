@@ -5,3 +5,7 @@ Sphinx>=2.2.0
 wheel
 twine
 matplotlib
+git+https://github.com/sphinx-contrib/video#egg=sphinxcontrib-video
+
+
+
