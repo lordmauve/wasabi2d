@@ -1,6 +1,6 @@
 """Example of the punch effect."""
 import math
-from wasabi2d import run, Scene, event, keys
+from wasabi2d import run, Scene, event
 
 
 scene = Scene()
@@ -22,12 +22,6 @@ def update(t):
     phase = math.sin(t) ** 2
     effect.radius = 20 * phase
     effect.offset = (20 * phase + 2,) * 2
-
-
-@event
-def on_key_down(key, mod):
-    if key == keys.F12:
-        scene.screenshot()
 
 
 run()

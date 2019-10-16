@@ -65,8 +65,6 @@ class LandingSpot:
 
 class Landscape:
     """ Stores and generates the landscape, landing spots and star field """
-
-
     world_steps = int(
         WIDTH / STEP_SIZE
     )  # How many steps can we fit horizontally on the screen
@@ -492,7 +490,7 @@ def update_physics(dt, keyboard):
     game.n_frames += 1
 
     # Start the game if the player presses space when the game is not on
-    if game.game_on == False:
+    if not game.game_on:
         return
 
     # If the game is on, update the movement and the physics
@@ -515,9 +513,7 @@ def update_physics(dt, keyboard):
 
 @event
 def on_key_down(key):
-    if key == keys.F12:
-        scene.toggle_recording()
-    elif key == keys.SPACE and game.game_on == False:
+    if key == keys.SPACE and not game.game_on:
         game.restart()
 
 

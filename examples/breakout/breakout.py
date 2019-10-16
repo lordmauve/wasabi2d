@@ -2,7 +2,7 @@ import random
 import colorsys
 from collections import deque
 from math import copysign
-from wasabi2d import event, run, Scene, animate, keys
+from wasabi2d import event, run, Scene, animate
 from wasabi2d.actor import Actor
 import pygame.mouse
 
@@ -64,7 +64,6 @@ def reset():
                 pos=((x + 0.5) * BRICK_W + MARGIN,
                      (y + 0.5) * BRICK_H + MARGIN),
             )
-            #brick.highlight = hsv_color(hue, saturation * 0.7, 1.0)
             bricks.append(brick)
 
     # Now reset the ball
@@ -173,12 +172,6 @@ def on_mouse_move(pos):
         bat.left = 0
     elif bat.right > WIDTH:
         bat.right = WIDTH
-
-
-@event
-def on_key_down(key):
-    if key == keys.F12:
-        scene.toggle_recording()
 
 
 run()

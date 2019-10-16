@@ -40,6 +40,7 @@ class DEFAULTICON:
 
 DrawEvent = namedtuple('DrawEvent', 'type t dt')
 UpdateEvent = namedtuple('UpdateEvent', 'type t dt keyboard')
+ScreenShotEvent = namedtuple('ScreenShotEvent', 'type video')
 
 
 class EventMapper:
@@ -57,6 +58,7 @@ class EventMapper:
         'on_music_end': constants.MUSIC_END,
         'draw': DrawEvent,
         'update': UpdateEvent,
+        'on_screenshot_requested': ScreenShotEvent,
     }
 
     def map_buttons(val):
@@ -131,14 +133,19 @@ class EventMapper:
 
         return new_handler
 
+    CTRL_ALT = pygame.KMOD_CTRL | pygame.KMOD_META
+    SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
+
     def dispatch_event(self, event):
         if event.type == pygame.QUIT:
             sys.exit(0)
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_q and \
-                    event.mod & (pygame.KMOD_CTRL | pygame.KMOD_META):
-                sys.exit(0)
             self.keyboard._press(event.key)
+            if event.key == pygame.K_q and event.mod & self.CTRL_ALT:
+                sys.exit(0)
+            elif event.key == pygame.K_F12:
+                video = event.mod & self.SHIFT
+                event = ScreenShotEvent(ScreenShotEvent, video)
         elif event.type == pygame.KEYUP:
             self.keyboard._release(event.key)
 

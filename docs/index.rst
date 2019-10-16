@@ -9,9 +9,11 @@ Wasabi2d is
 * Pretty, thanks to the selection of fast effects such as particles and blurs
 * Written in pure Python
 * Fast due to heavy use of numpy, ModernGL and GPU acceleration
-* Cross platform thanks to Pygame for window creation, input handling and sound
-* Easy to use: many of the APIs should be familiar to users of Pygame Zero, the
-  zero-boilerplate game framework for beginners.
+* Convenient, with an innovative (but optional) :doc:`coroutine <coros>`
+  programming model.
+* Cross platform.
+* Fully featured; wasabi2d does not just support graphics but screenshots,
+  sound, music, tones, storage and more.
 
 
 .. toctree::

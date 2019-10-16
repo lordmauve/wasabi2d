@@ -1,5 +1,5 @@
 """Example of the light bloom effect."""
-from wasabi2d import run, Scene, event, keys
+from wasabi2d import run, Scene
 
 
 scene = Scene()
@@ -13,12 +13,5 @@ scene.layers[0].set_effect(
     'bloom',
     radius=20
 )
-
-
-@event
-def on_key_down(key, mod):
-    if key == keys.F12:
-        scene.screenshot()
-
 
 run()

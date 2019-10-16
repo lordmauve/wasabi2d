@@ -1,6 +1,6 @@
 """Example of the punch effect."""
 import math
-from wasabi2d import run, Scene, event, keys
+from wasabi2d import run, Scene, event
 
 
 scene = Scene()
@@ -18,12 +18,6 @@ effect = scene.layers[0].set_effect(
 @event
 def update(t):
     effect.radius = 20 * math.sin(t) ** 2
-
-
-@event
-def on_key_down(key, mod):
-    if key == keys.F12:
-        scene.screenshot()
 
 
 run()

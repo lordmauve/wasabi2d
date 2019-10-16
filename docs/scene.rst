@@ -83,15 +83,24 @@ The camera for the scene is ``scene.camera``.
     the camera independently of the shake effect.
 
 
+.. _screenshot:
+
 Screenshot and Video Recording
 ------------------------------
 
-Wasabi2d can take screenshots in PNG format.
+Games automatically have access to screenshot and video recording capabilities.
 
-.. automethod:: wasabi2d.Scene.screenshot
+This is hard coded to:
 
+* ``F12`` - take a screenshot, named with an automatic filename.
+* ``Shift-F12`` - start/stop recording a video, named with an automatic
+  filename.
 
 Recording video requires ``ffmpeg`` to be installed and on the ``$PATH``.
+
+As well as this, you can use these features programmatically:
+
+.. automethod:: wasabi2d.Scene.screenshot
 
 .. automethod:: wasabi2d.Scene.record_video
 

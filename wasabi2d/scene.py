@@ -67,6 +67,7 @@ class Scene:
 
         from . import event
         event(self.draw)
+        event(self.on_screenshot_requested)
 
         self._background = (0.0, 0.0, 0.0)
 
@@ -87,6 +88,13 @@ class Scene:
         self._title = title
         pygame.display.set_caption(title)
 
+    def on_screenshot_requested(self, video):
+        """Handle a screenshot event from the event sytem."""
+        if video:
+            self.toggle_recording()
+        else:
+            self.screenshot()
+
     def screenshot(self, filename=None):
         """Take a screenshot.
 
@@ -104,6 +112,7 @@ class Scene:
         img = pygame.image.fromstring(data, (self.width, self.height), 'RGB')
         img = pygame.transform.flip(img, False, True)
         pygame.image.save(img, filename)
+        print(f"Wrote screenshot to {filename}")
 
     def record_video(self, filename=None):
         """Start recording a video.
@@ -270,4 +279,3 @@ class Camera:
         else:
             clock.schedule_unique(self._steady_cam, 0.01)
         self._xform[-1][:2] = self._cam_offset - self._pos
-

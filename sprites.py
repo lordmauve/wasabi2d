@@ -92,12 +92,6 @@ SHIFT = w2d.keymods.LSHIFT | w2d.keymods.RSHIFT
 
 @w2d.event
 def on_key_down(key, mod):
-    if key == key.F12:
-        if mod & SHIFT:
-            scene.toggle_recording()
-        else:
-            scene.screenshot()
-
     if key == key.F11:
         import pdb
         pdb.set_trace()

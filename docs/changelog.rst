@@ -5,6 +5,8 @@ History
 ------------------
 
 * New: add a :doc:`coroutine system <coros>`
+* New: make F12 :ref:`a built-in combination <screenshot>` for
+  screenshots/video recording.
 
 
 1.2.0 - 2019-09-29

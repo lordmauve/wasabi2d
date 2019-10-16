@@ -58,14 +58,5 @@ async def thrust(duration):
             )
 
 
-@w2d.event
-def on_key_down(key, mod):
-    if key == key.F12:
-        if mod & (w2d.keymods.LSHIFT | w2d.keymods.RSHIFT):
-            scene.toggle_recording()
-        else:
-            scene.screenshot()
-
-
 clock.coro.run(drive_ship())
 w2d.run()

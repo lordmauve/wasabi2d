@@ -1,5 +1,5 @@
 """Example of the light bloom effect."""
-from wasabi2d import run, Scene, event, keys, Vector2
+from wasabi2d import run, Scene, event, Vector2
 from wasabi2d.actor import Actor
 
 
@@ -25,12 +25,6 @@ def update(dt):
         logo.v.y *= -1
     if logo.left < 0 or logo.right >= scene.width:
         logo.v.x *= -1
-
-
-@event
-def on_key_down(key, mod):
-    if key == keys.F12:
-        scene.screenshot()
 
 
 run()
