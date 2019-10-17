@@ -119,6 +119,7 @@ class Layer:
         angle=0,
         anchor=None,
         color=(1, 1, 1, 1),
+        scale=1.0
     ):
         spr = Sprite(
             layer=self,
@@ -128,6 +129,7 @@ class Layer:
         spr.pos = pos
         spr.angle = angle
         spr.color = color
+        spr.scale = scale
         self.objects.add(spr)
         return spr
 

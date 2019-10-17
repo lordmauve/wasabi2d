@@ -59,6 +59,7 @@ class Pixellate:
     ctx: moderngl.Context
     shadermgr: 'wasabi2d.layers.ShaderManager'
     pxsize: int = 10
+    antialias: float = 1.0
 
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
@@ -90,12 +91,15 @@ class Pixellate:
         # Fraction to reduce by each pass
         frac = 1 / self.pxsize
 
+        # By turning off the averaging we can remove the antialiasing
+        epxsize = round((self.pxsize - 1) * self.antialias) + 1
+
         # Pass 1: downsample by frac in the y direction
         self._average.set_region(1, frac)
         self._average.render(
             image=self._fb1,
             blur_direction=(0, 1),
-            pxsize=self.pxsize,
+            pxsize=epxsize,
             uvscale=(1, self.pxsize),
         )
         self._fb1.use()
@@ -105,7 +109,7 @@ class Pixellate:
         self._average.render(
             image=self._fb2,
             blur_direction=(1, 0),
-            pxsize=self.pxsize,
+            pxsize=epxsize,
             uvscale=(self.pxsize, 1)
         )
 

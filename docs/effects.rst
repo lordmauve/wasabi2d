@@ -65,20 +65,24 @@ The effects are described here as separate calls:
         :alt: Example of the blur effect
 
 
-.. method:: Layer.set_effect('pixellate', pxsize: int=10)
+.. method:: Layer.set_effect('pixellate', pxsize: int=10, antialias: float=1.0)
 
     Pixellate the contents of the layer. ``pxsize`` is the output pixel size.
 
-    This effect computes the average value within each pixel, ie. antialiases
-    as it downsamples.
+    By default, this effect computes the average value within each pixel, ie.
+    antialiases as it downsamples.
 
-    The effect runs on the GPU but larger pxsizes are more costly to compute.
-    The cost of the effect is *O(pxsize)*.
+    For a more retro look, disable the antialiasing by passing ``antialias=0``.
+    Values between 0 and 1 will give a weaker antialiasing effect; values
+    greater than 1 give an even more blurred look.
+
+    The effect runs on the GPU but with antialiasing, larger pxsizes are more
+    costly to compute. The cost of the effect is *O(pxsize * antialias)*.
 
     .. versionadded:: 1.3.0
 
     .. image:: _static/effects/pixellate.png
-        :alt: Example of the pixellate effect
+        :alt: Example of the pixellate effect, with antialiasing on and off
 
 
 .. method:: Layer.set_effect('dropshadow', radius: float=10.0, opacity: float=1.0, offset: Tuple[float, float]=(1.0, 1.0))
