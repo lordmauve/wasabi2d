@@ -47,17 +47,28 @@ class PostprocessPass:
         )
 
         indices = ctx.buffer(self.QUAD_INDICES)
-        vs_uvs = ctx.buffer(self.QUAD_VERTS_UVS)
+        self.vs_uvs = ctx.buffer(self.QUAD_VERTS_UVS)
 
         if send_uvs:
-            attribs = (vs_uvs, '2f4 2f4', 'in_vert', 'in_uv')
+            attribs = (self.vs_uvs, '2f4 2f4', 'in_vert', 'in_uv')
         else:
-            attribs = (vs_uvs, '2f4 8x', 'in_vert')
+            attribs = (self.vs_uvs, '2f4 8x', 'in_vert')
         self.vao = ctx.vertex_array(
             self.prog,
             [attribs],
             index_buffer=indices
         )
+
+    def set_region(self, xfrac=1, yfrac=1):
+        """Set the pass to write to a subregion of the viewport."""
+        coords = self.QUAD_VERTS_UVS.copy()
+        coords[:, 0] *= xfrac
+        coords[:, 0] -= (1.0 - xfrac)
+        coords[:, 1] *= yfrac
+        coords[:, 1] -= (1.0 - yfrac)
+        coords[:, 2] *= xfrac
+        coords[:, 3] *= yfrac
+        self.vs_uvs.write(coords)
 
     def render(self, **uniforms):
         """Assign the given uniforms and then render."""
@@ -73,4 +84,3 @@ class PostprocessPass:
 
             self.prog[k].value = v
         self.vao.render(moderngl.TRIANGLES, 6)
-

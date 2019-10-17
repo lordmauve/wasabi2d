@@ -65,6 +65,22 @@ The effects are described here as separate calls:
         :alt: Example of the blur effect
 
 
+.. method:: Layer.set_effect('pixellate', pxsize: int=10)
+
+    Pixellate the contents of the layer. ``pxsize`` is the output pixel size.
+
+    This effect computes the average value within each pixel, ie. antialiases
+    as it downsamples.
+
+    The effect runs on the GPU but larger pxsizes are more costly to compute.
+    The cost of the effect is *O(pxsize)*.
+
+    .. versionadded:: 1.3.0
+
+    .. image:: _static/effects/pixellate.png
+        :alt: Example of the pixellate effect
+
+
 .. method:: Layer.set_effect('dropshadow', radius: float=10.0, opacity: float=1.0, offset: Tuple[float, float]=(1.0, 1.0))
 
     Apply a drop-shadow effect: draw an offset, blurred copy layer underneath
@@ -77,6 +93,8 @@ The effects are described here as separate calls:
                    offsets the shadow downwards and to the right. Note that
                    this is a screen-space effect and these coordinates are
                    always in screen space.
+
+    .. versionadded:: 1.1.0
 
     .. image:: _static/effects/dropshadow.png
         :alt: Example of the drop shadow effect

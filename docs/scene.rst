@@ -96,6 +96,10 @@ This is hard coded to:
 * ``Shift-F12`` - start/stop recording a video, named with an automatic
   filename.
 
+.. versionadded:: 1.3.0
+
+    Hard-coded screenshot/video capture to F12.
+
 Recording video requires ``ffmpeg`` to be installed and on the ``$PATH``.
 
 As well as this, you can use these features programmatically:
