@@ -6,7 +6,12 @@ graphical effects without low-level OpenGL programming.
 
 Wasabi2d is
 
-* Pretty, thanks to the selection of fast effects such as particles and blurs
+* Capable: draw sprites, polygons, lines, text labels and more
+* Pretty, thanks to fast, built-in effects such as
+
+    * :doc:`Particles <particles>`
+    * :doc:`Full-screen post-processing effects <effects>`
+
 * Written in pure Python
 * Fast due to heavy use of numpy, ModernGL and GPU acceleration
 * Convenient, with an innovative (but optional) :doc:`coroutine <coros>`
