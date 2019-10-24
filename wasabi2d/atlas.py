@@ -327,26 +327,30 @@ class TextureRegion:
     height: int
     texcoords: np.ndarray
 
+    def __post_init__(self):
+        w = self.width
+        h = self.height
+        self.verts = np.array([
+            (0, 0, 1),
+            (w, 0, 1),
+            (w, h, 1),
+            (0, h, 1),
+        ], dtype='f4')
+
     def get_verts(
         self,
         anchor_x: Optional[int] = None,
         anchor_y: Optional[int] = None
     ) -> np.ndarray:
         """Get an array or transformed vertices."""
-        w = self.width
-        h = self.height
-        verts = np.array([
-            (0, 0, 1),
-            (w, 0, 1),
-            (w, h, 1),
-            (0, h, 1),
-        ], dtype='f4')
-        verts -= (
-            anchor_x if anchor_x is not None else w / 2,
-            anchor_y if anchor_y is not None else h / 2,
-            0
+        offset = (
+            anchor_x if anchor_x is not None else self.width / 2,
+            anchor_y if anchor_y is not None else self.height / 2,
+            0.0
         )
-        return verts
+        vs = self.verts.copy()
+        vs -= offset
+        return vs
 
 
 class Atlas:
