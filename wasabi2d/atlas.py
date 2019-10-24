@@ -273,26 +273,28 @@ class Packer:
 
 @dataclass
 class TexSurface:
-    """A GPU texture that is backed by a Pygame surface in memory."""
-    surf: pygame.Surface
+    """A GPU texture.
+
+    This class allows copying pygame Surfaces into regions of a texture on the
+    GPU.
+    """
     tex: moderngl.Texture
     _dirty: bool = False
 
     @classmethod
     def new(cls, ctx: moderngl.Context, size: Tuple[int, int]) -> 'TexSurface':
         """Create a new TexSurface in the given moderngl context."""
-        surf = pygame.Surface(size, pygame.SRCALPHA, depth=32)
         tex = ctx.texture(size, 4)
-        return cls(surf, tex)
+        return cls(tex)
 
     def write(self, img: pygame.Surface, rect: pygame.Rect):
         """Write the contents of img at the given coordinates."""
-        self.surf.blit(img, rect)
+        imgdata = pygame.image.tostring(img, "RGBA", 1)
+        self.tex.write(imgdata, (rect.x, rect.y, rect.width, rect.height))
         self._dirty = True
 
     def update(self):
         """Sync texture data to the GPU."""
-        self.tex.write(pygame.image.tostring(self.surf, "RGBA", 1))
         self.tex.build_mipmaps(max_level=2)
         self._dirty = False
 
@@ -301,7 +303,13 @@ class TexSurface:
 
         This is intended for debugging.
         """
-        pygame.image.save(self.surf, fname)
+        w, h = self.tex.width, self.tex.height
+        data = self.tex.read(components=4)
+        assert len(data) == (w * h * 5), \
+            f"Received {len(data)}, expected {w * h * 4}"
+        img = pygame.image.fromstring(data, (w, h), 'RGBA')
+        img = pygame.transform.flip(img, False, True)
+        pygame.image.save(img, fname)
 
 
 class Atlas:
@@ -396,9 +404,9 @@ class Atlas:
         texsurf.write(img, p)
 
         l = p.left / self.texsize
-        t = 1.0 - p.top / self.texsize
+        b = p.top / self.texsize
         r = p.right / self.texsize
-        b = 1.0 - p.bottom / self.texsize
+        t = p.bottom / self.texsize
 
         if rotated:
             texcoords = np.array([
