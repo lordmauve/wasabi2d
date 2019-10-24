@@ -217,7 +217,10 @@ class Sprite(Colorable, Transformable):
         """Delete this sprite."""
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
+        array = self.array
         self.array.delete(self)
+        if not array.sprites:
+            self.layer._delete_sprite_array(array)
         self.layer = None
 
     def _set_dirty(self):

@@ -137,7 +137,7 @@ class Layer:
 
     def _migrate_sprite(self, spr, tex):
         """Move sprite spr into the correct vertex array."""
-        k = ('sprite', tex)
+        k = ('sprite', id(tex))
         array = self.arrays.get(k)
         if not array:
             prog = self.group.shadermgr.get(**SpriteArray.PROGRAM)
@@ -145,6 +145,12 @@ class Layer:
             self.arrays[k] = array
         else:
             array.add(spr)
+
+    def _delete_sprite_array(self, array):
+        tex = array.tex
+        k = ('sprite', id(tex))
+        if k in self.arrays:
+            del self.arrays[k]
 
     def _get_or_create_vao(self, k, constructor):
         """Get a VAO identified by key k, or construct it using constructor."""
