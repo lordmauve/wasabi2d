@@ -316,7 +316,7 @@ class Atlas:
     """Texture atlas generator.
 
     Newly requested textures are positioned using a packer and then written
-    to a texture using a TextureWriter.
+    to a texture using a TexSurface.
 
     """
 
@@ -328,7 +328,6 @@ class Atlas:
         self.packer = Packer.new_shelves(size=texsize)
 
         self.surfs_texs = []
-        self._dirty = set()
         self.tex_for_name = {}
 
     def _load(self, name):
@@ -348,11 +347,11 @@ class Atlas:
         tex.write(pygame.image.tostring(img, "RGBA", 1))
         tex.build_mipmaps(max_level=2)
         texcoords = np.array([
-            (0, 1),
-            (1, 1),
-            (1, 0),
+            (0, h),
+            (w, h),
+            (w, 0),
             (0, 0),
-        ], dtype='f4')
+        ], dtype=np.uint16)
         verts = np.array([
             (0, 0, 1),
             (w, 0, 1),
@@ -403,10 +402,10 @@ class Atlas:
 
         texsurf.write(img, p)
 
-        l = p.left / self.texsize
-        b = p.top / self.texsize
-        r = p.right / self.texsize
-        t = p.bottom / self.texsize
+        l = p.left
+        b = p.top
+        r = p.right
+        t = p.bottom
 
         if rotated:
             texcoords = np.array([
@@ -414,14 +413,14 @@ class Atlas:
                 (r, b),
                 (l, b),
                 (l, t),
-            ], dtype='f4')
+            ], dtype=np.uint16)
         else:
             texcoords = np.array([
                 (l, t),
                 (r, t),
                 (r, b),
                 (l, b),
-            ], dtype='f4')
+            ], dtype=np.uint16)
         verts = np.array([
             (0, 0, 1),
             (orig.w, 0, 1),

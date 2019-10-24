@@ -65,7 +65,7 @@ def text_vao(
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
-            ('in_uv', '2f4'),
+            ('in_uv', '2u2'),
         ])
     )
 

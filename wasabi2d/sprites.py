@@ -11,13 +11,14 @@ TEXTURED_QUADS_PROGRAM = dict(
 
         in vec3 in_vert;
         in vec4 in_color;
-        in vec2 in_uv;
+        in ivec2 in_uv;
         out vec2 uv;
         out vec4 color;
+        uniform sampler2D tex;
 
         void main() {
             gl_Position = proj * vec4(in_vert.xy, 0.0, 1.0);
-            uv = in_uv;
+            uv = vec2(in_uv) / textureSize(tex, 0);
             color = in_color;
         }
     ''',
@@ -66,7 +67,7 @@ class SpriteArray:
         ])
         self.uvs = np.vstack(
             [s.uvs for s in self.sprites]
-            + [np.zeros((4 * extra, 2), dtype='f4')]
+            + [np.zeros((4 * extra, 2), dtype=np.uint16)]
         )
         self.verts = np.vstack(
             [s.verts for s in self.sprites]
@@ -80,7 +81,7 @@ class SpriteArray:
             self.prog,
             [
                 (self.vbo, '3f 4f', 'in_vert', 'in_color'),
-                (self.uvbo, '2f', 'in_uv'),
+                (self.uvbo, '2u2', 'in_uv'),
             ],
             self.ibuf
         )
