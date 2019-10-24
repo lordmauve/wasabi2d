@@ -8,7 +8,8 @@ scene.background = (0, 0.03, 0.1)
 
 ship = scene.layers[2].add_sprite(
     'ship',
-    pos=(scene.width / 2, scene.height / 2)
+    pos=(scene.width / 2, scene.height / 2),
+    anchor_x=0
 )
 circ = scene.layers[0].add_circle(
     radius=30,

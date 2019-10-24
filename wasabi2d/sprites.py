@@ -155,17 +155,43 @@ class SpriteArray:
         self.vao.render(vertices=self.allocated * 6)
 
 
+class DirtyProp:
+    """Descriptor for a property that calls a callback when set.
+
+    The callback is passed the instance that the attribute was set on.
+
+    """
+    __slots__ = ('callback', 'name')
+
+    def __init__(self, callback):
+        self.callback = callback
+        self.name = None
+
+    def __set_name__(self, cls, name):
+        self.name = f'_{name}'
+
+    def __get__(self, inst, cls=None):
+        return getattr(inst, self.name)
+
+    def __set__(self, inst, value):
+        setattr(inst, self.name, value)
+        self.callback(inst)
+
+
 class Sprite(Colorable, Transformable):
     def __init__(
             self,
             layer,
             image,
-            anchor=None):
+            anchor_x=None,
+            anchor_y=None):
         super().__init__()
         self.verts = None
         self.layer = layer
         self.array = None
         self._image = None
+        self._anchor_x = anchor_x
+        self._anchor_y = anchor_y
         self._vert_color = np.ones((4, 4), dtype='f4')
         self.image = image  # trigger sprite load and migration
 
@@ -181,23 +207,33 @@ class Sprite(Colorable, Transformable):
             return
 
         self._image = name
-        tex, uvs, vs = self.layer.group.atlas.get(name)
-        self.uvs = np.copy(uvs)
-        self.orig_verts = np.copy(vs)
+        texregion = self.texregion = self.layer.group.atlas.get(name)
+
+        self.uvs = texregion.texcoords
+        self.orig_verts = texregion.get_verts(self._anchor_x, self._anchor_y)
         xs = self.orig_verts[:, 0]
         ys = self.orig_verts[:, 1]
         self.width = np.fabs(np.min(xs) - np.max(xs))
         self.height = np.fabs(np.min(ys) - np.max(ys))
-        # TODO: apply anchor to the verts
+
         self._dirty = True
+
+        tex = self.texregion.tex
 
         if not self.array:
             # initial migration into an array
             self.layer._migrate_sprite(self, tex)
-        elif tex != self.array.tex:
+        elif tex is not self.array.tex:
             # migrate to a different vao
             self.array.delete(self)
             self.layer._migrate_sprite(self, tex)
+
+    def _reset_verts(self):
+        self.orig_verts = None
+        self._set_dirty()
+
+    anchor_x = DirtyProp(_reset_verts)
+    anchor_y = DirtyProp(_reset_verts)
 
     def delete(self):
         """Delete this sprite."""
@@ -214,6 +250,12 @@ class Sprite(Colorable, Transformable):
     bounds = Bounds('self.orig_verts[:, :2]')
 
     def _update(self):
+        if self.orig_verts is None:
+            self.orig_verts = self.texregion.get_verts(
+                self._anchor_x,
+                self._anchor_y
+            )
+
         xform = self._xform()
 
         self._vert_color[:] = self._color

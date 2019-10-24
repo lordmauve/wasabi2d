@@ -79,10 +79,6 @@ class FontAtlas(Atlas):
         else:
             self.font = fonts.load(font_name, fontsize=FONT_LOAD_SIZE)
 
-    def set_anchor(self, verts, w, h):
-        """Set the anchor position to the bottom-left of the glyph."""
-        verts -= (w, h, 0)
-
     def _load(self, name):
         """Load the image for the given name."""
         return self.font.render(name, True, (255, 255, 255))
@@ -190,7 +186,12 @@ class Label(Colorable, Transformable):
             align_offset = ALIGNMENTS[self._align] * layout_width
             yoff = lineno * line_height
             for idx, char in enumerate(line):
-                tex, glyph_uvs, glyph_verts = self.font_atlas.get(char)
+                texregion = self.font_atlas.get(char)
+                # TODO: this could break if tex is reallocated (eg. because it
+                # grows)
+                tex = texregion.tex.tex
+                glyph_uvs = texregion.texcoords
+                glyph_verts = texregion.get_verts(texregion.width, texregion.height)
                 tex_ids.add(tex.glo)
 
                 # The kerning seems pretty bad on Pygame fonts...

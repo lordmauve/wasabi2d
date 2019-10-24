@@ -117,14 +117,16 @@ class Layer:
         image,
         pos=(0, 0),
         angle=0,
-        anchor=None,
+        anchor_x=None,
+        anchor_y=None,
         color=(1, 1, 1, 1),
         scale=1.0
     ):
         spr = Sprite(
             layer=self,
             image=image,
-            anchor=anchor
+            anchor_x=anchor_x,
+            anchor_y=anchor_y,
         )
         spr.pos = pos
         spr.angle = angle
@@ -135,7 +137,7 @@ class Layer:
 
     def _migrate_sprite(self, spr, tex):
         """Move sprite spr into the correct vertex array."""
-        k = ('sprite', tex.glo)
+        k = ('sprite', tex)
         array = self.arrays.get(k)
         if not array:
             prog = self.group.shadermgr.get(**SpriteArray.PROGRAM)

@@ -1,5 +1,5 @@
 """Pack sprites into texture atlases."""
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, Optional
 from itertools import product
 from operator import attrgetter
 from dataclasses import dataclass
@@ -271,7 +271,6 @@ class Packer:
         return i + 1, result
 
 
-@dataclass
 class TexSurface:
     """A GPU texture.
 
@@ -279,7 +278,11 @@ class TexSurface:
     GPU.
     """
     tex: moderngl.Texture
-    _dirty: bool = False
+    _dirty: bool
+
+    def __init__(self, tex: moderngl.Texture):
+        self.tex = tex
+        self._dirty = False
 
     @classmethod
     def new(cls, ctx: moderngl.Context, size: Tuple[int, int]) -> 'TexSurface':
@@ -310,6 +313,40 @@ class TexSurface:
         img = pygame.image.fromstring(data, (w, h), 'RGBA')
         img = pygame.transform.flip(img, False, True)
         pygame.image.save(img, fname)
+
+    def use(self, texunit: int):
+        """Shortcut to bind the texture to a texture unit."""
+        self.tex.use(texunit)
+
+
+@dataclass
+class TextureRegion:
+    """An allocated region of a texture."""
+    tex: moderngl.Texture
+    width: int
+    height: int
+    texcoords: np.ndarray
+
+    def get_verts(
+        self,
+        anchor_x: Optional[int] = None,
+        anchor_y: Optional[int] = None
+    ) -> np.ndarray:
+        """Get an array or transformed vertices."""
+        w = self.width
+        h = self.height
+        verts = np.array([
+            (0, 0, 1),
+            (w, 0, 1),
+            (w, h, 1),
+            (0, h, 1),
+        ], dtype='f4')
+        verts -= (
+            anchor_x if anchor_x is not None else w / 2,
+            anchor_y if anchor_y is not None else h / 2,
+            0
+        )
+        return verts
 
 
 class Atlas:
@@ -352,14 +389,9 @@ class Atlas:
             (w, 0),
             (0, 0),
         ], dtype=np.uint16)
-        verts = np.array([
-            (0, 0, 1),
-            (w, 0, 1),
-            (w, h, 1),
-            (0, h, 1),
-        ], dtype='f4')
-        self.set_anchor(verts, w, h)
-        res = self.tex_for_name[sprite_name] = (tex, texcoords, verts)
+
+        texregion = TextureRegion(tex, w, h, texcoords)
+        res = self.tex_for_name[sprite_name] = texregion
         return res
 
     def get(self, sprite_name):
@@ -421,20 +453,10 @@ class Atlas:
                 (r, b),
                 (l, b),
             ], dtype=np.uint16)
-        verts = np.array([
-            (0, 0, 1),
-            (orig.w, 0, 1),
-            (orig.w, orig.h, 1),
-            (0, orig.h, 1),
-        ], dtype='f4')
-        self.set_anchor(verts, orig.w, orig.h)
-        res = (texsurf.tex, texcoords, verts)
-        self.tex_for_name[sprite_name] = res
-        return res
 
-    def set_anchor(self, verts, w, h):
-        """Set the anchor position to the center of the sprite."""
-        verts -= (w / 2, h / 2, 0)
+        texregion = TextureRegion(texsurf, w, h, texcoords)
+        res = self.tex_for_name[sprite_name] = texregion
+        return res
 
     def _update(self):
         """Copy updated surfaces to the GL texture objects."""
