@@ -8,6 +8,7 @@ from ..color import convert_color
 from ..allocators.vertlists import VAO
 from .polygons import AbstractShape
 from ..rect import ZRect
+from ..descriptors import CallbackProp
 
 
 #: Shader for a plain color fill
@@ -207,23 +208,15 @@ class Circle(AbstractShape):
         self._color = convert_color(color)
         self._set_dirty()
 
-    @property
-    def radius(self):
-        """Get the radius of this circle."""
-        return self._radius
-
-    @radius.setter
-    def radius(self, r):
-        """Set the radius of the circle; rebuild the vertices now."""
-        self._radius = r
-
+    def _on_set_radius(self):
         np.multiply(
             self.base_verts,
-            r,
+            self._radius,
             self.orig_verts[:, :2]
         )
-
         self._set_dirty()
+
+    radius = CallbackProp(_on_set_radius)
 
     def _stroke_indices(self):
         """Indexes for drawing the stroke as a LINE_STRIP."""
