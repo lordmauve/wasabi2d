@@ -51,11 +51,12 @@ class Scene:
             k = getattr(pygame, k)
             pygame.display.gl_set_attribute(k, v)
 
-        self.screen = pygame.display.set_mode(
+        pygame.display.set_mode(
             (width, height),
             flags=pygame.OPENGL | pygame.DOUBLEBUF,
             depth=24
         )
+
         self.title = title
         ctx = self.ctx = moderngl.create_context()
 

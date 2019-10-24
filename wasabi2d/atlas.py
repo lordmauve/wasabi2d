@@ -2,7 +2,9 @@
 from typing import Tuple, Iterable
 from itertools import product
 from operator import attrgetter
+from dataclasses import dataclass
 
+import moderngl
 import numpy as np
 import pygame
 from pygame import Rect
@@ -269,7 +271,47 @@ class Packer:
         return i + 1, result
 
 
+@dataclass
+class TexSurface:
+    """A GPU texture that is backed by a Pygame surface in memory."""
+    surf: pygame.Surface
+    tex: moderngl.Texture
+    _dirty: bool = False
+
+    @classmethod
+    def new(cls, ctx: moderngl.Context, size: Tuple[int, int]) -> 'TexSurface':
+        """Create a new TexSurface in the given moderngl context."""
+        surf = pygame.Surface(size, pygame.SRCALPHA, depth=32)
+        tex = ctx.texture(size, 4)
+        return cls(surf, tex)
+
+    def write(self, img: pygame.Surface, rect: pygame.Rect):
+        """Write the contents of img at the given coordinates."""
+        self.surf.blit(img, rect)
+        self._dirty = True
+
+    def update(self):
+        """Sync texture data to the GPU."""
+        self.tex.write(pygame.image.tostring(self.surf, "RGBA", 1))
+        self.tex.build_mipmaps(max_level=2)
+        self._dirty = False
+
+    def save(self, fname: str):
+        """Save the contents of the texture to a file.
+
+        This is intended for debugging.
+        """
+        pygame.image.save(self.surf, fname)
+
+
 class Atlas:
+    """Texture atlas generator.
+
+    Newly requested textures are positioned using a packer and then written
+    to a texture using a TextureWriter.
+
+    """
+
     def __init__(self, ctx, *, texsize=512, padding=2):
         self.ctx = ctx
         self.padding = padding
@@ -285,12 +327,11 @@ class Atlas:
         """Load the image for the given name."""
         return images.load(name)
 
-    def mksurftex(self, size):
+    def mksurftex(self, size: Tuple[int, int]) -> TexSurface:
         """Make a new surface and corresponding texture of the given size."""
-        surf = pygame.Surface(size, pygame.SRCALPHA, depth=32)
-        tex = self.ctx.texture(size, 4)
-        self.surfs_texs.append((surf, tex))
-        return surf, tex
+        texsurf = TexSurface.new(self.ctx, size)
+        self.surfs_texs.append(texsurf)
+        return texsurf
 
     def npot_tex(self, sprite_name, img):
         """Get a non-power-of-two texture for this image."""
@@ -339,11 +380,10 @@ class Atlas:
         p.h -= pad
 
         try:
-            surf, tex = self.surfs_texs[bin]
+            texsurf = self.surfs_texs[bin]
         except IndexError:
             size = (self.texsize, self.texsize)
-            surf, tex = self.mksurftex(size)
-        self._dirty.add(bin)
+            texsurf = self.mksurftex(size)
 
         rotated = False
         if orig.w != p.w:
@@ -353,7 +393,7 @@ class Atlas:
         x, y = p.topleft
         w, h = p.size
 
-        surf.blit(img, p)
+        texsurf.write(img, p)
 
         l = p.left / self.texsize
         t = 1.0 - p.top / self.texsize
@@ -381,7 +421,8 @@ class Atlas:
             (0, orig.h, 1),
         ], dtype='f4')
         self.set_anchor(verts, orig.w, orig.h)
-        res = self.tex_for_name[sprite_name] = (tex, texcoords, verts)
+        res = (texsurf.tex, texcoords, verts)
+        self.tex_for_name[sprite_name] = res
         return res
 
     def set_anchor(self, verts, w, h):
@@ -390,14 +431,11 @@ class Atlas:
 
     def _update(self):
         """Copy updated surfaces to the GL texture objects."""
-        for bin in self._dirty:
-            surf, tex = self.surfs_texs[bin]
-            tex.write(pygame.image.tostring(surf, "RGBA", 1))
-            tex.build_mipmaps(max_level=2)
-        self._dirty.clear()
+        for surftex in self.surfs_texs:
+            if surftex._dirty:
+                surftex.update()
 
     def dump(self):
         """Save screenshots of all the textures."""
-        for i, (surf, _) in enumerate(self.surfs_texs):
-            fname = f'atlas{i}.png'
-            pygame.image.save(surf, fname)
+        for i, surftex in enumerate(self.surfs_texs):
+            surftex.save(f'atlas{i}.png')
