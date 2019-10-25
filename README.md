@@ -1,4 +1,4 @@
-# Wasabi 2D
+# ![Wasabi 2D](https://raw.githubusercontent.com/lordmauve/wasabi2d/master/docs/_static/wasabi2d.png)
 
 A fast, cutting-edge 2D game engine for Python.
 
