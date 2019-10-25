@@ -1,5 +1,7 @@
 # ![Wasabi 2D](https://raw.githubusercontent.com/lordmauve/wasabi2d/master/docs/_static/wasabi2d.png)
 
+![PyPI](https://img.shields.io/pypi/v/wasabi2d) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/wasabi2d) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/wasabi2d) 
+
 A fast, cutting-edge 2D game engine for Python.
 
 Current features include:
