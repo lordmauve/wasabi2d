@@ -2,6 +2,8 @@
 import numpy as np
 import moderngl
 
+from ..shaders import shadermgr
+
 
 POSTPROCESS_VERT_PROGRAM = '''
     #version 330
@@ -37,11 +39,10 @@ class PostprocessPass:
     def __init__(
             self,
             ctx: moderngl.Context,
-            shadermgr: 'wasabi2d.layers.ShaderManager',
             fragment_shader: str,
             send_uvs: bool = True):
         self.ctx = ctx
-        self.prog = shadermgr.get(
+        self.prog = shadermgr(ctx).get(
             vertex_shader=POSTPROCESS_VERT_PROGRAM,
             fragment_shader=fragment_shader,
         )

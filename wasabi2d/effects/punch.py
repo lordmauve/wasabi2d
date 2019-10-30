@@ -36,7 +36,6 @@ void main()
 class Punch:
     """A distortion of the scene inwards/outwards."""
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     factor: float = 0.9
 
     camera: 'wasabi2d.scene.Camera' = None
@@ -49,7 +48,6 @@ class Punch:
         self._fb, = camera._get_temporary_fbs(1, 'f2')
         self._pass = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             DISTORT_PROG,
         )
 

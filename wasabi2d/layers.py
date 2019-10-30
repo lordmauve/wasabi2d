@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any
 import importlib
 
 import moderngl
@@ -11,36 +11,7 @@ from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
 from .primitives.particles import ParticleGroup, ParticleVAO, PARTICLE_PROGRAM
 from .loaders import images
-
-
-class ShaderManager:
-    def __init__(self, ctx):
-        self.ctx = ctx
-        self.programs = {}
-
-    def get(self, vertex_shader, fragment_shader, geometry_shader=None):
-        """Get a compiled program."""
-        k = vertex_shader, fragment_shader
-        try:
-            return self.programs[k]
-        except KeyError:
-            pass
-
-        prog = self.programs[k] = self.ctx.program(
-            vertex_shader=vertex_shader,
-            fragment_shader=fragment_shader,
-            geometry_shader=geometry_shader,
-        )
-        return prog
-
-    def set_proj(self, proj):
-        """Set the projection matrix."""
-        for prog in self.programs.values():
-            try:
-                uniform = prog['proj']
-            except KeyError:
-                continue
-            uniform.write(proj.tobytes())
+from .shaders import ShaderManager
 
 
 class FontManager:
@@ -102,10 +73,16 @@ class Layer:
         if self.effect:
             self.effect.exit(t, dt)
 
-    def set_effect(self, name, **kwargs):
+    def set_effect(self, name: str, **kwargs) -> Any:
+        """Set the post processing effect to use for the layer.
+
+        Return the effect object, which can be used to change parameters for
+        the effect.
+
+        """
         mod = importlib.import_module(f'wasabi2d.effects.{name}')
         cls = getattr(mod, name.title())
-        self.effect = cls(self.ctx, self.group.shadermgr, **kwargs)
+        self.effect = cls(self.ctx, **kwargs)
         self.effect._set_camera(self.group.camera)
         return self.effect
 

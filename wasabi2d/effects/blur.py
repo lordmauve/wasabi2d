@@ -58,7 +58,6 @@ void main()
 class Blur:
     """A light bloom effect."""
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     radius: float = 10.0
 
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
@@ -71,7 +70,6 @@ class Blur:
         self._gauss_tex.repeat_x = False
         self._blur = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             BLUR_PROG
         )
 

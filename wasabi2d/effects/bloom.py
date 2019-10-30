@@ -88,7 +88,6 @@ void main()
 class Bloom:
     """A light bloom effect."""
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     threshold: float = 1.0
     radius: float = 10.0
 
@@ -107,18 +106,16 @@ class Bloom:
         self._fb2 = camera._make_fb('f2', div_x=4)
         self._threshold_pass = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             THRESHOLD_PROG,
         )
         self._blur = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             BLUR_PROG
         )
         self._copy = self._mkpass(COPY_PROG)
 
     def _mkpass(self, shader):
-        return PostprocessPass(self.ctx, self.shadermgr, shader)
+        return PostprocessPass(self.ctx, shader)
 
     def enter(self, t, dt):
         self._fb1.use()

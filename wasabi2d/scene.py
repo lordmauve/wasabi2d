@@ -59,6 +59,7 @@ class Scene:
 
         self.title = title
         ctx = self.ctx = moderngl.create_context()
+        ctx.extra = {}
 
         self.camera = Camera(ctx, width, height)
         self.layers = LayerGroup(ctx, self.camera)

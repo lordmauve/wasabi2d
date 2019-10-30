@@ -58,7 +58,6 @@ void main()
 class Dropshadow:
     """A drop shadow effect."""
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     radius: float = 10.0
     offset: Tuple[float, float] = (1.0, 1.0)
     opacity: float = 1.0
@@ -71,14 +70,12 @@ class Dropshadow:
         self._fb = camera._make_fb('f2')
         self.blur = Blur(
             self.ctx,
-            self.shadermgr,
             self.radius
         )
         self.blur._set_camera(camera)
         self.blur._outer_fb = self._fb
         self._composite = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             COMPOSITE_PROG
         )
 

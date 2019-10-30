@@ -43,7 +43,6 @@ void main()
 class Trails:
     """A trails effect."""
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     fade: float = 0.9
 
     camera: 'wasabi2d.scene.Camera' = None
@@ -56,13 +55,11 @@ class Trails:
         self._fb = camera._make_fb('f2')
         self._fade_pass = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             FADE_PROG,
             send_uvs=False
         )
         self._composite_pass = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             COMPOSITE_PROG,
         )
 

@@ -57,7 +57,6 @@ class Pixellate:
     """A pixellation effect."""
 
     ctx: moderngl.Context
-    shadermgr: 'wasabi2d.layers.ShaderManager'
     pxsize: int = 10
     antialias: float = 1.0
 
@@ -69,12 +68,10 @@ class Pixellate:
 
         self._average = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             AVERAGE_PROG
         )
         self._fill = PostprocessPass(
             self.ctx,
-            self.shadermgr,
             COPY_PROG
         )
 
