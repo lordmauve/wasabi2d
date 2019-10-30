@@ -9,6 +9,34 @@ from pygame import Rect
 
 from .loaders import images
 from .allocators.textures import Packer, NoFit
+from .sprites import QUAD
+
+
+BLIT_PROGRAM = dict(
+    vertex_shader='''
+        #version 330
+
+        in vec2 in_vert;
+        in vec2 in_uv;
+        out vec2 uv;
+
+        void main() {
+            gl_Position = vec4(in_vert, 0.0, 1.0);
+            uv = in_uv;
+        }
+    ''',
+    fragment_shader='''
+        #version 330
+
+        out vec4 f_color;
+        in vec2 uv;
+        uniform sampler2D tex;
+
+        void main() {
+            f_color = texture(tex, uv);
+        }
+    ''',
+)
 
 
 class TexSurface:
@@ -17,10 +45,12 @@ class TexSurface:
     This class allows copying pygame Surfaces into regions of a texture on the
     GPU.
     """
+    ctx: moderngl.Context
     tex: moderngl.Texture
     _dirty: bool
 
-    def __init__(self, tex: moderngl.Texture):
+    def __init__(self, ctx: moderngl.Context, tex: moderngl.Texture):
+        self.ctx = ctx
         self.tex = tex
         self._dirty = False
 
@@ -28,7 +58,20 @@ class TexSurface:
     def new(cls, ctx: moderngl.Context, size: Tuple[int, int]) -> 'TexSurface':
         """Create a new TexSurface in the given moderngl context."""
         tex = ctx.texture(size, 4)
-        return cls(tex)
+        return cls(ctx, tex)
+
+    def resize(self, newsize: Tuple[int, int]):
+        """Resize the texture and copy the existing data into it."""
+        newtex = self.ctx.texture(newsize, 4)
+        in_region = TextureRegion.for_rect(self.tex, Rect(0, 0, 1, 1))
+        vs = self.ctx.buffer(
+            in_region.texcoords,
+            dynamic=True
+        )
+        prog = ...
+        self.tex.use(0)
+        prog['tex'].value = 0
+        vao.render(vertices=self.allocated * 6)
 
     def write(self, img: pygame.Surface, rect: pygame.Rect):
         """Write the contents of img at the given coordinates."""
@@ -76,6 +119,35 @@ class TextureRegion:
             (w, h, 1),
             (0, h, 1),
         ], dtype='f4')
+
+    @classmethod
+    def for_rect(cls, tex, rect: Rect):
+        """Create a TextureRegion for the given texture and rect."""
+        l = rect.left
+        b = rect.top
+        r = rect.right
+        t = rect.bottom
+        texcoords = np.array([
+            (l, t),
+            (r, t),
+            (r, b),
+            (l, b),
+        ], dtype=np.uint16)
+        return cls(
+            tex,
+            rect.width,
+            rect.height,
+            texcoords
+        )
+
+    def rotated(self):
+        """Get the view of this texture region rotated by 90 degrees."""
+        return TextureRegion(
+            self.tex,
+            self.height,
+            self.width,
+            self.texcoords[[1, 2, 3, 0]]
+        )
 
     def get_verts(
         self,
@@ -178,28 +250,10 @@ class Atlas:
 
         texsurf.write(img, p)
 
-        l = p.left
-        b = p.top
-        r = p.right
-        t = p.bottom
-
+        texregion = TextureRegion.for_rect(texsurf, p)
         if rotated:
-            texcoords = np.array([
-                (r, t),
-                (r, b),
-                (l, b),
-                (l, t),
-            ], dtype=np.uint16)
-            w, h = h, w
-        else:
-            texcoords = np.array([
-                (l, t),
-                (r, t),
-                (r, b),
-                (l, b),
-            ], dtype=np.uint16)
+            texregion = texregion.rotated()
 
-        texregion = TextureRegion(texsurf, w, h, texcoords)
         res = self.tex_for_name[sprite_name] = texregion
         return res
 
