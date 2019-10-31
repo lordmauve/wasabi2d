@@ -1,5 +1,7 @@
 """Manage the compilation of programs in a context."""
 from typing import Optional, Dict, Tuple
+from contextlib import contextmanager
+
 import moderngl
 import numpy as np
 
@@ -58,3 +60,19 @@ class ShaderManager:
 def shadermgr(ctx: moderngl.Context) -> ShaderManager:
     """Shortcut to get or create the shader manager for a context."""
     return ctx.extra['shadermgr']
+
+
+@contextmanager
+def bind_framebuffer(ctx, fb):
+    """Bind an alternative framebuffer during a context.
+
+    The previous binding will be restored when the context exits.
+    """
+    orig_screen = ctx._screen
+    ctx._screen = fb
+    try:
+        fb.use()
+        yield
+    finally:
+        orig_screen.use()
+        ctx._screen = orig_screen

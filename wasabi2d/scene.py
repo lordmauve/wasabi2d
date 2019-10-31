@@ -7,13 +7,24 @@ import pygame.image
 import pygame.transform
 import pygame.display
 import moderngl
-from typing import Tuple
+from typing import Tuple, Optional
 from pyrr import Matrix44
 
 from . import clock
 from .layers import LayerGroup
 from .loaders import set_root
 from .color import convert_color_rgb
+
+
+def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
+    """Capture contents of the given framebuffer as a Pygame Surface."""
+    width = fb.width
+    height = fb.height
+    data = fb.read(components=3)
+    assert len(data) == (width * height * 3), \
+        f"Received {len(data)}, expected {width * height * 3}"
+    img = pygame.image.fromstring(data, (width, height), 'RGB')
+    return pygame.transform.flip(img, False, True)
 
 
 class Scene:
@@ -36,9 +47,9 @@ class Scene:
         set_root(rootdir)
 
         ctx = self.ctx = self._make_context(width, height, antialias)
+        ctx.extra = {}
 
         self.title = title
-        ctx.extra = {}
 
         self.camera = Camera(ctx, width, height)
         self.layers = LayerGroup(ctx, self.camera)
@@ -77,7 +88,8 @@ class Scene:
             depth=24
         )
 
-        return moderngl.create_context(require=410)
+        ctx = moderngl.create_context(require=410)
+        return ctx
 
     @property
     def background(self) -> Tuple[float, float, float]:
@@ -107,24 +119,21 @@ class Scene:
         else:
             self.screenshot()
 
-    def screenshot(self, filename=None):
+    def screenshot(self, filename: Optional[str] = None) -> str:
         """Take a screenshot.
 
         If filename is not given, save to a file named screenshot_<time>.png
-        in the current directory.
+        in the current directory. Return the filename.
 
         """
         import datetime
         if filename is None:
             now = datetime.datetime.now()
             filename = f'screenshot_{now:%Y-%m-%d_%H:%M:%S.%f}.png'
-        data = self.ctx.screen.read(components=3)
-        assert len(data) == (self.width * self.height * 3), \
-            f"Received {len(data)}, expected {self.width * self.height * 3}"
-        img = pygame.image.fromstring(data, (self.width, self.height), 'RGB')
-        img = pygame.transform.flip(img, False, True)
+        img = capture_screen(self.ctx.screen)
         pygame.image.save(img, filename)
         print(f"Wrote screenshot to {filename}")
+        return filename
 
     def record_video(self, filename=None):
         """Start recording a video.
@@ -201,9 +210,30 @@ class Scene:
             "Scene.background must be a 3-element tuple."
         if self._recording:
             self._vid_frame()
-        pygame.display.flip()
+        self._flip()
         self.ctx.clear(*self.background)
         self.layers.render(self.camera.proj, t, dt)
+
+    _flip = staticmethod(pygame.display.flip)
+
+
+class HeadlessScene(Scene):
+    """A scene that doesn't create a window.
+
+    This can be used in automated applications and for testing.
+
+    """
+    def _make_context(self, width, height, antialias):
+        ctx = moderngl.create_standalone_context(require=410)
+        screen = ctx._screen = ctx.simple_framebuffer(
+            (width, height),
+            samples=antialias
+        )
+        screen.use()
+        return ctx
+
+    def _flip(self):
+        """Flipping is a no-op."""
 
 
 class Camera:
