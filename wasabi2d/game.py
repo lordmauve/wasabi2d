@@ -44,7 +44,8 @@ ScreenShotEvent = namedtuple('ScreenShotEvent', 'type video')
 
 
 class EventMapper:
-    def __init__(self):
+    def __init__(self, get_events=pygame.event.get):
+        self.get_events = get_events
         self.keyboard = wasabi2d.keyboard.keyboard
         self.handlers = {}
         self.lock_fps = False
@@ -159,7 +160,6 @@ class EventMapper:
     def run(self):
         """Run the main loop."""
         clock = pygame.time.Clock()
-        # self.reinit_screen()
 
         pgzclock = wasabi2d.clock.clock
 
@@ -173,7 +173,7 @@ class EventMapper:
 
             t += dt
 
-            for event in pygame.event.get():
+            for event in self.get_events():
                 self.dispatch_event(event)
 
             pgzclock.tick(dt)
@@ -181,8 +181,6 @@ class EventMapper:
             ev = UpdateEvent(UpdateEvent, t, dt, self.keyboard)
             updated = self.dispatch_event(ev)
 
-            screen_change = False  # self.reinit_screen()
-            if screen_change or updated or pgzclock.fired or self.need_redraw:
+            if updated or pgzclock.fired or self.need_redraw:
                 self.dispatch_event(DrawEvent(DrawEvent, t, dt))
-                pygame.display.flip()
                 self.need_redraw = False

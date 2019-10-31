@@ -7,6 +7,7 @@ import pygame.image
 import pygame.transform
 import pygame.display
 import moderngl
+from typing import Tuple
 from pyrr import Matrix44
 
 from . import clock
@@ -34,6 +35,25 @@ class Scene:
             rootdir = sys._getframe(1).f_globals['__file__']
         set_root(rootdir)
 
+        ctx = self.ctx = self._make_context(width, height, antialias)
+
+        self.title = title
+        ctx.extra = {}
+
+        self.camera = Camera(ctx, width, height)
+        self.layers = LayerGroup(ctx, self.camera)
+
+        ctx.enable(moderngl.BLEND)
+        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+
+        from . import event
+        event(self.draw)
+        event(self.on_screenshot_requested)
+
+        self._background = (0.0, 0.0, 0.0)
+
+    def _make_context(self, width, height, antialias):
+        """Create the ModernGL context."""
         pygame.init()
 
         glconfig = {
@@ -57,36 +77,26 @@ class Scene:
             depth=24
         )
 
-        self.title = title
-        ctx = self.ctx = moderngl.create_context()
-        ctx.extra = {}
-
-        self.camera = Camera(ctx, width, height)
-        self.layers = LayerGroup(ctx, self.camera)
-
-        ctx.enable(moderngl.BLEND)
-        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
-
-        from . import event
-        event(self.draw)
-        event(self.on_screenshot_requested)
-
-        self._background = (0.0, 0.0, 0.0)
+        return moderngl.create_context(require=410)
 
     @property
-    def background(self):
+    def background(self) -> Tuple[float, float, float]:
+        """Get the background colour for the whole scene."""
         return self._background
 
     @background.setter
     def background(self, v):
+        """Set the background colour for the whole scene."""
         self._background = convert_color_rgb(v)
 
     @property
     def title(self):
+        """Get the window title."""
         return self._title
 
     @title.setter
     def title(self, title):
+        """Set the window title."""
         self._title = title
         pygame.display.set_caption(title)
 
@@ -189,10 +199,11 @@ class Scene:
     def draw(self, t, dt):
         assert len(self.background) == 3, \
             "Scene.background must be a 3-element tuple."
-        self.ctx.clear(*self.background)
-        self.layers.render(self.camera.proj, t, dt)
         if self._recording:
             self._vid_frame()
+        pygame.display.flip()
+        self.ctx.clear(*self.background)
+        self.layers.render(self.camera.proj, t, dt)
 
 
 class Camera:
