@@ -119,3 +119,29 @@ def test_draw_stars(scene):
             pos=pos,
             color=color
         )
+
+
+@drawing_test
+def test_draw_labels(scene):
+    """We can draw text labels."""
+    scene.background = '#ccccff'
+    scene.layers[0].add_label(
+        "Left\naligned.",
+        pos=(10, 50),
+        color='navy'
+    )
+    scene.layers[0].add_label(
+        "or right",
+        font="eunomia_regular",
+        fontsize=60,
+        pos=(790, 200),
+        align="right",
+        color=(0.5, 0, 0),
+    )
+    scene.layers[0].add_label(
+        "Center über alles",
+        fontsize=40,
+        pos=(400, 500),
+        align="center",
+        color='black',
+    )

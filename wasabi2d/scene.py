@@ -46,6 +46,7 @@ class Scene:
             rootdir = sys._getframe(1).f_globals['__file__']
         set_root(rootdir)
 
+        pygame.init()
         ctx = self.ctx = self._make_context(width, height, antialias)
         ctx.extra = {}
 
@@ -65,8 +66,6 @@ class Scene:
 
     def _make_context(self, width, height, antialias):
         """Create the ModernGL context."""
-        pygame.init()
-
         glconfig = {
             'GL_CONTEXT_MAJOR_VERSION': 4,
             'GL_CONTEXT_PROFILE_MASK': pygame.GL_CONTEXT_PROFILE_CORE,
