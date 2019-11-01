@@ -2,9 +2,13 @@
 import os
 import warnings
 import tempfile
+from typing import Tuple, Iterable
+from functools import wraps
+from itertools import product
 from pathlib import Path
-from pytest import fixture
+import colorsys
 
+from pytest import fixture
 import numpy as np
 import pygame.image
 import pygame.surfarray
@@ -21,7 +25,13 @@ def scene():
 
 
 def assert_screen_match(scene, name):
-    """Check that the image on the screen matches the reference image."""
+    """Check that the image on the screen matches the reference image.
+
+    If the reference image is missing, raise an exception, unless the
+    environment variable $W2D_SAVE_REF is given; if given, save current output
+    as new reference images. These will need to be checked and committed.
+
+    """
     ref_image = ROOT / 'expected-image' / f'{name}.png'
 
     computed = capture_screen(scene.ctx.screen)
@@ -56,8 +66,56 @@ def assert_screen_match(scene, name):
     )
 
 
+def drawing_test(testfunc):
+    """Decorator to run a test function as a drawing test.
+
+    The function will receive a new HeadlessScene object to populate. After the
+    function returns it is is automatically asserted that the scene renders
+    exactly as per the reference image, using assert_screen_match() as above.
+
+    """
+    @wraps(testfunc)
+    def wrapper(scene):
+        testfunc(scene)
+        scene.draw(0, 0)
+        assert_screen_match(scene, testfunc.__name__)
+    return wrapper
+
+
+def grid_coords(
+    cells: Tuple[int, int],
+    page: Tuple[int, int] = (800, 600)
+) -> Iterable[Tuple[float, float]]:
+    """Return a sequence of center coordinates for subdividing page into cells.
+
+    `cells` gives the number of cells wide x high.
+
+    """
+    cells = np.array(cells, dtype=np.int32)
+    page = np.array(page, dtype=np.float32)
+    cellsize = page / cells
+    left, top = cellsize / 2.0
+    right, bottom = page - cellsize / 2.0
+    xs = np.linspace(left, right, cells[0])
+    ys = np.linspace(top, bottom, cells[1])
+    return ((x, y) for y, x, in product(ys, xs))
+
+
+@drawing_test
 def test_draw_sprite(scene):
     """We can draw a sprite to the scene."""
     scene.layers[0].add_sprite('ship', pos=(400, 300))
-    scene.draw(0, 0)
-    assert_screen_match(scene, 'test_draw_sprite')
+
+
+@drawing_test
+def test_draw_stars(scene):
+    """We can draw stars ."""
+    for i, pos in enumerate(grid_coords((4, 3))):
+        color = colorsys.hsv_to_rgb(i / 12, 1, 1)
+        scene.layers[0].add_star(
+            inner_radius=2 * i + 2,
+            outer_radius=3 * i + 10,
+            points=2 * i + 3,
+            pos=pos,
+            color=color
+        )
