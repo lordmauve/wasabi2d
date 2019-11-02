@@ -56,12 +56,32 @@ def assert_screen_match(scene, name):
     if np.allclose(comp_surf, exp_surf, atol=2):
         return
 
-    tmpdir = Path(tempfile.mkdtemp())
-    pygame.image.save(computed, str(tmpdir / 'computed.png'))
-    pygame.image.save(expected, str(tmpdir / 'expected.png'))
+    failname = ROOT / 'failed-image' / f'{name}.png'
+    failname.parent.mkdir(exist_ok=True)
+
+    out = pygame.Surface(
+        (scene.width * 2 + 1, scene.height),
+        depth=32,
+    )
+    out.blit(computed, (0, 0))
+    out.blit(expected, (scene.width + 1, 0))
+    WHITE = (255, 255, 255)
+    FONTHEIGHT = 40
+    pygame.draw.line(
+        out,
+        WHITE,
+        (scene.width, 0),
+        (scene.width, scene.height),
+    )
+    font = pygame.font.SysFont(pygame.font.get_default_font(), FONTHEIGHT)
+    y = scene.height - FONTHEIGHT
+    out.blit(font.render("Computed", True, WHITE), (10, y))
+    lbl = font.render("Expected", True, WHITE)
+    out.blit(lbl, (scene.width * 2 - 9 - lbl.get_width(), y))
+    pygame.image.save(out, str(failname))
 
     raise AssertionError(
-        "Images differ; saved comparison images to {}".format(tmpdir)
+        "Images differ; saved comparison images to {}".format(failname)
     )
 
 

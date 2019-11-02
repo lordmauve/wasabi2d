@@ -114,3 +114,6 @@ moderngl
 # Videos and screenshots
 video_*.mp4
 screenshot_*.png
+
+# Output directory for failed screen tests
+tests/failed-image/
