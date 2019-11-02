@@ -213,7 +213,9 @@ class Scene:
         self.ctx.clear(*self.background)
         self.layers.render(self.camera.proj, t, dt)
 
-    _flip = staticmethod(pygame.display.flip)
+    def _flip(self):
+        """The first flip is a no-op; switch in the real flip op."""
+        self._flip = pygame.display.flip
 
 
 class HeadlessScene(Scene):

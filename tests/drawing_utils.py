@@ -1,7 +1,6 @@
 """Test harness for testing drawing capabilities."""
 import os
 import warnings
-import tempfile
 from typing import Tuple, Iterable
 from itertools import product
 from pathlib import Path
@@ -53,10 +52,13 @@ def assert_screen_match(scene, name):
     comp_surf = pygame.surfarray.array3d(computed)
     exp_surf = pygame.surfarray.array3d(expected)
 
+    failname = ROOT / 'failed-image' / f'{name}.png'
+
     if np.allclose(comp_surf, exp_surf, atol=2):
+        if failname.exists():
+            failname.unlink()
         return
 
-    failname = ROOT / 'failed-image' / f'{name}.png'
     failname.parent.mkdir(exist_ok=True)
 
     out = pygame.Surface(

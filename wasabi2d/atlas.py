@@ -1,5 +1,5 @@
 """Pack sprites into texture atlases."""
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from dataclasses import dataclass
 
 import moderngl
@@ -10,19 +10,24 @@ from pygame import Rect
 from .loaders import images
 from .allocators.textures import Packer, NoFit
 from .sprites import QUAD
+from .shaders import shadermgr, blend_func, bind_framebuffer
 
 
 BLIT_PROGRAM = dict(
     vertex_shader='''
         #version 330
 
-        in vec2 in_vert;
-        in vec2 in_uv;
+        in ivec2 in_uv;
+        uniform ivec2 newsize;
         out vec2 uv;
+        uniform sampler2D tex;
+
+        const vec2 BL = vec2(-1, -1);
 
         void main() {
-            gl_Position = vec4(in_vert, 0.0, 1.0);
-            uv = in_uv;
+            vec2 v = vec2(in_uv) / newsize;
+            gl_Position = vec4(v * 2 + BL, 0.0, 1.0);
+            uv = vec2(in_uv) / textureSize(tex, 0);
         }
     ''',
     fragment_shader='''
@@ -54,6 +59,16 @@ class TexSurface:
         self.tex = tex
         self._dirty = False
 
+    @property
+    def width(self):
+        """Get the current width of the texture."""
+        return self.tex.width
+
+    @property
+    def height(self):
+        """Get the current height of the texture."""
+        return self.tex.height
+
     @classmethod
     def new(cls, ctx: moderngl.Context, size: Tuple[int, int]) -> 'TexSurface':
         """Create a new TexSurface in the given moderngl context."""
@@ -63,15 +78,29 @@ class TexSurface:
     def resize(self, newsize: Tuple[int, int]):
         """Resize the texture and copy the existing data into it."""
         newtex = self.ctx.texture(newsize, 4)
-        in_region = TextureRegion.for_rect(self.tex, Rect(0, 0, 1, 1))
-        vs = self.ctx.buffer(
-            in_region.texcoords,
-            dynamic=True
-        )
-        prog = ...
+        in_region = TextureRegion.for_tex(self.tex)
+        vdata = in_region.texcoords
+
+        vs = self.ctx.buffer(vdata)
+        ibuf = self.ctx.buffer(QUAD)
+        prog = shadermgr(self.ctx).get(**BLIT_PROGRAM)
         self.tex.use(0)
+        self.tex.filter = moderngl.NEAREST, moderngl.NEAREST
         prog['tex'].value = 0
-        vao.render(vertices=self.allocated * 6)
+        prog['newsize'].value = newsize
+        vao = self.ctx.vertex_array(
+            prog,
+            [
+                (vs, '2u2', 'in_uv'),
+            ],
+            ibuf
+        )
+        fb = self.ctx.framebuffer(color_attachments=[newtex])
+        with bind_framebuffer(self.ctx, fb), \
+                blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
+            vao.render(vertices=6)
+        self._dirty = True
+        self.tex = newtex
 
     def write(self, img: pygame.Surface, rect: pygame.Rect):
         """Write the contents of img at the given coordinates."""
@@ -105,12 +134,19 @@ class TexSurface:
 @dataclass
 class TextureRegion:
     """An allocated region of a texture."""
-    tex: moderngl.Texture
+    tex: TexSurface
     width: int
     height: int
     texcoords: np.ndarray
+    rot: int = 0
 
     def __post_init__(self):
+        if not isinstance(self.rot, int):
+            raise TypeError(f"rot must be int, not {self.rot!r}")
+        if self.texcoords.dtype != np.uint16:
+            raise TypeError(
+                f"Invalid dtype {self.texcoords.dtype} for tex coords"
+            )
         w = self.width
         h = self.height
         self.verts = np.array([
@@ -121,32 +157,81 @@ class TextureRegion:
         ], dtype='f4')
 
     @classmethod
+    def for_tex(cls, tex):
+        """Create a TextureRegion corresponding to the whole of tex."""
+        return cls.for_rect(tex, Rect(0, 0, tex.width, tex.height))
+
+    def absregion(self) -> Rect:
+        """Get the region of the original texture."""
+        (l, t), (r, b) = self.texcoords[[0, 2]].astype(int)
+        w = abs(l - r)
+        h = abs(b - t)
+        l = min(l, r)
+        t = min(b, t)
+        return Rect(l, t, w, h)
+
+    @classmethod
     def for_rect(cls, tex, rect: Rect):
         """Create a TextureRegion for the given texture and rect."""
-        l = rect.left
-        b = rect.top
-        r = rect.right
-        t = rect.bottom
-        texcoords = np.array([
-            (l, t),
-            (r, t),
-            (r, b),
-            (l, b),
-        ], dtype=np.uint16)
+        if isinstance(tex, TextureRegion):
+            assert rect.width and rect.height, "Invalid rect dimensions"
+            myrect = Rect(0, 0, tex.width, tex.height)
+            assert myrect.contains(rect), "Subrect is not in bounds."
+
+            coords = tex.texcoords.astype(np.int32)
+            lb = coords[3]
+            r = np.sign(coords[2] - lb)
+            u = np.sign(coords[0] - lb)
+            lb += r * rect.left + u * rect.top
+            across = r * rect.width
+            up = u * rect.height
+            texcoords = np.array([
+                lb + up,
+                lb + up + across,
+                lb + across,
+                lb,
+            ], dtype=np.uint16)
+            rot = tex.rot
+            tex = tex.tex
+        else:
+            rot = 0
+
+            l = rect.left
+            b = rect.top
+            r = rect.right
+            t = rect.bottom
+            texcoords = np.array([
+                (l, t),
+                (r, t),
+                (r, b),
+                (l, b),
+            ], dtype=np.uint16)
         return cls(
             tex,
             rect.width,
             rect.height,
-            texcoords
+            texcoords,
+            rot
         )
+
+    def write(self, img: pygame.Surface):
+        """Write the given surface into this region."""
+        if self.rot:
+            img = pygame.transform.rotate(img, self.rot)
+        sz = img.get_size()
+        bounds = self.absregion()
+        assert sz == bounds.size, f"{sz!r} != {bounds.size!r}"
+        self.tex.write(img, bounds)
 
     def rotated(self):
         """Get the view of this texture region rotated by 90 degrees."""
+        newcoords = self.texcoords[[1, 2, 3, 0]]
         return TextureRegion(
             self.tex,
             self.height,
             self.width,
-            self.texcoords[[1, 2, 3, 0]]
+            newcoords,
+            self.rot - 90,
         )
 
     def get_verts(
@@ -180,18 +265,32 @@ class Atlas:
 
         self.packer = Packer.new_shelves(size=texsize)
 
-        self.surfs_texs = []
+        self.texsurf: Optional[TexSurface] = None
+        self.surfs_texs: List[TextureRegion] = []
         self.tex_for_name = {}
 
     def _load(self, name):
         """Load the image for the given name."""
         return images.load(name)
 
-    def mksurftex(self, size: Tuple[int, int]) -> TexSurface:
+    def mksurftex(self) -> TextureRegion:
         """Make a new surface and corresponding texture of the given size."""
-        texsurf = TexSurface.new(self.ctx, size)
-        self.surfs_texs.append(texsurf)
-        return texsurf
+        if not self.texsurf:
+            self.texsurf = TexSurface.new(self.ctx, (self.texsize,) * 2)
+            region = TextureRegion.for_tex(self.texsurf)
+        else:
+            count = len(self.surfs_texs)
+            self.texsurf.resize((
+                (count + 1) * self.texsize,
+                self.texsize
+            ))
+            region = TextureRegion.for_rect(
+                self.texsurf,
+                Rect(count * self.texsize, 0, self.texsize, self.texsize)
+            )
+
+        self.surfs_texs.append(region)
+        return region
 
     def npot_tex(self, sprite_name, img):
         """Get a non-power-of-two texture for this image."""
@@ -235,33 +334,22 @@ class Atlas:
         p.h -= pad
 
         try:
-            texsurf = self.surfs_texs[bin]
+            reg = self.surfs_texs[bin]
         except IndexError:
-            size = (self.texsize, self.texsize)
-            texsurf = self.mksurftex(size)
+            reg = self.mksurftex()
 
-        rotated = False
+        texregion = TextureRegion.for_rect(reg, p)
         if orig.w != p.w:
-            img = pygame.transform.rotate(img, -90)
-            rotated = True
-
-        x, y = p.topleft
-        w, h = p.size
-
-        texsurf.write(img, p)
-
-        texregion = TextureRegion.for_rect(texsurf, p)
-        if rotated:
             texregion = texregion.rotated()
+        texregion.write(img)
 
         res = self.tex_for_name[sprite_name] = texregion
         return res
 
     def _update(self):
         """Copy updated surfaces to the GL texture objects."""
-        for surftex in self.surfs_texs:
-            if surftex._dirty:
-                surftex.update()
+        if self.texsurf and self.texsurf._dirty:
+            self.texsurf.update()
 
     def dump(self):
         """Save screenshots of all the textures."""

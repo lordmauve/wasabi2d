@@ -76,3 +76,13 @@ def bind_framebuffer(ctx, fb):
     finally:
         orig_screen.use()
         ctx._screen = orig_screen
+
+
+@contextmanager
+def blend_func(ctx, src=moderngl.SRC_ALPHA, dest=moderngl.ONE_MINUS_SRC_ALPHA):
+    """Override the blending function for the duration of the context."""
+    ctx.blend_func = src, dest
+    try:
+        yield
+    finally:
+        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
