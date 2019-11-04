@@ -1,5 +1,4 @@
-"""Tests of sprite drawing."""
-import colorsys
+"""Regression tests for sprite drawing."""
 import random
 from unittest.mock import patch
 
@@ -9,7 +8,7 @@ import pygame.draw
 
 from wasabi2d.loaders import images
 
-from drawing_utils import drawing_test, grid_coords
+from drawing_utils import drawing_test
 
 
 @drawing_test
@@ -62,20 +61,6 @@ def test_draw_many_sprites(scene):
                 )
             )
     assert len(scene.layers.atlas.packer.texs) > 1
-
-
-@drawing_test
-def test_draw_stars(scene):
-    """We can draw stars ."""
-    for i, pos in enumerate(grid_coords((4, 3))):
-        color = colorsys.hsv_to_rgb(i / 12, 1, 1)
-        scene.layers[0].add_star(
-            inner_radius=2 * i + 2,
-            outer_radius=3 * i + 10,
-            points=2 * i + 3,
-            pos=pos,
-            color=color
-        )
 
 
 @drawing_test

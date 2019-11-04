@@ -8,6 +8,11 @@ History
 * New: make F12 :ref:`a built-in combination <screenshot>` for
   screenshots/video recording.
 * New: add a ``pixellate`` :doc:`post-processing effect <effects>`.
+* Fix: grow a single texture atlas rather than allocating multiple. This
+  removes a limit on how many unique text characters can be drawn with a single
+  font.
+* New: HeadlessScene class to run the graphics engine without creating a
+  window.
 
 
 1.2.0 - 2019-09-29

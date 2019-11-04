@@ -263,7 +263,8 @@ class Layer:
             *,
             pos: Tuple[float, float] = (0, 0),
             color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-            fill: bool = True) -> Rect:
+            fill: bool = True,
+            stroke_width: float = 1) -> Rect:
 
         c = Rect(
             layer=self,

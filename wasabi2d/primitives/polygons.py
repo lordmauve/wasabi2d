@@ -1,12 +1,10 @@
 from unittest.mock import ANY
 import numpy as np
 
+import mapbox_earcut as earcut
+
 from ..color import convert_color
-
-from ..vendor.earcut import earcut
 from .base import AbstractShape
-
-from ..rect import ZRect
 
 
 class Polygon(AbstractShape):
@@ -47,9 +45,10 @@ class Polygon(AbstractShape):
 
     def _fill_indices(self):
         """Indexes for drawing the fill as TRIANGLES."""
-        verts = self.orig_verts[:, :2].reshape((-1))
-        idxs = earcut(verts)
-        return np.array(idxs, dtype='i4')
+        verts = self.orig_verts[:, :2]
+        rings = np.array([len(verts)], dtype=np.uint32)
+        idxs = earcut.triangulate_float32(verts, rings)
+        return idxs.reshape(-1)
 
 
 class Rect(Polygon):
@@ -72,7 +71,8 @@ class Rect(Polygon):
             height,
             *,
             pos=(0, 0),
-            color=(1, 1, 1, 1)):
+            color=(1, 1, 1, 1),
+            stroke_width=1):
 
         self.width = width
         self.height = height
@@ -81,7 +81,8 @@ class Rect(Polygon):
             layer,
             self._vertices(),
             pos=pos,
-            color=color
+            color=color,
+            stroke_width=stroke_width,
         )
 
     def _vertices(self):

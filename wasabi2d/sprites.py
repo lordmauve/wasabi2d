@@ -86,6 +86,7 @@ class SpriteArray:
             ],
             self.ibuf
         )
+        self._dirty = False
 
     def add(self, s):
         """Add a sprite to the array.
@@ -132,16 +133,14 @@ class SpriteArray:
             moved.offset = i
             self.verts[i * 4:i * 4 + 4] = self.verts[j * 4:j * 4 + 4]
             self.uvs[i * 4:i * 4 + 4] = self.uvs[j * 4:j * 4 + 4]
-            # TODO: write only once per frame no matter how many adds/deletes
-            self.vbo.write(self.verts)
-            self.uvbo.write(self.uvs)
+            self._dirty = True
         s.array = None
 
     def render(self):
         """Render all sprites in the array."""
         self.prog['tex'].value = 0
         self.tex.use(0)
-        dirty = False
+        dirty = self._dirty
         for i, s in enumerate(self.sprites):
             if s._dirty:
                 self.verts[i * 4:i * 4 + 4] = s.verts
@@ -153,6 +152,7 @@ class SpriteArray:
         if dirty:
             self.vbo.write(self.verts)
             self.uvbo.write(self.uvs)
+            self._dirty = False
         self.vao.render(vertices=self.allocated * 6)
 
 
