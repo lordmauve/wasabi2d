@@ -68,7 +68,7 @@ class Layer:
             self.effect.enter(t, dt)
 
         for a in self.arrays.values():
-            a.render()
+            a.render(self.group.camera)
 
         if self.effect:
             self.effect.exit(t, dt)

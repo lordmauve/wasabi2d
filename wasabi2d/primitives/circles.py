@@ -9,6 +9,8 @@ from ..allocators.vertlists import VAO
 from .polygons import AbstractShape
 from ..rect import ZRect
 from ..descriptors import CallbackProp
+from ..effects.base import PostprocessPass
+from ..shaders import bind_framebuffer
 
 
 #: Shader for a plain color fill
@@ -130,12 +132,52 @@ void main() {
 )
 
 
+class PolyVAO(VAO):
+    """VAO object that renders with multisampling."""
+
+    #: Fragment program to copy from multisample texture
+    BLEND_PROGRAM = """
+    #version 330 core
+
+    in vec2 uv;
+    out vec4 f_color;
+    uniform sampler2DMS image;
+
+    void main()
+    {
+        ivec2 pos = ivec2(uv * textureSize(image));
+        vec4 color = vec4(0, 0, 0, 0);
+        for (int i = 0; i < 4; i++) {
+            vec4 frag = texelFetch(image, pos, i);
+            color += frag;
+        }
+        float a = clamp(color.a, 0, 1);
+        f_color = vec4(color.rgb * 0.25 / a, 1.4 * a);
+    }
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
+
+    def render(self, camera):
+        fb = camera._get_temporary_fbs(1, samples=4)[0]
+        fb.clear()
+        self.ctx.multisample = True
+        try:
+            with bind_framebuffer(self.ctx, fb):
+                super().render(camera)
+        finally:
+            self.ctx.multisample = False
+        self.composite_prog.render(image=fb)
+
+
 def color_vao(
         mode: int,
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a BAO for rendering plain colored objects."""
-    return VAO(
+    return PolyVAO(
         mode=mode,
         ctx=ctx,
         prog=shadermgr.get(**PLAIN_COLOR),
@@ -150,7 +192,7 @@ def line_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a VAO for rendering lines."""
-    return VAO(
+    return PolyVAO(
         mode=moderngl.LINE_STRIP_ADJACENCY,
         ctx=ctx,
         prog=shadermgr.get(**WIDE_LINE),

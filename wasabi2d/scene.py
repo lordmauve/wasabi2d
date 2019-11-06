@@ -266,20 +266,21 @@ class Camera:
         self._fbs = {}
         self.pos = hw, hh
 
-    def _get_temporary_fbs(self, num=1, dtype='f1'):
+    def _get_temporary_fbs(self, num=1, dtype='f1', samples=0):
         """Get temporary framebuffer objects of the given dtype."""
-        temps = self._fbs.setdefault(dtype, [])
+        temps = self._fbs.setdefault((dtype, samples), [])
         while len(temps) < num:
-            fb = self._make_fb(dtype)
+            fb = self._make_fb(dtype, samples=samples)
             temps.append(fb)
         return temps[:num]
 
-    def _make_fb(self, dtype='f1', div_x=1, div_y=1):
+    def _make_fb(self, dtype='f1', div_x=1, div_y=1, samples=0):
         """Make a new framebuffer corresponding to this viewport."""
         tex = self.ctx.texture(
             (self.width // div_x, self.height // div_y),
             4,
-            dtype=dtype
+            dtype=dtype,
+            samples=samples
         )
         tex.repeat_x = tex.repeat_y = False
         return self.ctx.framebuffer([tex])

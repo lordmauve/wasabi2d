@@ -29,10 +29,10 @@ def get_default_font():
 class TextureVAO(VAO):
     """A VAO with an associated texture."""
 
-    def render(self):
+    def render(self, camera):
         self.prog['tex'].value = 0
         self.tex.use(0)
-        super().render()
+        super().render(camera)
 
 
 # Slight modification to the textured quads: we only use the texture's alpha

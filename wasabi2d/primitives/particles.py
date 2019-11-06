@@ -112,14 +112,14 @@ class ParticleVAO(VAO):
         super().__init__(*args, dtype=PARTICLE_DTYPE, **kwargs)
         self.pgroup = pgroup
 
-    def render(self):
+    def render(self, camera):
         self.prog['grow'].value = self.pgroup.grow
         self.prog['max_age'].value = self.pgroup.max_age
         self.prog['tex'].value = 0
         self.prog['color_tex'].value = 1
         self.tex.use(0)
         self.color_tex.use(1)
-        super().render()
+        super().render(camera)
 
 
 class ParticleGroup:
