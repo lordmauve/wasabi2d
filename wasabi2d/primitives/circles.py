@@ -12,8 +12,6 @@ from ..descriptors import CallbackProp
 from ..effects.base import PostprocessPass
 from ..shaders import bind_framebuffer
 
-from OpenGL import GL as gl
-
 #: Shader for a plain color fill
 PLAIN_COLOR = dict(
     vertex_shader='''
@@ -167,13 +165,13 @@ class PolyVAO(VAO):
         self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
 
     def render(self, camera):
-        # TODO: get this into moderngl
-        gl.glBlendFuncSeparate(
-            gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA,
-            gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA
-        )
         fb = camera._get_temporary_fbs(1, 'f2', samples=4)[0]
         fb.clear()
+        # TODO: get this into moderngl
+        self.ctx.blend_func = (
+            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
+        #    moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
+        )
         with bind_framebuffer(self.ctx, fb):
             super().render(camera)
         self.composite_prog.render(image=fb)

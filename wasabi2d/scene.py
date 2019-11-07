@@ -34,7 +34,6 @@ class Scene:
             self,
             width=800,
             height=600,
-            antialias=0,
             title="wasabi2d",
             rootdir=None):
         self.width = width
@@ -47,7 +46,7 @@ class Scene:
         set_root(rootdir)
 
         pygame.init()
-        ctx = self.ctx = self._make_context(width, height, antialias)
+        ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
 
         self.title = title
@@ -64,18 +63,12 @@ class Scene:
 
         self._background = (0.0, 0.0, 0.0)
 
-    def _make_context(self, width, height, antialias):
+    def _make_context(self, width, height):
         """Create the ModernGL context."""
         glconfig = {
             'GL_CONTEXT_MAJOR_VERSION': 4,
             'GL_CONTEXT_PROFILE_MASK': pygame.GL_CONTEXT_PROFILE_CORE,
         }
-
-        if antialias:
-            glconfig.update({
-                'GL_MULTISAMPLEBUFFERS': 1,
-                'GL_MULTISAMPLESAMPLES': antialias,
-            })
 
         for k, v in glconfig.items():
             k = getattr(pygame, k)
@@ -224,11 +217,10 @@ class HeadlessScene(Scene):
     This can be used in automated applications and for testing.
 
     """
-    def _make_context(self, width, height, antialias):
+    def _make_context(self, width, height):
         ctx = moderngl.create_standalone_context(require=410)
         screen = ctx._screen = ctx.simple_framebuffer(
             (width, height),
-            samples=antialias
         )
         screen.use()
         return ctx
