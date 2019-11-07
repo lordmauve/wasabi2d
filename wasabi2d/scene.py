@@ -43,7 +43,11 @@ class Scene:
         self._recording = False
 
         if rootdir is None:
-            rootdir = sys._getframe(1).f_globals['__file__']
+            try:
+                rootdir = sys._getframe(1).f_globals['__file__']
+            except KeyError:
+                import os
+                rootdir = os.getcwd()
         set_root(rootdir)
 
         pygame.init()
