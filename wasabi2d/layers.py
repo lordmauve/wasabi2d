@@ -92,6 +92,7 @@ class Layer:
     def add_sprite(
         self,
         image,
+        *,
         pos=(0, 0),
         angle=0,
         anchor_x=None,

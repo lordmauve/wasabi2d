@@ -49,6 +49,19 @@ Common attributes:
 
     A scale factor for the shape. 1 is original size.
 
+    If :attr:`.scale_x` or :attr:`.scale_y` have been separately set then
+    accessing this property returns the geometric mean of those values.
+
+    Assigning to `.scale` overwrites `.scale_x` and `.scale_y`.
+
+.. attribute:: scale_x
+
+    The scale factor of the shape in the x direction.
+
+.. attribute:: scale_y
+
+    The scale factor of the shape in the y direction.
+
 .. attribute:: color
 
     The color of the shape, as :ref:`described above <colors>`.
@@ -84,19 +97,25 @@ Sprites must be in a directory named ``images/`` and must be named in lowercase
 with underscores. This restriction ensures that games written with wasabi2d
 will work on with case sensitive and insensitive filenames.
 
+.. method:: Layer.add_sprite(image, *, [options]) -> ...
 
-A sprite object has attributes that you can set:
+    * ``.image`` - the name of the image for the sprite.
 
-* ``.pos`` - the position of the sprite
+    * ``.pos`` - the position of the sprite
 
-* ``.angle`` - a rotation in radians
+    * ``.angle`` - a rotation in radians
 
-* ``.color`` - the color to multiply the sprite with, as an RGBA tuple.
-  ``(1, 1, 1, 1)`` is opaque white.
+    * ``.color`` - the color to multiply the sprite with, as an RGBA tuple.
+      ``(1, 1, 1, 1)`` is opaque white.
 
-* ``.scale`` - a scale factor for the sprite. 1 is original size.
+    * ``.scale`` - a scale factor for the sprite. 1 is original size.
 
-* ``.image`` - the name of the image for the sprite.
+    * ``anchor_x``, ``anchor_y`` - the position within the sprite image that
+      is the "anchor point" around which rotation and scaling occurs. By
+      defaualt, this is the center of the sprite.
+
+    All of these attributes can be set on the returned sprite object also.
+
 
 
 And these methods:
@@ -107,57 +126,91 @@ And these methods:
 Circles
 -------
 
-`Layer.add_circle(...)`
+.. method:: Layer.add_circle(*, radius, [options]) -> ...
 
-Create a circle. Takes these additional parameters.
+    Create and return a circle object.
 
-* `radius` - `float` - the radius of the circle
-* `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise, it
-   will be drawn as an outline. This cannot currently be changed after
-   creation.
+    Parameters:
+
+    * `radius` - `float` - the radius of the circle, in pixels.
+    * `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise,
+      it will be drawn as an outline. This cannot currently be changed after
+      creation.
+    * `stroke_width` - `int` if `fill` is `False`, this is the width of the
+      line that will be drawn.
 
 
 Stars
 -----
 
-`Layer.add_star(...)`
+.. method:: Layer.add_star(*, points, [options]) -> ...
 
-Create a star. Parameters:
+    Create and return a star object.
 
-* `points` - `int` - the number of points for the star.
-* `outer_radius` - `float` - the radius of the tips of the points
-* `inner_radius` - `float` - the radius of the inner corners of the star
-* `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise, it
-   will be drawn as an outline. This cannot currently be changed after
-   creation.
+    Parameters:
+
+    * `points` - `int` - the number of points for the star.
+    * `outer_radius` - `float` - the radius of the tips of the points
+    * `inner_radius` - `float` - the radius of the inner corners of the star
+    * `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise, it
+       will be drawn as an outline. This cannot currently be changed after
+       creation.
+    * `stroke_width` - `int` if `fill` is `False`, this is the width of the line
+      that will be drawn.
 
 
 Rectangles
 ----------
 
-`Layer.add_rect(...)`
+.. method:: Layer.add_rect(width, height, *, [options]) -> ...
 
-Create a rectangle. Parameters:
+    Create and return a rectangle primitive.
 
-* `width` - `float` - the width of the rectangle before rotation/scaling
-* `height` - `float` - the height of the rectangle before rotation/scaling
-* `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise, it
-   will be drawn as an outline. This cannot currently be changed after
-   creation.
+    Rectangles are initially axis-aligned and positioned at the origin,
+    so ``add_rect(10, 20)`` will create a rectangle with top left ``(-5, -10)``
+    and bottom right ``(5, 10)``.
+
+    Parameters:
+
+    * `width` - `float` - the width of the rectangle before rotation/scaling
+    * `height` - `float` - the height of the rectangle before rotation/scaling
+    * `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise,
+      it will be drawn as an outline. This cannot currently be changed after
+      creation.
+    * `stroke_width` - `int` if `fill` is `False`, this is the width of the
+      line that will be drawn.
 
 
 Polygons
 --------
 
-`Layer.add_polygon(...)`
+.. method:: Layer.add_polygon(vertices, *, [options]) -> ...
 
-Create a closed polygon.
+    Create and return a closed polygon.
 
-* `vertices` - sequence of `(float, float)` tuples. The vertices cannot
-  currently be updated after creation.
-* `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise, it
-   will be drawn as an outline. This cannot currently be changed after
-   creation.
+    * `vertices` - sequence of `(float, float)` tuples. The vertices cannot
+      currently be updated after creation.
+    * `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise,
+      it will be drawn as an outline. This cannot currently be changed after
+      creation.
+    * `stroke_width` - `int` if `fill` is `False`, this is the width of the
+      line that will be drawn.
+
+
+
+Lines
+-----
+
+.. method:: Layer.add_line(vertices, *, [options]) -> ...
+
+    A line connecting 2 or more points. Lines cannot be filled. A line object
+    consisting of 3 points will be drawn as line segments from point 0 to 1, 1
+    to 2, and so on. Corners are bevelled.
+
+    * `vertices` - sequence of `(float, float)` tuples. The vertices cannot
+      currently be updated after creation.
+    * `stroke_width` - `int` if `fill` is `False`, this is the width of the
+      line that will be drawn.
 
 
 Text
@@ -167,14 +220,14 @@ wasabi2d supports text labels. The fonts for the labels must be in the `fonts/`
 directory in TTF format, and have names that are `lowercase_with_underscores`.
 
 
-`Layer.add_label(...)`
+.. method:: Layer.add_label(...) -> ...
 
-Create a text label.
+    Create an return a text label.
 
-* `text` - `str` - the text of the label
-* `font` - `str` - the name of the font to load
-* `fontsize` - `float` - the size of the font, in pixels. The actual height of
-  the characters may differ due to the metrics of the font.
-* `align` - `str` - one of `'left'`, `'center'`, or `'right'`. This controls
-  how the text aligns relative to `pos`.
+    * `text` - `str` - the text of the label
+    * `font` - `str` - the name of the font to load
+    * `fontsize` - `float` - the size of the font, in pixels. The actual height
+      of the characters may differ due to the metrics of the font.
+    * `align` - `str` - one of `'left'`, `'center'`, or `'right'`. This
+      controls how the text aligns relative to `pos`.
 
