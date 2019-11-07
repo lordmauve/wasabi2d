@@ -12,6 +12,7 @@ from ..descriptors import CallbackProp
 from ..effects.base import PostprocessPass
 from ..shaders import bind_framebuffer
 
+from OpenGL import GL as gl
 
 #: Shader for a plain color fill
 PLAIN_COLOR = dict(
@@ -143,16 +144,21 @@ class PolyVAO(VAO):
     out vec4 f_color;
     uniform sampler2DMS image;
 
+    const int SAMPLES = 4;
+
     void main()
     {
-        ivec2 pos = ivec2(uv * textureSize(image));
         vec4 color = vec4(0, 0, 0, 0);
-        for (int i = 0; i < 4; i++) {
-            vec4 frag = texelFetch(image, pos, i);
-            color += frag;
+
+        ivec2 pos = ivec2(uv * textureSize(image));
+
+        for (int i = 0; i < SAMPLES; i++) {
+            color += texelFetch(image, pos, i);
         }
-        float a = clamp(color.a, 0, 1);
-        f_color = vec4(color.rgb * 0.25 / a, 1.4 * a);
+        f_color = vec4(
+            color.rgb / color.a,
+            color.a / SAMPLES
+        );
     }
     """
 
@@ -161,14 +167,15 @@ class PolyVAO(VAO):
         self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
 
     def render(self, camera):
-        fb = camera._get_temporary_fbs(1, samples=4)[0]
+        # TODO: get this into moderngl
+        gl.glBlendFuncSeparate(
+            gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA,
+            gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA
+        )
+        fb = camera._get_temporary_fbs(1, 'f2', samples=4)[0]
         fb.clear()
-        self.ctx.multisample = True
-        try:
-            with bind_framebuffer(self.ctx, fb):
-                super().render(camera)
-        finally:
-            self.ctx.multisample = False
+        with bind_framebuffer(self.ctx, fb):
+            super().render(camera)
         self.composite_prog.render(image=fb)
 
 
