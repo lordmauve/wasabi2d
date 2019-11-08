@@ -63,15 +63,20 @@ def shadermgr(ctx: moderngl.Context) -> ShaderManager:
 
 
 @contextmanager
-def bind_framebuffer(ctx, fb):
+def bind_framebuffer(ctx, fb, *, clear=False):
     """Bind an alternative framebuffer during a context.
 
     The previous binding will be restored when the context exits.
+
+    If `clear` is True, also clear the framebuffer.
+
     """
     orig_screen = ctx._screen
     ctx._screen = fb
     try:
         fb.use()
+        if clear:
+            ctx.clear()
         yield
     finally:
         orig_screen.use()

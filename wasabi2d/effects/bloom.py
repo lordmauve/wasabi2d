@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import moderngl
 import numpy as np
 
+from ..shaders import bind_framebuffer, blend_func
 from .base import PostprocessPass
 
 
@@ -117,31 +118,26 @@ class Bloom:
     def _mkpass(self, shader):
         return PostprocessPass(self.ctx, shader)
 
-    def enter(self, t, dt):
-        self._fb1.use()
-        self._fb1.clear()
+    def draw(self, draw_layer):
+        with bind_framebuffer(self.ctx, self._fb1, clear=True):
+            draw_layer()
 
-    def exit(self, t, dt):
-        self._thresholded.use()
-        self._thresholded.clear()
-        self._threshold_pass.render(image=self._fb1)
+        with bind_framebuffer(self.ctx, self._thresholded, clear=True):
+            self._threshold_pass.render(image=self._fb1)
 
-        self._fb2.use()
-        self._fb2.clear()
-        self._blur.render(
-            image=self._thresholded,
-            blur_direction=(0, 1),
-            radius=self.radius,
-            gauss_tex=self._gauss_tex,
-        )
-        self.ctx.screen.use()
+        with bind_framebuffer(self.ctx, self._fb2, clear=True):
+            self._blur.render(
+                image=self._thresholded,
+                blur_direction=(0, 1),
+                radius=self.radius,
+                gauss_tex=self._gauss_tex,
+            )
 
         self._copy.render(image=self._fb1)
-        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE
-        self._blur.render(
-            image=self._fb2,
-            blur_direction=(1, 0),
-            radius=self.radius,
-            gauss_tex=self._gauss_tex,
-        )
-        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
+            self._blur.render(
+                image=self._fb2,
+                blur_direction=(1, 0),
+                radius=self.radius,
+                gauss_tex=self._gauss_tex,
+            )

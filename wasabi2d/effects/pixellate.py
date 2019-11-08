@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from ..shaders import bind_framebuffer, blend_func
 from .base import PostprocessPass
 
 
@@ -63,7 +64,6 @@ class Pixellate:
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._outer_fb = self.ctx.screen
         self._fb1, self._fb2 = camera._get_temporary_fbs(2, 'f2')
 
         self._average = PostprocessPass(
@@ -75,46 +75,40 @@ class Pixellate:
             COPY_PROG
         )
 
-    def enter(self, t, dt):
-        self._fb1.use()
-        self._fb1.clear()
-
-    def exit(self, t, dt):
-        self._fb2.use()
-        self._fb2.clear()
-
-        self.ctx.blend_func = moderngl.ONE, moderngl.ZERO
-
+    def draw(self, draw_layer):
         # Fraction to reduce by each pass
         frac = 1 / self.pxsize
 
         # By turning off the averaging we can remove the antialiasing
         epxsize = round((self.pxsize - 1) * self.antialias) + 1
 
-        # Pass 1: downsample by frac in the y direction
-        self._average.set_region(1, frac)
-        self._average.render(
-            image=self._fb1,
-            blur_direction=(0, 1),
-            pxsize=epxsize,
-            uvscale=(1, self.pxsize),
-        )
-        self._fb1.use()
+        with bind_framebuffer(self.ctx, self._fb1, clear=True):
+            draw_layer()
 
-        # Pass 2: downsample by frac in the x direction
-        self._average.set_region(frac, frac)
-        self._average.render(
-            image=self._fb2,
-            blur_direction=(1, 0),
-            pxsize=epxsize,
-            uvscale=(self.pxsize, 1)
-        )
+            with blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
+
+                with bind_framebuffer(self.ctx, self._fb2, clear=True):
+                    # Pass 1: downsample by frac in the y direction
+                    self._average.set_region(1, frac)
+                    self._average.render(
+                        image=self._fb1,
+                        blur_direction=(0, 1),
+                        pxsize=epxsize,
+                        uvscale=(1, self.pxsize),
+                    )
+
+                # Pass 2: downsample by frac in the x direction
+                self._average.set_region(frac, frac)
+                self._average.render(
+                    image=self._fb2,
+                    blur_direction=(1, 0),
+                    pxsize=epxsize,
+                    uvscale=(self.pxsize, 1)
+                )
 
         # Pass 3: scale the downsampled image to the screen
-        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         fb1_tex = self._fb1.color_attachments[0]
         lin = fb1_tex.filter
         fb1_tex.filter = moderngl.NEAREST, moderngl.NEAREST
-        self._outer_fb.use()
         self._fill.render(image=self._fb1, pxsize=self.pxsize)
         fb1_tex.filter = lin

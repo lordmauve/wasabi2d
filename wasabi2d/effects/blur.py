@@ -1,10 +1,10 @@
 """Separable Gaussian blur."""
-from typing import Tuple, List
 from dataclasses import dataclass
 
 import moderngl
 import numpy as np
 
+from ..shaders import bind_framebuffer
 from .base import PostprocessPass
 
 
@@ -73,20 +73,17 @@ class Blur:
             BLUR_PROG
         )
 
-    def enter(self, t, dt):
-        self._fb1.use()
-        self._fb1.clear()
+    def draw(self, draw_layer):
+        with bind_framebuffer(self.ctx, self._fb1, clear=True):
+            draw_layer()
 
-    def exit(self, t, dt):
-        self._fb2.use()
-        self._fb2.clear()
-        self._blur.render(
-            image=self._fb1,
-            blur_direction=(0, 1),
-            radius=self.radius,
-            gauss_tex=self._gauss_tex,
-        )
-        self._outer_fb.use()
+        with bind_framebuffer(self.ctx, self._fb2, clear=True):
+            self._blur.render(
+                image=self._fb1,
+                blur_direction=(0, 1),
+                radius=self.radius,
+                gauss_tex=self._gauss_tex,
+            )
 
         self._blur.render(
             image=self._fb2,

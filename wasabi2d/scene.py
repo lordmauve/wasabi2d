@@ -14,6 +14,7 @@ from . import clock
 from .layers import LayerGroup
 from .loaders import set_root
 from .color import convert_color_rgb
+from .chain import LayerRange
 
 
 def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
@@ -55,6 +56,9 @@ class Scene:
         ctx.extra = {}
 
         self.title = title
+
+        # Default chain: render all layers
+        self.chain = [LayerRange()]
 
         self.camera = Camera(ctx, width, height)
         self.layers = LayerGroup(ctx, self.camera)
@@ -215,7 +219,9 @@ class Scene:
             self._vid_frame()
         self._flip()
         self.ctx.clear(*self.background)
-        self.layers.render(self.camera.proj, t, dt)
+        self.layers._update(self.camera.proj)
+        for op in self.chain:
+            op.draw(self)
 
     def _flip(self):
         """The first flip is a no-op; switch in the real flip op."""

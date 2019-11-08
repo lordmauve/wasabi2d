@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import moderngl
 import numpy as np
 
+from ..shaders import bind_framebuffer
 from .base import PostprocessPass
 from .blur import Blur
 
@@ -79,14 +80,11 @@ class Dropshadow:
             COMPOSITE_PROG
         )
 
-    def enter(self, t, dt):
+    def draw(self, draw_layer):
         self.blur.radius = self.radius
-        self.blur.enter(t, dt)
-
-    def exit(self, t, dt):
         self._fb.clear()
-        self.blur.exit(t, dt)
-        self.ctx.screen.use()
+        with bind_framebuffer(self.ctx, self._fb):
+            self.blur.draw(draw_layer)
         self._composite.render(
             blurred=self._fb,
             image=self.blur._fb1,

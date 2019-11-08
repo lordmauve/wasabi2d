@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import moderngl
 
+from ..clock import Clock, default_clock
+from ..shaders import bind_framebuffer
 from .base import PostprocessPass
 
 
@@ -44,6 +46,7 @@ class Trails:
     """A trails effect."""
     ctx: moderngl.Context
     fade: float = 0.9
+    clock: Clock = default_clock
 
     camera: 'wasabi2d.scene.Camera' = None
     _pass: PostprocessPass = None
@@ -63,13 +66,11 @@ class Trails:
             COMPOSITE_PROG,
         )
 
-    def enter(self, t, dt):
-        self._fb.use()
-        self._fade_pass.render(
-            fade=self.fade,
-            dt=dt
-        )
-
-    def exit(self, t, dt):
-        self.ctx.screen.use()
+    def draw(self, draw_layer):
+        with bind_framebuffer(self.ctx, self._fb):
+            self._fade_pass.render(
+                fade=self.fade,
+                dt=self.clock.dt  # FIXME: do this operation on tick
+            )
+            draw_layer()
         self._composite_pass.render(fb=self._fb)

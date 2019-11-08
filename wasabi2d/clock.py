@@ -366,7 +366,8 @@ class Clock:
 
         """
         self.fired = False
-        self.t += float(dt)
+        self.dt = dt = float(dt)
+        self.t += dt
         self._fire_each_tick(dt)
         while self.events and self.events[0].time <= self.t:
             ev = heapq.heappop(self.events)
@@ -387,7 +388,7 @@ class Clock:
 
 
 # One instance of a clock is available by default, to simplify the API
-clock = Clock()
+default_clock = clock = Clock()
 tick = clock.tick
 schedule = clock.schedule
 schedule_interval = clock.schedule_interval
