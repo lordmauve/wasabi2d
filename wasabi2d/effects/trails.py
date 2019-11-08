@@ -31,11 +31,13 @@ COMPOSITE_PROG = """ \
 in vec2 uv;
 out vec4 f_color;
 
+uniform float alpha;
 uniform sampler2D fb;
 
 void main()
 {
-    f_color = texture(fb, uv);
+    vec4 frag = texture(fb, uv);
+    f_color = vec4(frag.rgb, frag.a * alpha);
 }
 
 """
@@ -46,6 +48,7 @@ class Trails:
     """A trails effect."""
     ctx: moderngl.Context
     fade: float = 0.9
+    alpha: float = 1.0
     clock: Clock = default_clock
 
     camera: 'wasabi2d.scene.Camera' = None
@@ -73,4 +76,8 @@ class Trails:
                 dt=self.clock.dt  # FIXME: do this operation on tick
             )
             draw_layer()
-        self._composite_pass.render(fb=self._fb)
+        self._composite_pass.render(
+            fb=self._fb,
+            alpha=self.alpha
+        )
+        draw_layer()

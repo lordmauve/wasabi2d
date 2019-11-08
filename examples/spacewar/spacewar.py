@@ -38,7 +38,11 @@ def make_player(pos, angle=0):
 
 
 scene = w2d.Scene()
-scene.layers[0].set_effect('bloom', radius=3)
+scene.chain = [
+    w2d.LayerRange()
+    .wrap_effect('trails', alpha=0.5, fade=0.1)
+    .wrap_effect('bloom', radius=3)
+]
 
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)
 player1 = make_player(
@@ -161,6 +165,9 @@ def on_key_down(key):
         if shoot_button is key:
             break
     else:
+        return
+
+    if ship.dead:
         return
 
     bullet = scene.layers[0].add_rect(
