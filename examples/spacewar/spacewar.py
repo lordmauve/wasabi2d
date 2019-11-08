@@ -40,7 +40,7 @@ def make_player(pos, angle=0):
 scene = w2d.Scene()
 scene.chain = [
     w2d.LayerRange()
-    .wrap_effect('trails', alpha=0.5, fade=0.1)
+    .wrap_effect('trails', alpha=0.6, fade=0.3)
     .wrap_effect('bloom', radius=3)
 ]
 
@@ -103,6 +103,7 @@ async def respawn(obj):
 
 @w2d.event
 def update(keyboard, dt):
+    dt = min(dt, 0.5)
     for o in objects:
         sep = Vector2(*star.pos - o.pos)
         o_u = o.v
@@ -134,6 +135,7 @@ def update(keyboard, dt):
     for obj, up, left, right, _ in controls:
         if obj in dead:
             dead.discard(obj)
+            w2d.tone.play(20, 1.0, waveform='square')
             w2d.clock.coro.run(respawn(obj))
             continue
         elif obj.dead:
@@ -156,6 +158,7 @@ def update(keyboard, dt):
             obj.angle += ROTATION_SPEED * dt
 
     for o in dead:
+        w2d.tone.play(30, 0.3, waveform='square')
         o.delete()
 
 
@@ -178,6 +181,8 @@ def on_key_down(key):
     bullet.radius = 2.8
     bullet.v = ship.v + forward(ship, 200)
     objects.append(bullet)
+    waveform = 'saw' if ship is player1 else 'sin'
+    w2d.tone.play(200, 0.3, waveform=waveform, volume=0.6)
 
 
 w2d.run()
