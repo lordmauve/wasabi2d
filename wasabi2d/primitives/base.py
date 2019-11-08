@@ -52,9 +52,7 @@ class Transformable:
 
     @property
     def pos(self):
-        view = self._xlate[2][:2]
-        view.flags.writeable = False
-        return view
+        return self._xlate[2][:2]
 
     @pos.setter
     def pos(self, v):

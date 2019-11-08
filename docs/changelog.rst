@@ -12,6 +12,7 @@ History
 * Fix: grow a single texture atlas rather than allocating multiple. This
   removes a limit on how many unique text characters can be drawn with a single
   font.
+* Fix: crash when creating a scene from a REPL
 * New: HeadlessScene class to run the graphics engine without creating a
   window.
 
