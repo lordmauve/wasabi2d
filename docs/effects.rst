@@ -26,10 +26,12 @@ The effects are described here as separate calls:
         :alt: Example of the light bloom effect
 
 
-.. method:: Layer.set_effect('trails', fade: float=0.1)
+.. method:: Layer.set_effect('trails', fade: float=0.9, alpha: float = 1.0)
 
     Apply a "motion blur" effect. Fade is the fraction of the full brightness
     that is visible after 1 second.
+
+    Alpha is the overall intensity of the effect.
 
     .. image:: _static/effects/trails.png
         :alt: Example of the trails effect

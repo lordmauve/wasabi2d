@@ -22,13 +22,12 @@ on another CPU core, if present.
 """
 import re
 from functools import lru_cache
+from enum import Enum
 
 import math
 import pygame
-try:
-    import numpy as np
-except ImportError:
-    np = None
+
+import numpy as np
 import pygame.sndarray
 from threading import Thread, Lock
 from queue import Queue
@@ -55,6 +54,12 @@ DECAY = 2000
 MAX_DURATION = 4
 
 
+class Waveform(Enum):
+    SIN = 'sin'
+    SQUARE = 'square'
+    SAW = 'saw'
+
+
 # lru_cache isn't threadsafe until Python 3.7, so protect it ourselves
 # https://bugs.python.org/issue28969
 cache_lock = Lock()
@@ -69,9 +74,10 @@ def _play_thread():
 
     """
     while True:
-        args = note_queue.get()
+        *args, volume = note_queue.get()
         with cache_lock:
             note = _create(*args)
+        note.set_volume(volume)
         note.play()
 
 
@@ -82,28 +88,54 @@ player_thread.setDaemon(True)
 def sine_array_onecycle(hz):
     """Returns a single sin wave for a given frequency."""
     length = SAMPLE_RATE / hz
-    omega = np.pi * 2 / length
-    xvalues = np.arange(int(length)) * omega
+    xvalues = np.linspace(0, np.pi * 2, length)
     return (np.sin(xvalues) * (2 ** 15)).astype(np.int16)
 
 
-def create(pitch, duration):
+def square_array_onecycle(hz):
+    """Returns a single square wave for a given frequency."""
+    length = SAMPLE_RATE // hz
+    vals = np.ones(length, dtype=np.int16)
+    split = length // 2
+    vals[:split] = 2 ** 15 - 1
+    vals[split:] = -1 * 2 ** 15
+    return vals
+
+
+def saw_array_onecycle(hz):
+    """Returns a single square wave for a given frequency."""
+    length = SAMPLE_RATE // hz
+    vals = np.ones(length, dtype=np.int16)
+    split = length // 2
+    min = -1 * 2 ** 15
+    max = 2 ** 15 - 1
+    vals[:split] = np.linspace(min, max, split, dtype=np.int16)
+    vals[split:] = np.linspace(max, min, length - split, dtype=np.int16)
+    return vals
+
+
+def create(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
     """Create a tone of a given duration at the given pitch.
 
     Return a Sound which can be played later.
 
     """
     with cache_lock:
-        return _create(*_convert_args(pitch, duration))
+        return _create(*_convert_args(pitch, duration, waveform), volume)
 
 
 @lru_cache()
-def _create(hz, samples):
+def _create(hz, samples, waveform):
     """Actually create a tone."""
     end = samples + DECAY
 
     # Construct a mono tone of the right length
-    cycle = sine_array_onecycle(hz)
+    if waveform is Waveform.SIN:
+        cycle = sine_array_onecycle(hz)
+    elif waveform is Waveform.SAW:
+        cycle = saw_array_onecycle(hz)
+    else:
+        cycle = square_array_onecycle(hz)
     tone = np.resize(cycle, end)
 
     # Multiply it with an ADSR envelope
@@ -151,17 +183,17 @@ def validate_note(note):
     return note, accidental, int(octave)
 
 
-def _convert_args(hz, duration):
+def _convert_args(hz, duration, waveform):
     """Convert the given arguments to _create parameters."""
     if isinstance(hz, str):
         hz = note_to_hertz(hz)
     samples = int(duration * SAMPLE_RATE)
     if not samples:
         raise InvalidNote("Note has zero duration")
-    return hz, samples
+    return hz, samples, Waveform(waveform)
 
 
-def play(pitch, duration):
+def play(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
     """Plays a tone of a certain length from a note or frequency in hertz.
 
     Tones have a maximum duration of 4 seconds. This limitation is imposed to
@@ -177,14 +209,7 @@ def play(pitch, duration):
             'Note duration %ss is too long: notes may be at most %ss long' %
             (duration, MAX_DURATION)
         )
-    args = _convert_args(pitch, duration)
+    args = _convert_args(pitch, duration, waveform) + (volume,)
     if not player_thread.is_alive():
         player_thread.start()
     note_queue.put(args)
-
-
-if np is None:
-    def play(hz, length):  # noqa: intending to redefine this
-        raise RuntimeError(
-            'Tone generation depends on Numpy, which is not available'
-        )
