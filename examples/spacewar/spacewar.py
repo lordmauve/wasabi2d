@@ -87,15 +87,24 @@ async def respawn(obj):
     obj.angle = obj.initial_angle
     obj.v = Vector2(obj.initial_v)
     obj.pos = obj.initial_pos
-    particles.emit(
-        10,
-        size=2,
+
+    ring = scene.layers[0].add_circle(
+        radius=40,
         pos=obj.pos,
-        pos_spread=obj.radius,
-        vel=obj.v,
-        vel_spread=50,
-        color=GREEN
+        color=GREEN[:3] + (0,),
+        fill=False,
+        stroke_width=LINE_W,
     )
+    w2d.tone.play(256, 1.0)
+    await w2d.animate(
+        ring,
+        'accelerate',
+        duration=0.5,
+        scale=0.1,
+        color=GREEN,
+        stroke_width=10,
+    )
+    ring.delete()
     for i in range(11):
         obj.color = INVISIBLE if i % 2 else GREEN
         await w2d.clock.coro.sleep(0.1)
@@ -104,13 +113,19 @@ async def respawn(obj):
 @w2d.event
 def update(keyboard, dt):
     dt = min(dt, 0.5)
+    dead = set()
+
     for o in objects:
         sep = Vector2(*star.pos - o.pos)
+        dist = sep.magnitude()
+        if dist > 1000:
+            # If it's flying off into space, kill it
+            dead.add(o)
+            o.silent = True
         o_u = o.v
-        o.v += GRAVITY / sep.magnitude_squared() * sep.normalize() * dt
+        o.v += GRAVITY / (dist * dist) * sep.normalize() * dt
         o.pos += (o_u + o.v) * 0.5 * dt
 
-    dead = set()
     for o in objects:
         if collides(o, star):
             dead.add(o)
@@ -128,7 +143,7 @@ def update(keyboard, dt):
             pos=o.pos,
             pos_spread=o.radius * 0.7,
             vel=o.v * 0.2,
-            vel_spread=20,
+            vel_spread=50,
             color=GREEN
         )
 
@@ -158,7 +173,8 @@ def update(keyboard, dt):
             obj.angle += ROTATION_SPEED * dt
 
     for o in dead:
-        w2d.tone.play(30, 0.3, waveform='square')
+        if not getattr(o, 'silent', False):
+            w2d.tone.play(30, 0.3, waveform='square')
         o.delete()
 
 
@@ -181,7 +197,7 @@ def on_key_down(key):
     bullet.radius = 2.8
     bullet.v = ship.v + forward(ship, 200)
     objects.append(bullet)
-    waveform = 'saw' if ship is player1 else 'sin'
+    waveform = 'triangle' if ship is player1 else 'saw'
     w2d.tone.play(200, 0.3, waveform=waveform, volume=0.6)
 
 
