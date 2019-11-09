@@ -23,6 +23,8 @@ on another CPU core, if present.
 import re
 from functools import lru_cache
 from enum import Enum
+import inspect
+from collections import namedtuple
 
 import math
 import pygame
@@ -58,12 +60,18 @@ class Waveform(Enum):
     SIN = 'sin'
     SQUARE = 'square'
     SAW = 'saw'
+    NOISE = 'noise'
+    TRIANGLE = 'triangle'
+
+
+ToneParams = namedtuple('ToneParams', 'hz samples waveform volume')
 
 
 # lru_cache isn't threadsafe until Python 3.7, so protect it ourselves
 # https://bugs.python.org/issue28969
 cache_lock = Lock()
 note_queue = Queue()
+player_thread = None
 
 
 def _play_thread():
@@ -74,15 +82,13 @@ def _play_thread():
 
     """
     while True:
-        *args, volume = note_queue.get()
+        params = note_queue.get()
         with cache_lock:
-            note = _create(*args)
-        note.set_volume(volume)
+            note = _create(params)
         note.play()
 
 
-player_thread = Thread(target=_play_thread)
-player_thread.setDaemon(True)
+INT16_RANGE = -1 * 2 ** 15, 2 ** 15 - 1
 
 
 def sine_array_onecycle(hz):
@@ -102,40 +108,50 @@ def square_array_onecycle(hz):
     return vals
 
 
-def saw_array_onecycle(hz):
+def triangle_array_onecycle(hz):
     """Returns a single square wave for a given frequency."""
     length = SAMPLE_RATE // hz
     vals = np.ones(length, dtype=np.int16)
     split = length // 2
-    min = -1 * 2 ** 15
-    max = 2 ** 15 - 1
+    min, max = INT16_RANGE
     vals[:split] = np.linspace(min, max, split, dtype=np.int16)
     vals[split:] = np.linspace(max, min, length - split, dtype=np.int16)
     return vals
 
 
-def create(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
+def saw_array_onecycle(hz):
+    """Returns a single square wave for a given frequency."""
+    length = SAMPLE_RATE // hz
+    return np.linspace(*INT16_RANGE, length).astype(np.int16)
+
+
+sample_gen = {
+    Waveform.SIN: sine_array_onecycle,
+    Waveform.SQUARE: square_array_onecycle,
+    Waveform.SAW: saw_array_onecycle,
+    Waveform.TRIANGLE: triangle_array_onecycle,
+}
+
+
+def create(*args, **kwargs):
     """Create a tone of a given duration at the given pitch.
 
     Return a Sound which can be played later.
 
     """
+    params = _convert_args(*args, **kwargs)
     with cache_lock:
-        return _create(*_convert_args(pitch, duration, waveform), volume)
+        return _create(params)
 
 
 @lru_cache()
-def _create(hz, samples, waveform):
+def _create(params):
     """Actually create a tone."""
+    samples = params.samples
     end = samples + DECAY
 
     # Construct a mono tone of the right length
-    if waveform is Waveform.SIN:
-        cycle = sine_array_onecycle(hz)
-    elif waveform is Waveform.SAW:
-        cycle = saw_array_onecycle(hz)
-    else:
-        cycle = square_array_onecycle(hz)
+    cycle = sample_gen[params.waveform](params.hz)
     tone = np.resize(cycle, end)
 
     # Multiply it with an ADSR envelope
@@ -150,7 +166,9 @@ def _create(hz, samples, waveform):
     np.multiply(tone, adsr, out=tone, casting='unsafe')
 
     stereo = np.repeat(np.expand_dims(tone, axis=1), 2, axis=1)
-    return pygame.sndarray.make_sound(stereo)
+    snd = pygame.sndarray.make_sound(stereo)
+    snd.set_volume(params.volume)
+    return snd
 
 
 class InvalidNote(Exception):
@@ -183,17 +201,22 @@ def validate_note(note):
     return note, accidental, int(octave)
 
 
-def _convert_args(hz, duration, waveform):
+def _convert_args(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
     """Convert the given arguments to _create parameters."""
-    if isinstance(hz, str):
-        hz = note_to_hertz(hz)
+    if duration > MAX_DURATION:
+        raise InvalidNote(
+            'Note duration %ss is too long: notes may be at most %ss long' %
+            (duration, MAX_DURATION)
+        )
+    if isinstance(pitch, str):
+        pitch = note_to_hertz(pitch)
     samples = int(duration * SAMPLE_RATE)
     if not samples:
         raise InvalidNote("Note has zero duration")
-    return hz, samples, Waveform(waveform)
+    return ToneParams(pitch, samples, Waveform(waveform), volume)
 
 
-def play(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
+def play(*args, **kwargs):
     """Plays a tone of a certain length from a note or frequency in hertz.
 
     Tones have a maximum duration of 4 seconds. This limitation is imposed to
@@ -204,12 +227,13 @@ def play(pitch, duration, *, waveform=Waveform.SIN, volume=1.0):
     create() and hold onto them, perhaps in an array.
 
     """
-    if duration > MAX_DURATION:
-        raise InvalidNote(
-            'Note duration %ss is too long: notes may be at most %ss long' %
-            (duration, MAX_DURATION)
-        )
-    args = _convert_args(pitch, duration, waveform) + (volume,)
-    if not player_thread.is_alive():
+    global player_thread
+    params = _convert_args(*args, **kwargs)
+    if not player_thread or not player_thread.is_alive():
+        pygame.mixer.init()
+        player_thread = Thread(target=_play_thread, daemon=True)
         player_thread.start()
-    note_queue.put(args)
+    note_queue.put(params)
+
+
+create.__signature__ = play.__signature__ = inspect.signature(_convert_args)
