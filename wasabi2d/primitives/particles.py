@@ -4,6 +4,7 @@ import numpy as np
 import numpy.random
 from sortedcontainers import SortedList
 
+from ..clock import default_clock
 from ..color import convert_color
 from ..allocators.vertlists import VAO
 
@@ -128,6 +129,7 @@ class ParticleGroup:
     def __init__(
             self,
             layer,
+            clock=default_clock,
             *,
             grow: float = 1.0,
             max_age: float = np.inf,
@@ -148,6 +150,8 @@ class ParticleGroup:
         self.color_tex = layer.ctx.texture((512, 1), 4, dtype='f2')
         self.color_vals = np.ones((512, 4), dtype='f2')
         self.color_tex.write(self.color_vals)
+        self._clock = clock
+        clock.each_tick(self._update)
 
     def add_color_stop(self, age, color):
         """Add a color stop for particles of the given age.
@@ -234,7 +238,7 @@ class ParticleGroup:
         self.spins = self.spins[alive].copy()
         self.lst.vertbuf[:] = verts_alive
 
-    def _update(self, t, dt):
+    def _update(self, dt):
         self.lst.vertbuf['in_age'] += dt
         self._compact()
 
@@ -267,5 +271,5 @@ class ParticleGroup:
 
     def delete(self):
         self.layer.objects.discard(self)
-        self.layer._dynamic.discard(self)
+        self._clock.unschedule(self._update)
         self.lst.free()

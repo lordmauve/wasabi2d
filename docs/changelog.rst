@@ -7,10 +7,15 @@ History
 * New: add a :doc:`coroutine system <coros>`
 * New: make F12 :ref:`a built-in combination <screenshot>` for
   screenshots/video recording.
+* New: "chains" for more powerful post-processing effect configurations
+* New: fade effect takes an ``alpha`` parameter
+* New: tone generation supports square and saw waves
 * New: add a ``pixellate`` :doc:`post-processing effect <effects>`.
+* Fix: add missing documentation for ``Layer.add_line()``
 * Fix: grow a single texture atlas rather than allocating multiple. This
   removes a limit on how many unique text characters can be drawn with a single
   font.
+* Fix: crash when creating a scene from a REPL
 * New: HeadlessScene class to run the graphics engine without creating a
   window.
 

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from ..shaders import bind_framebuffer
 from .base import PostprocessPass
 
 
@@ -51,12 +52,10 @@ class Punch:
             DISTORT_PROG,
         )
 
-    def enter(self, t, dt):
-        self._fb.use()
-        self._fb.clear()
+    def draw(self, draw_layer):
+        with bind_framebuffer(self.ctx, self._fb, clear=True):
+            draw_layer()
 
-    def exit(self, t, dt):
-        self.ctx.screen.use()
         self._pass.render(
             fb=self._fb,
             factor=self.factor,

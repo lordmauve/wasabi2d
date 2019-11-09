@@ -11,9 +11,11 @@ from .constants import keys, mouse, keymods
 from .loaders import sounds
 from . import music
 from . import clock
+from . import tone
 from .scene import Scene
 from .animation import animate
 from .storage import Storage
+from .chain import LayerRange
 
 event = EventMapper()
 del EventMapper
@@ -25,6 +27,7 @@ __all__ = [
     'event',
     'run',
     'keys', 'mouse', 'keymods',
-    'sounds', 'music', 'clock', 'animate',
-    'Scene', 'Storage',
+    'sounds', 'music', 'tone',
+    'clock', 'animate',
+    'Scene', 'Storage', 'LayerRange',
 ]

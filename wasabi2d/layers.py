@@ -4,6 +4,7 @@ import importlib
 import moderngl
 import pygame.image
 
+from .clock import default_clock
 from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
 from .primitives.circles import Circle, line_vao, shape_vao
@@ -40,7 +41,6 @@ class Layer:
         self.visible = True
         self.objects = set()
         self._dirty = set()
-        self._dynamic = set()
         self.effect = None
 
     def clear(self):
@@ -50,28 +50,24 @@ class Layer:
         self.arrays.clear()
         self.objects.clear()
         self._dirty.clear()
-        self._dynamic.clear()
 
-    def render(self, t, dt):
+    def _draw(self):
         """Render the layer."""
         if not self.visible:
             return
-
-        for o in self._dynamic:
-            o._update(t, dt)
 
         for o in self._dirty:
             o._update()
         self._dirty.clear()
 
         if self.effect:
-            self.effect.enter(t, dt)
+            self.effect.draw(self._draw_inner)
+        else:
+            self._draw_inner()
 
+    def _draw_inner(self):
         for a in self.arrays.values():
             a.render(self.group.camera)
-
-        if self.effect:
-            self.effect.exit(t, dt)
 
     def set_effect(self, name: str, **kwargs) -> Any:
         """Set the post processing effect to use for the layer.
@@ -92,6 +88,7 @@ class Layer:
     def add_sprite(
         self,
         image,
+        *,
         pos=(0, 0),
         angle=0,
         anchor_x=None,
@@ -303,12 +300,21 @@ class Layer:
         self.objects.add(c)
         return c
 
-    def add_particle_group(self, texture=None, **kwargs) -> ParticleGroup:
+    def add_particle_group(
+        self,
+        texture=None,
+        clock=default_clock,
+        **kwargs
+    ) -> ParticleGroup:
         """Create a group of particles.
 
         We do not actually emit any particles at this time.
         """
-        c = ParticleGroup(layer=self, **kwargs)
+        c = ParticleGroup(
+            layer=self,
+            clock=default_clock,
+            **kwargs
+        )
 
         vao = self.arrays[c] = ParticleVAO(
             c,
@@ -325,7 +331,6 @@ class Layer:
         vao.color_tex = c.color_tex
 
         self.objects.add(c)
-        self._dynamic.add(c)
         c._migrate(vao)
         return c
 
@@ -347,9 +352,10 @@ class LayerGroup(dict):
         layer = self[k] = Layer(self.ctx, self)
         return layer
 
-    def render(self, proj, t, dt):
+    def _update(self, proj):
+        # TODO: dirtymgr to manage these
         self.atlas._update()
         self.fontmgr.update()
+
+        # TODO: let the chain handle this
         self.shadermgr.set_proj(proj)
-        for k in sorted(self):
-            self[k].render(t, dt)

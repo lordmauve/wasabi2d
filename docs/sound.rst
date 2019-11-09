@@ -149,7 +149,7 @@ Tone Generator
 
 Wasabi2D can play tones using a built-in synthesizer.
 
-.. function:: tone.play(pitch, duration)
+.. function:: tone.play(pitch, duration, *, waveform='sin', volume=1.0)
 
     Play a note at the given pitch for the given duration.
 
@@ -157,6 +157,8 @@ Wasabi2D can play tones using a built-in synthesizer.
 
     The `pitch` can be specified as a number in which case it is the frequency
     of the note in hertz.
+
+    Waveform is a string - either 'sin', 'square', or 'saw'.
 
     Alternatively, the pitch can be specified as a string representing a note
     name and octave. For example:
@@ -169,7 +171,7 @@ Creating notes, particularly long notes, takes time - up to several
 milliseconds. You can create your notes ahead of time so that this doesn't slow
 your game down while it is running:
 
-.. function:: tone.create(pitch, duration)
+.. function:: tone.create(pitch, duration *, waveform='sin', volume=1.0)
 
     Create and return a Sound object.
 
