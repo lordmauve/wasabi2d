@@ -82,15 +82,10 @@ async def respawn(obj):
     obj.dead = True
     obj.color = INVISIBLE
     await w2d.clock.coro.sleep(3)
-    objects.append(obj)
-    obj.dead = False
-    obj.angle = obj.initial_angle
-    obj.v = Vector2(obj.initial_v)
-    obj.pos = obj.initial_pos
 
     ring = scene.layers[0].add_circle(
         radius=40,
-        pos=obj.pos,
+        pos=obj.initial_pos,
         color=GREEN[:3] + (0,),
         fill=False,
         stroke_width=LINE_W,
@@ -105,9 +100,17 @@ async def respawn(obj):
         stroke_width=10,
     )
     ring.delete()
+
+    objects.append(obj)
+    obj.dead = False
+    obj.angle = obj.initial_angle
+    obj.pos = obj.initial_pos
+    obj.v = Vector2(obj.initial_v)
     for i in range(11):
         obj.color = INVISIBLE if i % 2 else GREEN
         await w2d.clock.coro.sleep(0.1)
+        if obj.dead:
+            return
 
 
 @w2d.event
