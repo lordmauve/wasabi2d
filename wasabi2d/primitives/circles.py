@@ -166,13 +166,7 @@ class PolyVAO(VAO):
 
     def render(self, camera):
         fb = camera._get_temporary_fbs(1, 'f2', samples=4)[0]
-        fb.clear()
-        # TODO: get this into moderngl
-        self.ctx.blend_func = (
-            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
-        #    moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
-        )
-        with bind_framebuffer(self.ctx, fb):
+        with bind_framebuffer(self.ctx, fb, clear=True):
             super().render(camera)
         self.composite_prog.render(image=fb)
 

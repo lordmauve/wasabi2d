@@ -41,7 +41,7 @@ scene = w2d.Scene()
 scene.chain = [
     w2d.LayerRange()
     .wrap_effect('trails', alpha=0.6, fade=0.3)
-    .wrap_effect('bloom', radius=3)
+    #.wrap_effect('bloom', radius=3)
 ]
 
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)

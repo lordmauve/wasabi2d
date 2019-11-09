@@ -71,23 +71,26 @@ def bind_framebuffer(ctx, fb, *, clear=False):
     If `clear` is True, also clear the framebuffer.
 
     """
-    orig_screen = ctx._screen
-    ctx._screen = fb
-    try:
-        fb.use()
+    with ctx.scope(fb):
         if clear:
             ctx.clear()
         yield
-    finally:
-        orig_screen.use()
-        ctx._screen = orig_screen
 
 
 @contextmanager
-def blend_func(ctx, src=moderngl.SRC_ALPHA, dest=moderngl.ONE_MINUS_SRC_ALPHA):
+def blend_func(
+    ctx,
+    src=moderngl.SRC_ALPHA,
+    dest=moderngl.ONE_MINUS_SRC_ALPHA,
+    src_a=moderngl.ONE,
+    dest_a=moderngl.ONE_MINUS_SRC_ALPHA,
+):
     """Override the blending function for the duration of the context."""
-    ctx.blend_func = src, dest
+    ctx.blend_func = src, dest, src_a, dest_a
     try:
         yield
     finally:
-        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        ctx.blend_func = (
+            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
+            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
+        )

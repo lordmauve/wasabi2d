@@ -68,12 +68,15 @@ class Trails:
             self.ctx,
             COMPOSITE_PROG,
         )
+        self.t = self.clock.t
 
     def draw(self, draw_layer):
+        dt = self.clock.t - self.t
+        self.t = self.clock.t
         with bind_framebuffer(self.ctx, self._fb):
             self._fade_pass.render(
                 fade=self.fade,
-                dt=self.clock.dt  # FIXME: do this operation on tick
+                dt=dt
             )
             draw_layer()
         self._composite_pass.render(

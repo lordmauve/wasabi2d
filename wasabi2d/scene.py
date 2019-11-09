@@ -63,7 +63,10 @@ class Scene:
         self.layers = LayerGroup(ctx, self.camera)
 
         ctx.enable(moderngl.BLEND)
-        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self.ctx.blend_func = (
+            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
+            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
+        )
 
         from . import event
         event(self.draw)
