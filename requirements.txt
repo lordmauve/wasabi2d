@@ -1,4 +1,4 @@
-pygame==2.0.0.dev3
+pygame==2.0.0.dev6
 moderngl==5.*
 numpy
 pyrr
