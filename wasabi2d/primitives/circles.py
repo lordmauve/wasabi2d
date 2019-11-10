@@ -142,7 +142,7 @@ class PolyVAO(VAO):
     out vec4 f_color;
     uniform sampler2DMS image;
 
-    const int SAMPLES = 4;
+    uniform int samples = 4;
 
     void main()
     {
@@ -150,12 +150,15 @@ class PolyVAO(VAO):
 
         ivec2 pos = ivec2(uv * textureSize(image));
 
-        for (int i = 0; i < SAMPLES; i++) {
+        for (int i = 0; i < samples; i++) {
             color += texelFetch(image, pos, i);
+        }
+        if (color.a == 0.0) {
+            discard;
         }
         f_color = vec4(
             color.rgb / color.a,
-            color.a / SAMPLES
+            color.a / samples
         );
     }
     """
@@ -165,10 +168,11 @@ class PolyVAO(VAO):
         self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
 
     def render(self, camera):
-        with camera.temporary_fbs(1, 'f2', samples=4) as (fb,):
+        samples = self.ctx.max_samples
+        with camera.temporary_fbs(1, 'f2', samples=samples) as (fb,):
             with bind_framebuffer(self.ctx, fb, clear=True):
                 super().render(camera)
-        self.composite_prog.render(image=fb)
+        self.composite_prog.render(image=fb, samples=samples)
 
 
 def color_vao(
