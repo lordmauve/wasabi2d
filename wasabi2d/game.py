@@ -56,6 +56,8 @@ class EventMapper:
         'on_mouse_move': pygame.MOUSEMOTION,
         'on_key_down': pygame.KEYDOWN,
         'on_key_up': pygame.KEYUP,
+        'on_joybutton_down': pygame.JOYBUTTONDOWN,
+        'on_joybutton_up': pygame.JOYBUTTONUP,
         'on_music_end': constants.MUSIC_END,
         'draw': DrawEvent,
         'update': UpdateEvent,
@@ -68,7 +70,8 @@ class EventMapper:
     EVENT_PARAM_MAPPERS = {
         'buttons': map_buttons,
         'button': constants.mouse,
-        'key': constants.keys
+        'key': constants.keys,
+        'joy': int,
     }
 
     def __call__(self, handler):

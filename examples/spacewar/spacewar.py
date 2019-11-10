@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import wasabi2d as w2d
 from wasabi2d import Vector2, keys
+from wasabi2d.keyboard import keyboard
+from pygame import joystick
 
 INVISIBLE = (0, 0, 0, 0)
 GREEN = (0.3, 1.3, 0.3)
@@ -64,10 +66,31 @@ star = scene.layers[0].add_circle(
 
 objects = [player1, player2]
 
+joystick.init()
+sticks = [joystick.Joystick(i) for i in range(min(joystick.get_count(), 2))]
+for s in sticks:
+    s.init()
+
+
+def pressed(key):
+    return lambda: keyboard[key]
+
+
 controls = [
-    (player1, keys.W, keys.A, keys.D, keys.E),
-    (player2, keys.UP, keys.LEFT, keys.RIGHT, keys.RETURN),
+    (player1, pressed(keys.W), pressed(keys.A), pressed(keys.D), keys.E),
+    (player2, pressed(keys.UP), pressed(keys.LEFT), pressed(keys.RIGHT), keys.RETURN),
 ]
+
+for i, s in enumerate(sticks):
+    player, *_, shoot = controls[i]
+    controls[i] = (
+        player,
+        lambda: s.get_axis(1) < -0.5,
+        lambda: s.get_axis(0) < -0.5,
+        lambda: s.get_axis(0) > 0.5,
+        shoot,
+    )
+
 
 
 def collides(a, b) -> bool:
@@ -159,7 +182,7 @@ def update(keyboard, dt):
         elif obj.dead:
             continue
 
-        if keyboard[up]:
+        if up():
             obj.v += forward(obj, ACCEL * dt)
             particles.emit(
                 np.random.poisson(30 * dt),
@@ -170,9 +193,9 @@ def update(keyboard, dt):
                 color=GREEN
             )
 
-        if keyboard[left]:
+        if left():
             obj.angle -= ROTATION_SPEED * dt
-        elif keyboard[right]:
+        elif right():
             obj.angle += ROTATION_SPEED * dt
 
     for o in dead:
@@ -188,7 +211,10 @@ def on_key_down(key):
             break
     else:
         return
+    shoot(ship)
 
+
+def shoot(ship):
     if ship.dead:
         return
 
@@ -203,5 +229,12 @@ def on_key_down(key):
     waveform = 'triangle' if ship is player1 else 'saw'
     w2d.tone.play(200, 0.3, waveform=waveform, volume=0.6)
 
+
+@w2d.event
+def on_joybutton_down(joy, button):
+    if joy >= 2:
+        return
+    ship = controls[joy][0]
+    shoot(ship)
 
 w2d.run()
