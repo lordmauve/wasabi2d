@@ -38,9 +38,6 @@ class Scene:
             antialias=0,
             title="wasabi2d",
             rootdir=None):
-        self.width = width
-        self.height = height
-
         self._recording = False
 
         if rootdir is None:
@@ -55,12 +52,16 @@ class Scene:
         ctx = self.ctx = self._make_context(width, height, antialias)
         ctx.extra = {}
 
+        # Actual context may be a different size to expected
+        self.width = ctx.screen.width
+        self.height = ctx.screen.height
+
         self.title = title
 
         # Default chain: render all layers
         self.chain = [LayerRange()]
 
-        self.camera = Camera(ctx, width, height)
+        self.camera = Camera(ctx, self.width, self.height)
         self.layers = LayerGroup(ctx, self.camera)
 
         ctx.enable(moderngl.BLEND)
