@@ -168,7 +168,7 @@ class PolyVAO(VAO):
         self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
 
     def render(self, camera):
-        samples = self.ctx.max_samples
+        samples = max(self.ctx.max_samples, 4)
         with camera.temporary_fbs(1, 'f2', samples=samples) as (fb,):
             with bind_framebuffer(self.ctx, fb, clear=True):
                 super().render(camera)
