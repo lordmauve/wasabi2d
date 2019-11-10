@@ -42,8 +42,8 @@ def make_player(pos, angle=0):
 scene = w2d.Scene(1200, 800)
 scene.chain = [
     w2d.LayerRange()
-    .wrap_effect('trails', alpha=0.5, fade=0.1)
-    .wrap_effect('bloom', radius=3)
+    .wrap_effect('trails', alpha=0.4, fade=0.08)
+    .wrap_effect('bloom', radius=12, intensity=0.3)
 ]
 
 center = Vector2(scene.width, scene.height) * 0.5

@@ -1,4 +1,3 @@
-from typing import Tuple, List
 from dataclasses import dataclass
 
 import moderngl
@@ -6,11 +5,6 @@ import numpy as np
 
 from ..shaders import bind_framebuffer, blend_func
 from .base import PostprocessPass
-
-
-def gaussian(x, mu, sig):
-    """Calculate a gaussian function."""
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
 
 THRESHOLD_PROG = """ \
@@ -53,13 +47,24 @@ in vec2 uv;
 out vec4 f_color;
 
 uniform sampler2D image;
-uniform sampler2D gauss_tex;
+//uniform sampler2D gauss_tex;
 uniform float radius;
 uniform vec2 blur_direction;
 
+uniform float threshold;
+uniform float alpha;
+
 
 float gauss(float off) {
-    return texture(gauss_tex, vec2(abs(off / radius), 0)).r;
+    float x = off / radius * 2;
+    return exp(x * x / -2.0);
+}
+
+
+vec3 sample(vec2 pos) {
+    vec3 val = texture(image, uv + pos).rgb;
+    float intensity = val.r + val.g + val.b;
+    return val * step(threshold, intensity);
 }
 
 
@@ -76,10 +81,10 @@ void main()
     {
         weight = gauss(i);
         weight_sum += i * 2;
-        result += texture(image, uv + lookup_stride * i).rgb * weight;
-        result += texture(image, uv - lookup_stride * i).rgb * weight;
+        result += sample(lookup_stride * i) * weight;
+        result += sample(lookup_stride * -i) * weight;
     }
-    f_color = vec4(result / radius * 2, 1);
+    f_color = vec4(result / radius * 2, alpha);
 }
 
 """
@@ -91,6 +96,7 @@ class Bloom:
     ctx: moderngl.Context
     threshold: float = 1.0
     radius: float = 10.0
+    intensity: float = 0.5
 
     camera: 'wasabi2d.scene.Camera' = None
     _blur: PostprocessPass = None
@@ -100,10 +106,6 @@ class Bloom:
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._thresholded = camera._make_fb('f2', div_x=4, div_y=4)
-        gauss = gaussian(np.arange(256), 0, 90).astype('f4')
-        self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
-        self._fb2 = camera._make_fb('f2', div_x=4)
         self._threshold_pass = PostprocessPass(
             self.ctx,
             THRESHOLD_PROG,
@@ -118,26 +120,25 @@ class Bloom:
         return PostprocessPass(self.ctx, shader)
 
     def draw(self, draw_layer):
-        with self.camera.temporary_fbs(1, 'f2') as (fb1,):
+        with self.camera.temporary_fbs(2, 'f2') as (fb1, fb2):
             with bind_framebuffer(self.ctx, fb1, clear=True):
                 draw_layer()
 
-            with bind_framebuffer(self.ctx, self._thresholded, clear=True):
-                self._threshold_pass.render(image=fb1)
-
-            with bind_framebuffer(self.ctx, self._fb2, clear=True):
+            with bind_framebuffer(self.ctx, fb2, clear=True):
                 self._blur.render(
-                    image=self._thresholded,
+                    image=fb1,
+                    threshold=1.0,
                     blur_direction=(0, 1),
                     radius=self.radius,
-                    gauss_tex=self._gauss_tex,
+                    alpha=1.0
                 )
 
             self._copy.render(image=fb1)
             with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
                 self._blur.render(
-                    image=self._fb2,
+                    image=fb2,
+                    threshold=0.0,
                     blur_direction=(1, 0),
                     radius=self.radius,
-                    gauss_tex=self._gauss_tex,
+                    alpha=self.intensity
                 )
