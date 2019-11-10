@@ -1,11 +1,10 @@
 """An effect where we keep trails from previous frames."""
-from typing import Tuple, List
 from dataclasses import dataclass
 
 import moderngl
 
 from ..clock import Clock, default_clock
-from ..shaders import bind_framebuffer
+from ..shaders import bind_framebuffer, blend_func
 from .base import PostprocessPass
 
 
@@ -15,11 +14,10 @@ FADE_PROG = """ \
 out vec4 f_color;
 
 uniform float fade;
-uniform float dt;
 
 void main()
 {
-    f_color = vec4(0, 0, 0, 1.0 - pow(fade, dt));
+    f_color = vec4(0, 0, 0, fade);
 }
 
 """
@@ -52,13 +50,11 @@ class Trails:
     clock: Clock = default_clock
 
     camera: 'wasabi2d.scene.Camera' = None
-    _pass: PostprocessPass = None
-    _fb: moderngl.Framebuffer = None
 
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._fb = camera._make_fb('f2')
+        self._trails_buf = camera._make_fb('f4')
         self._fade_pass = PostprocessPass(
             self.ctx,
             FADE_PROG,
@@ -73,14 +69,28 @@ class Trails:
     def draw(self, draw_layer):
         dt = self.clock.t - self.t
         self.t = self.clock.t
-        with bind_framebuffer(self.ctx, self._fb):
-            self._fade_pass.render(
-                fade=self.fade,
-                dt=dt
-            )
-            draw_layer()
-        self._composite_pass.render(
-            fb=self._fb,
-            alpha=self.alpha
-        )
-        draw_layer()
+
+        with self.camera.temporary_fbs(1, 'f2') as (tmp,):
+            with blend_func(self.ctx, 'a', '1-a', '1', '1-a'):
+                with bind_framebuffer(self.ctx, tmp, clear=True):
+                    draw_layer()
+
+                self._composite_pass.render(
+                    fb=self._trails_buf,
+                    alpha=self.alpha,
+                )
+                self._composite_pass.render(
+                    fb=tmp,
+                    alpha=1.0
+                )
+
+            with bind_framebuffer(self.ctx, self._trails_buf):
+                with blend_func(self.ctx, 'a', '1-a', '1', '1-a'):
+                    self._composite_pass.render(
+                        fb=tmp,
+                        alpha=1.0
+                    )
+                with blend_func(self.ctx, 0, 1, 0, 'a'):
+                    self._fade_pass.render(
+                        fade=self.fade ** dt
+                    )

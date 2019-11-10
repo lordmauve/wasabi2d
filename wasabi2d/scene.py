@@ -9,12 +9,15 @@ import pygame.display
 import moderngl
 from typing import Tuple, Optional
 from pyrr import Matrix44
+from contextlib import contextmanager
+
 
 from . import clock
 from .layers import LayerGroup
 from .loaders import set_root
 from .color import convert_color_rgb
 from .chain import LayerRange
+from .shaders import bind_framebuffer
 
 
 def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
@@ -65,7 +68,7 @@ class Scene:
         ctx.enable(moderngl.BLEND)
         self.ctx.blend_func = (
             moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
-            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
+            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA,
         )
 
         from . import event
@@ -271,13 +274,33 @@ class Camera:
         self._fbs = {}
         self.pos = hw, hh
 
-    def _get_temporary_fbs(self, num=1, dtype='f1', samples=0):
-        """Get temporary framebuffer objects of the given dtype."""
+    @contextmanager
+    def temporary_fbs(self, num=1, dtype='f1', samples=0):
+        """Reserve temporary framebuffer objects of the given dtype.
+
+        The reservation is released when the context exits.
+
+        For example::
+
+            with camera.temporary_fbs(2, 'f2') as (fb1, fb2):
+                ... do something clever ...
+
+            # fb1 and fb2 are now returned to the pool; do not use them
+
+        """
         temps = self._fbs.setdefault((dtype, samples), [])
-        while len(temps) < num:
+
+        reserved = temps[-num:]
+        del temps[-num:]
+
+        while len(reserved) < num:
             fb = self._make_fb(dtype, samples=samples)
-            temps.append(fb)
-        return temps[:num]
+            reserved.append(fb)
+
+        try:
+            yield reserved
+        finally:
+            temps.extend(reserved)
 
     def _make_fb(self, dtype='f1', div_x=1, div_y=1, samples=0):
         """Make a new framebuffer corresponding to this viewport."""

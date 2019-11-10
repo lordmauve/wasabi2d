@@ -46,17 +46,17 @@ class Punch:
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._fb, = camera._get_temporary_fbs(1, 'f2')
         self._pass = PostprocessPass(
             self.ctx,
             DISTORT_PROG,
         )
 
     def draw(self, draw_layer):
-        with bind_framebuffer(self.ctx, self._fb, clear=True):
-            draw_layer()
+        with self.camera.temporary_fbs(1, 'f2') as (fb,):
+            with bind_framebuffer(self.ctx, fb, clear=True):
+                draw_layer()
 
-        self._pass.render(
-            fb=self._fb,
-            factor=self.factor,
-        )
+            self._pass.render(
+                fb=fb,
+                factor=self.factor,
+            )

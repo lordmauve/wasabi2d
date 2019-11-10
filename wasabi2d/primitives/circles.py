@@ -10,7 +10,7 @@ from .polygons import AbstractShape
 from ..rect import ZRect
 from ..descriptors import CallbackProp
 from ..effects.base import PostprocessPass
-from ..shaders import bind_framebuffer
+from ..shaders import bind_framebuffer, blend_func
 
 #: Shader for a plain color fill
 PLAIN_COLOR = dict(
@@ -165,9 +165,9 @@ class PolyVAO(VAO):
         self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
 
     def render(self, camera):
-        fb = camera._get_temporary_fbs(1, 'f2', samples=4)[0]
-        with bind_framebuffer(self.ctx, fb, clear=True):
-            super().render(camera)
+        with camera.temporary_fbs(1, 'f2', samples=4) as (fb,):
+            with bind_framebuffer(self.ctx, fb, clear=True):
+                super().render(camera)
         self.composite_prog.render(image=fb)
 
 
