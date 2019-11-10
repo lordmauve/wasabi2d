@@ -1,5 +1,4 @@
 import math
-import itertools
 import numpy as np
 import wasabi2d as w2d
 from wasabi2d import Vector2, keys
@@ -8,6 +7,7 @@ from pygame import joystick
 
 INVISIBLE = (0, 0, 0, 0)
 GREEN = (0.3, 1.3, 0.3)
+TRANSPARENT_GREEN = (*GREEN[:3], 0)
 LINE_W = 1
 SHIP_PTS = [(10, 0), (-5, 5), (-3, 0), (-5, -5)]
 
@@ -39,12 +39,14 @@ def make_player(pos, angle=0):
     return ship
 
 
-scene = w2d.Scene()
+scene = w2d.Scene(1200, 800)
 scene.chain = [
     w2d.LayerRange()
     .wrap_effect('trails', alpha=0.6, fade=0.3)
     .wrap_effect('bloom', radius=3)
 ]
+
+center = Vector2(scene.width, scene.height) * 0.5
 
 score1 = scene.layers[0].add_label('0', pos=(10, 40), fontsize=30, color=GREEN)
 score2 = scene.layers[0].add_label(
@@ -56,14 +58,17 @@ score2 = scene.layers[0].add_label(
 )
 score1.value = score2.value = 0
 
-particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)
+particles = scene.layers[0].add_particle_group(grow=0.1, max_age=2)
+particles.add_color_stop(0, GREEN)
+particles.add_color_stop(2, TRANSPARENT_GREEN)
+
 player1 = make_player(
-    pos=(scene.width / 4, scene.height / 2),
+    pos=center - Vector2(200, 0),
     angle=-math.pi * 0.5
 )
 player1.score_label = score2
 player2 = make_player(
-    pos=(scene.width * 3 / 4, scene.height / 2),
+    pos=center + Vector2(200, 0),
     angle=math.pi * 0.5
 )
 player2.score_label = score1
@@ -76,7 +81,7 @@ star = scene.layers[0].add_circle(
     pos=(scene.width / 2, scene.height / 2)
 )
 
-objects = [player1, player2]
+objects = [star, player1, player2]
 
 joystick.init()
 sticks = [joystick.Joystick(i) for i in range(min(joystick.get_count(), 2))]
@@ -128,7 +133,7 @@ async def respawn(obj):
     ring = scene.layers[0].add_circle(
         radius=40,
         pos=obj.initial_pos,
-        color=GREEN[:3] + (0,),
+        color=TRANSPARENT_GREEN,
         fill=False,
         stroke_width=LINE_W,
     )
@@ -155,15 +160,37 @@ async def respawn(obj):
             return
 
 
+def collision_pairs(objects):
+    objects.sort(key=lambda o: o.pos[0] - o.radius)
+
+    open = []
+    for o in objects:
+        x = o.pos[0]
+        r = o.radius
+        left = x - r
+        new_open = []
+        for o2r, o2 in open:
+            if o2r < left:
+                continue
+            new_open.append((o2r, o2))
+            if collides(o, o2):
+                yield o, o2
+        right = x + r
+        open.append((right, o))
+
+
 @w2d.event
 def update(keyboard, dt):
     dt = min(dt, 0.5)
     dead = set()
 
     for o in objects:
+        if o is star:
+            continue
+
         sep = Vector2(*star.pos - o.pos)
         dist = sep.magnitude()
-        if dist > 1000:
+        if dist > 1500:
             # If it's flying off into space, kill it
             dead.add(o)
             o.silent = True
@@ -171,14 +198,9 @@ def update(keyboard, dt):
         o.v += GRAVITY / (dist * dist) * sep.normalize() * dt
         o.pos += (o_u + o.v) * 0.5 * dt
 
-    for o in objects:
-        if collides(o, star):
-            dead.add(o)
-    objects[:] = [o for o in objects if o not in dead]
-
-    for a, b in itertools.combinations(objects, 2):
-        if collides(a, b):
-            dead |= {a, b}
+    for a, b in collision_pairs(objects):
+        dead |= {a, b}
+    dead.discard(star)
     objects[:] = [o for o in objects if o not in dead]
 
     for o in dead:
@@ -225,6 +247,10 @@ def update(keyboard, dt):
 
 @w2d.event
 def on_key_down(key):
+    if key == keys.ESCAPE:
+        score1.text = score2.text = '0'
+        score1.value = score2.value = 0
+
     for ship, _, _, _, shoot_button in controls:
         if shoot_button is key:
             break
@@ -243,7 +269,12 @@ def shoot(ship):
         color=GREEN
     )
     bullet.radius = 2.8
-    bullet.v = ship.v + forward(ship, 200)
+
+    v = forward(ship, 200)
+    bullet.v = ship.v + v
+    # Recoil!
+    #ship.v -= v * 0.02
+
     objects.append(bullet)
     waveform = 'triangle' if ship is player1 else 'saw'
     w2d.tone.play(200, 0.3, waveform=waveform, volume=0.6)
