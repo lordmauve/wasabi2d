@@ -39,13 +39,12 @@ def make_player(pos, angle=0):
 
 
 scene = w2d.Scene()
-#scene.background = '#888888'
 scene.chain = [
     w2d.LayerRange()
-#    .wrap_effect('bloom', radius=3)
+    .wrap_effect('bloom', radius=3)
 ]
 
-scene.layers[0].set_effect('trails', alpha=0.3, fade=0.1)
+scene.layers[0].set_effect('trails', alpha=0.5, fade=0.05)
 
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)
 player1 = make_player(
