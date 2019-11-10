@@ -257,6 +257,7 @@ class Clock:
     """
     def __init__(self):
         self.t = 0
+        self.paused = False
         self.fired = False
         self.events = []
         self._each_tick = []
@@ -365,6 +366,8 @@ class Clock:
         :param dt: The elapsed time in seconds.
 
         """
+        if self.paused:
+            return
         self.fired = False
         self.dt = dt = float(dt)
         self.t += dt

@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import wasabi2d as w2d
 from wasabi2d import Vector2, keys
+from wasabi2d.keyboard import keyboard
 
 INVISIBLE = (0, 0, 0, 0)
 GREEN = (0.3, 1.3, 0.3)
@@ -38,11 +39,13 @@ def make_player(pos, angle=0):
 
 
 scene = w2d.Scene()
+#scene.background = '#888888'
 scene.chain = [
     w2d.LayerRange()
-    .wrap_effect('trails', alpha=0.6, fade=0.3)
-    #.wrap_effect('bloom', radius=3)
+#    .wrap_effect('bloom', radius=3)
 ]
+
+scene.layers[0].set_effect('trails', alpha=0.3, fade=0.1)
 
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)
 player1 = make_player(
@@ -54,7 +57,7 @@ player2 = make_player(
     angle=math.pi * 0.5
 )
 
-star = scene.layers[0].add_circle(
+star = scene.layers[-1].add_circle(
     radius=40,
     fill=False,
     color=GREEN,
@@ -113,8 +116,7 @@ async def respawn(obj):
             return
 
 
-@w2d.event
-def update(keyboard, dt):
+def update(dt):
     dt = min(dt, 0.5)
     dead = set()
 
@@ -183,6 +185,10 @@ def update(keyboard, dt):
 
 @w2d.event
 def on_key_down(key):
+    if key == keys.P:
+        w2d.clock.default_clock.paused = not w2d.clock.default_clock.paused
+        return
+
     for ship, _, _, _, shoot_button in controls:
         if shoot_button is key:
             break
@@ -204,4 +210,5 @@ def on_key_down(key):
     w2d.tone.play(200, 0.3, waveform=waveform, volume=0.6)
 
 
+w2d.clock.each_tick(update, strong=True)
 w2d.run()

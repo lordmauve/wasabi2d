@@ -1,5 +1,5 @@
 pygame==2.0.0.dev3
-moderngl==5.*
+moderngl>=5.5.4,<5.6
 numpy
 pyrr
 sortedcontainers
