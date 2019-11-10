@@ -46,15 +46,27 @@ scene.chain = [
     .wrap_effect('bloom', radius=3)
 ]
 
+score1 = scene.layers[0].add_label('0', pos=(10, 40), fontsize=30, color=GREEN)
+score2 = scene.layers[0].add_label(
+    '0',
+    pos=(scene.width - 10, 40),
+    align='right',
+    fontsize=30,
+    color=GREEN
+)
+score1.value = score2.value = 0
+
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=0.3)
 player1 = make_player(
     pos=(scene.width / 4, scene.height / 2),
     angle=-math.pi * 0.5
 )
+player1.score_label = score2
 player2 = make_player(
     pos=(scene.width * 3 / 4, scene.height / 2),
     angle=math.pi * 0.5
 )
+player2.score_label = score1
 
 star = scene.layers[0].add_circle(
     radius=40,
@@ -81,16 +93,20 @@ controls = [
     (player2, pressed(keys.UP), pressed(keys.LEFT), pressed(keys.RIGHT), keys.RETURN),
 ]
 
+def make_stick_controls(s):
+    return (
+        lambda: s.get_axis(1) < -0.5,
+        lambda: s.get_axis(0) < -0.5,
+        lambda: s.get_axis(0) > 0.5,
+    )
+
 for i, s in enumerate(sticks):
     player, *_, shoot = controls[i]
     controls[i] = (
         player,
-        lambda: s.get_axis(1) < -0.5,
-        lambda: s.get_axis(0) < -0.5,
-        lambda: s.get_axis(0) > 0.5,
+        *make_stick_controls(s),
         shoot,
     )
-
 
 
 def collides(a, b) -> bool:
@@ -102,6 +118,9 @@ def collides(a, b) -> bool:
 
 
 async def respawn(obj):
+    obj.score_label.value += 1
+    obj.score_label.text = str(obj.score_label.value)
+
     obj.dead = True
     obj.color = INVISIBLE
     await w2d.clock.coro.sleep(3)
