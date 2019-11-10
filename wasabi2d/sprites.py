@@ -136,7 +136,7 @@ class SpriteArray:
             self._dirty = True
         s.array = None
 
-    def render(self):
+    def render(self, camera):
         """Render all sprites in the array."""
         self.prog['tex'].value = 0
         self.tex.use(0)

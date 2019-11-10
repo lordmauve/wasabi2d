@@ -366,7 +366,7 @@ class VAO:
         )
         return vao
 
-    def render(self):
+    def render(self, camera):
         """Render all lists."""
         if not self.allocs:
             return

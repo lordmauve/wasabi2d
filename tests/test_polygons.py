@@ -16,9 +16,10 @@ from drawing_utils import drawing_test, grid_coords
 @drawing_test
 def test_draw_circles(scene):
     """We can draw circles."""
+    scene.background = '#cccccc'
     colors = ['red', 'blue', 'green', 'yellow']
     for i, pos in enumerate(grid_coords((4, 3))):
-        filled = bool(i % 2)
+        filled = not i % 2
         c = scene.layers[0].add_circle(
             radius=3 * i + 10,
             pos=pos,
@@ -26,7 +27,7 @@ def test_draw_circles(scene):
             color=colors[i % len(colors)],
             stroke_width=i
         )
-        c.color = (*c.color[:3], (i + 1) / 12)
+        c.color = (*c.color[:3], (i + 2) / 13)
 
 
 @drawing_test
@@ -93,4 +94,36 @@ def test_draw_polygons(scene):
         scene.layers[0].add_polygon(
             points,
             color=(0.2, 0.2, 1.0, 0.2),
+        )
+
+
+@drawing_test
+def test_aa(scene):
+    """Shapes are correctly composited onto each other."""
+    w = scene.width
+    h = scene.height
+    mid = (w / 2, h / 2)
+    scene.background = 'cyan'
+    r = scene.layers[0].add_rect(200, 20, pos=mid, color='red')
+    r.angle = 0.2
+    scene.layers[0].add_star(
+        inner_radius=50,
+        outer_radius=100,
+        points=7,
+        pos=mid,
+        color='yellow'
+    )
+
+
+@drawing_test
+def test_aa_blend(scene):
+    """The alpha curve is as expected."""
+    scene.background = '#888888'
+
+    for i, pos in enumerate(grid_coords((40, 30))):
+        y, x = divmod(i, 40)
+        scene.layers[1].add_circle(
+            radius=8,
+            pos=pos,
+            color=(y / 60, 0, y / 60, x / 80),
         )

@@ -9,12 +9,15 @@ import pygame.display
 import moderngl
 from typing import Tuple, Optional
 from pyrr import Matrix44
+from contextlib import contextmanager
+
 
 from . import clock
 from .layers import LayerGroup
 from .loaders import set_root
 from .color import convert_color_rgb
 from .chain import LayerRange
+from .shaders import bind_framebuffer
 
 
 def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
@@ -35,7 +38,6 @@ class Scene:
             self,
             width=800,
             height=600,
-            antialias=0,
             title="wasabi2d",
             rootdir=None):
         self._recording = False
@@ -49,7 +51,7 @@ class Scene:
         set_root(rootdir)
 
         pygame.init()
-        ctx = self.ctx = self._make_context(width, height, antialias)
+        ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
 
         # Actual context may be a different size to expected
@@ -65,7 +67,10 @@ class Scene:
         self.layers = LayerGroup(ctx, self.camera)
 
         ctx.enable(moderngl.BLEND)
-        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self.ctx.blend_func = (
+            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
+            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA,
+        )
 
         from . import event
         event(self.draw)
@@ -73,18 +78,12 @@ class Scene:
 
         self._background = (0.0, 0.0, 0.0)
 
-    def _make_context(self, width, height, antialias):
+    def _make_context(self, width, height):
         """Create the ModernGL context."""
         glconfig = {
             'GL_CONTEXT_MAJOR_VERSION': 4,
             'GL_CONTEXT_PROFILE_MASK': pygame.GL_CONTEXT_PROFILE_CORE,
         }
-
-        if antialias:
-            glconfig.update({
-                'GL_MULTISAMPLEBUFFERS': 1,
-                'GL_MULTISAMPLESAMPLES': antialias,
-            })
 
         for k, v in glconfig.items():
             k = getattr(pygame, k)
@@ -235,11 +234,10 @@ class HeadlessScene(Scene):
     This can be used in automated applications and for testing.
 
     """
-    def _make_context(self, width, height, antialias):
+    def _make_context(self, width, height):
         ctx = moderngl.create_standalone_context(require=410)
         screen = ctx._screen = ctx.simple_framebuffer(
             (width, height),
-            samples=antialias
         )
         screen.use()
         return ctx
@@ -277,20 +275,41 @@ class Camera:
         self._fbs = {}
         self.pos = hw, hh
 
-    def _get_temporary_fbs(self, num=1, dtype='f1'):
-        """Get temporary framebuffer objects of the given dtype."""
-        temps = self._fbs.setdefault(dtype, [])
-        while len(temps) < num:
-            fb = self._make_fb(dtype)
-            temps.append(fb)
-        return temps[:num]
+    @contextmanager
+    def temporary_fbs(self, num=1, dtype='f1', samples=0):
+        """Reserve temporary framebuffer objects of the given dtype.
 
-    def _make_fb(self, dtype='f1', div_x=1, div_y=1):
+        The reservation is released when the context exits.
+
+        For example::
+
+            with camera.temporary_fbs(2, 'f2') as (fb1, fb2):
+                ... do something clever ...
+
+            # fb1 and fb2 are now returned to the pool; do not use them
+
+        """
+        temps = self._fbs.setdefault((dtype, samples), [])
+
+        reserved = temps[-num:]
+        del temps[-num:]
+
+        while len(reserved) < num:
+            fb = self._make_fb(dtype, samples=samples)
+            reserved.append(fb)
+
+        try:
+            yield reserved
+        finally:
+            temps.extend(reserved)
+
+    def _make_fb(self, dtype='f1', div_x=1, div_y=1, samples=0):
         """Make a new framebuffer corresponding to this viewport."""
         tex = self.ctx.texture(
             (self.width // div_x, self.height // div_y),
             4,
-            dtype=dtype
+            dtype=dtype,
+            samples=samples
         )
         tex.repeat_x = tex.repeat_y = False
         return self.ctx.framebuffer([tex])

@@ -3,7 +3,7 @@ import wasabi2d as w2d
 from wasabi2d import Vector2
 
 
-scene = w2d.Scene(antialias=8)
+scene = w2d.Scene()
 scene.background = (0, 0.03, 0.1)
 
 ship = scene.layers[2].add_sprite(

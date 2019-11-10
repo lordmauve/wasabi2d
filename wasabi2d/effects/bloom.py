@@ -100,7 +100,6 @@ class Bloom:
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._fb1, = camera._get_temporary_fbs(1, 'f2')
         self._thresholded = camera._make_fb('f2', div_x=4, div_y=4)
         gauss = gaussian(np.arange(256), 0, 90).astype('f4')
         self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
@@ -119,25 +118,26 @@ class Bloom:
         return PostprocessPass(self.ctx, shader)
 
     def draw(self, draw_layer):
-        with bind_framebuffer(self.ctx, self._fb1, clear=True):
-            draw_layer()
+        with self.camera.temporary_fbs(1, 'f2') as (fb1,):
+            with bind_framebuffer(self.ctx, fb1, clear=True):
+                draw_layer()
 
-        with bind_framebuffer(self.ctx, self._thresholded, clear=True):
-            self._threshold_pass.render(image=self._fb1)
+            with bind_framebuffer(self.ctx, self._thresholded, clear=True):
+                self._threshold_pass.render(image=fb1)
 
-        with bind_framebuffer(self.ctx, self._fb2, clear=True):
-            self._blur.render(
-                image=self._thresholded,
-                blur_direction=(0, 1),
-                radius=self.radius,
-                gauss_tex=self._gauss_tex,
-            )
+            with bind_framebuffer(self.ctx, self._fb2, clear=True):
+                self._blur.render(
+                    image=self._thresholded,
+                    blur_direction=(0, 1),
+                    radius=self.radius,
+                    gauss_tex=self._gauss_tex,
+                )
 
-        self._copy.render(image=self._fb1)
-        with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
-            self._blur.render(
-                image=self._fb2,
-                blur_direction=(1, 0),
-                radius=self.radius,
-                gauss_tex=self._gauss_tex,
-            )
+            self._copy.render(image=fb1)
+            with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
+                self._blur.render(
+                    image=self._fb2,
+                    blur_direction=(1, 0),
+                    radius=self.radius,
+                    gauss_tex=self._gauss_tex,
+                )

@@ -67,7 +67,7 @@ class Layer:
 
     def _draw_inner(self):
         for a in self.arrays.values():
-            a.render()
+            a.render(self.group.camera)
 
     def set_effect(self, name: str, **kwargs) -> Any:
         """Set the post processing effect to use for the layer.

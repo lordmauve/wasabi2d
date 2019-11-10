@@ -76,18 +76,44 @@ def bind_framebuffer(ctx, fb, *, clear=False):
     try:
         fb.use()
         if clear:
-            ctx.clear()
+            fb.clear(0, 0, 0, 0)
         yield
     finally:
         orig_screen.use()
         ctx._screen = orig_screen
 
 
+blend_aliases = {
+    '1': moderngl.ONE,
+    1: moderngl.ONE,
+    '0': moderngl.ZERO,
+    0: moderngl.ZERO,
+    'a': moderngl.SRC_ALPHA,
+    'da': moderngl.DST_ALPHA,
+    '1-a': moderngl.ONE_MINUS_SRC_ALPHA,
+    '1-da': moderngl.ONE_MINUS_DST_ALPHA,
+}
+
+
 @contextmanager
-def blend_func(ctx, src=moderngl.SRC_ALPHA, dest=moderngl.ONE_MINUS_SRC_ALPHA):
+def blend_func(
+    ctx,
+    src=moderngl.SRC_ALPHA,
+    dest=moderngl.ONE_MINUS_SRC_ALPHA,
+    src_a=moderngl.ONE,
+    dest_a=moderngl.ONE_MINUS_SRC_ALPHA,
+):
     """Override the blending function for the duration of the context."""
-    ctx.blend_func = src, dest
+    src = blend_aliases.get(src, src)
+    dest = blend_aliases.get(dest, dest)
+    src_a = blend_aliases.get(src_a, src_a)
+    dest_a = blend_aliases.get(dest_a, dest_a)
+
+    ctx.blend_func = src, dest, src_a, dest_a
     try:
         yield
     finally:
-        ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        ctx.blend_func = (
+            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
+            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
+        )

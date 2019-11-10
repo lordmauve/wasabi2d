@@ -42,7 +42,7 @@ def make_player(pos, angle=0):
 scene = w2d.Scene(1200, 800)
 scene.chain = [
     w2d.LayerRange()
-    .wrap_effect('trails', alpha=0.6, fade=0.3)
+    .wrap_effect('trails', alpha=0.5, fade=0.1)
     .wrap_effect('bloom', radius=3)
 ]
 
@@ -73,7 +73,7 @@ player2 = make_player(
 )
 player2.score_label = score1
 
-star = scene.layers[0].add_circle(
+star = scene.layers[-1].add_circle(
     radius=40,
     fill=False,
     color=GREEN,
@@ -179,8 +179,7 @@ def collision_pairs(objects):
         open.append((right, o))
 
 
-@w2d.event
-def update(keyboard, dt):
+def update(dt):
     dt = min(dt, 0.5)
     dead = set()
 
@@ -250,6 +249,9 @@ def on_key_down(key):
     if key == keys.ESCAPE:
         score1.text = score2.text = '0'
         score1.value = score2.value = 0
+    elif key == keys.P:
+        w2d.clock.default_clock.paused = not w2d.clock.default_clock.paused
+        return
 
     for ship, _, _, _, shoot_button in controls:
         if shoot_button is key:
@@ -287,4 +289,5 @@ def on_joybutton_down(joy, button):
     ship = controls[joy][0]
     shoot(ship)
 
+w2d.clock.each_tick(update, strong=True)
 w2d.run()

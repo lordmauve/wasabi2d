@@ -9,7 +9,8 @@ from ..allocators.vertlists import VAO
 from .polygons import AbstractShape
 from ..rect import ZRect
 from ..descriptors import CallbackProp
-
+from ..effects.base import PostprocessPass
+from ..shaders import bind_framebuffer, blend_func
 
 #: Shader for a plain color fill
 PLAIN_COLOR = dict(
@@ -130,12 +131,56 @@ void main() {
 )
 
 
+class PolyVAO(VAO):
+    """VAO object that renders with multisampling."""
+
+    #: Fragment program to copy from multisample texture
+    BLEND_PROGRAM = """
+    #version 330 core
+
+    in vec2 uv;
+    out vec4 f_color;
+    uniform sampler2DMS image;
+
+    uniform int samples = 4;
+
+    void main()
+    {
+        vec4 color = vec4(0, 0, 0, 0);
+
+        ivec2 pos = ivec2(uv * textureSize(image));
+
+        for (int i = 0; i < samples; i++) {
+            color += texelFetch(image, pos, i);
+        }
+        if (color.a == 0.0) {
+            discard;
+        }
+        f_color = vec4(
+            color.rgb / color.a,
+            color.a / samples
+        );
+    }
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
+
+    def render(self, camera):
+        samples = self.ctx.max_samples
+        with camera.temporary_fbs(1, 'f2', samples=samples) as (fb,):
+            with bind_framebuffer(self.ctx, fb, clear=True):
+                super().render(camera)
+        self.composite_prog.render(image=fb, samples=samples)
+
+
 def color_vao(
         mode: int,
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a BAO for rendering plain colored objects."""
-    return VAO(
+    return PolyVAO(
         mode=mode,
         ctx=ctx,
         prog=shadermgr.get(**PLAIN_COLOR),
@@ -150,7 +195,7 @@ def line_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
     """Build a VAO for rendering lines."""
-    return VAO(
+    return PolyVAO(
         mode=moderngl.LINE_STRIP_ADJACENCY,
         ctx=ctx,
         prog=shadermgr.get(**WIDE_LINE),

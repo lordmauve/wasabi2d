@@ -64,7 +64,6 @@ class Blur:
         """Resize the effect for this viewport."""
         self.camera = camera
         self._outer_fb = self.ctx.screen
-        self._fb1, self._fb2 = camera._get_temporary_fbs(2, 'f2')
         gauss = gaussian(np.arange(256), 0, 90).astype('f4')
         self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
         self._gauss_tex.repeat_x = False
@@ -74,20 +73,21 @@ class Blur:
         )
 
     def draw(self, draw_layer):
-        with bind_framebuffer(self.ctx, self._fb1, clear=True):
-            draw_layer()
+        with self.camera.temporary_fbs(2, 'f2') as (fb1, fb2):
+            with bind_framebuffer(self.ctx, fb1, clear=True):
+                draw_layer()
 
-        with bind_framebuffer(self.ctx, self._fb2, clear=True):
+            with bind_framebuffer(self.ctx, fb2, clear=True):
+                self._blur.render(
+                    image=fb1,
+                    blur_direction=(0, 1),
+                    radius=self.radius,
+                    gauss_tex=self._gauss_tex,
+                )
+
             self._blur.render(
-                image=self._fb1,
-                blur_direction=(0, 1),
+                image=fb2,
+                blur_direction=(1, 0),
                 radius=self.radius,
                 gauss_tex=self._gauss_tex,
             )
-
-        self._blur.render(
-            image=self._fb2,
-            blur_direction=(1, 0),
-            radius=self.radius,
-            gauss_tex=self._gauss_tex,
-        )

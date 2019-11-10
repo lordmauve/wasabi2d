@@ -24,7 +24,6 @@ STEP_SIZE = 12
 scene = Scene(
     WIDTH,
     HEIGHT,
-    antialias=4,
     title="Lunar Lander",
 )
 

@@ -4,6 +4,7 @@ from wasabi2d.actor import Actor
 
 
 scene = Scene()
+scene.background = 'red'
 
 logo = Actor(
     scene.layers[0].add_sprite(
@@ -11,7 +12,7 @@ logo = Actor(
         pos=(scene.width / 2, scene.height / 2),
     )
 )
-logo.v = Vector2(100, -100)
+logo.v = Vector2(1, -1)
 scene.layers[0].set_effect(
     'trails',
     fade=0.7
@@ -20,7 +21,7 @@ scene.layers[0].set_effect(
 
 @event
 def update(dt):
-    logo.pos += logo.v * dt
+    logo.pos += logo.v
     if logo.top < 0 or logo.bottom >= scene.height:
         logo.v.y *= -1
     if logo.left < 0 or logo.right >= scene.width:

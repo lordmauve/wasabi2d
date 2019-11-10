@@ -95,11 +95,18 @@ def drawing_test(testfunc):
     exactly as per the reference image, using assert_screen_match() as above.
 
     """
+    testname = testfunc.__name__
+
     def wrapper():
-        scn = HeadlessScene(rootdir=ROOT)
-        testfunc(scn)
-        scn.draw(0, 0)
-        assert_screen_match(scn, testfunc.__name__)
+        try:
+            scn = HeadlessScene(rootdir=ROOT)
+            testfunc(scn)
+            scn.draw(0, 0)
+            assert_screen_match(scn, testname)
+        except Exception:
+            failname = ROOT / 'failed-image' / f'{testname}.png'
+            if failname.exists():
+                failname.unlink()
 
     # Can't use functools.wraps() because it copies spec and confuses
     # pytest.
