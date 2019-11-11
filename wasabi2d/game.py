@@ -38,7 +38,7 @@ class DEFAULTICON:
     """Sentinel indicating that we want to use the default icon."""
 
 
-DrawEvent = namedtuple('DrawEvent', 'type t dt')
+DrawEvent = namedtuple('DrawEvent', 'type t dt updated')
 UpdateEvent = namedtuple('UpdateEvent', 'type t dt keyboard')
 ScreenShotEvent = namedtuple('ScreenShotEvent', 'type video')
 
@@ -155,35 +155,44 @@ class EventMapper:
 
         handler = self.handlers.get(event.type)
         if handler:
-            self.need_redraw = True
             handler(event)
             return True
         return False
 
     def run(self):
         """Run the main loop."""
-        clock = pygame.time.Clock()
-
         pgzclock = wasabi2d.clock.clock
 
-        self.need_redraw = True
-        t = 0
+        timefunc = time.monotonic
+        sleepfunc = time.sleep
+        MIN_FRAMETIME = 1 / 60  # 60fps
+
+        t = timefunc()
+        dt = 0.0
+        updated = True  # Need to draw initial scene
         while True:
-            dt = clock.tick(60) / 1000.0
-
-            if self.lock_fps:
-                dt = 1.0 / 60.0
-
-            t += dt
-
             for event in self.get_events():
-                self.dispatch_event(event)
+                updated |= self.dispatch_event(event)
 
-            pgzclock.tick(dt)
+            updated |= pgzclock.tick(dt)
 
             ev = UpdateEvent(UpdateEvent, t, dt, self.keyboard)
-            updated = self.dispatch_event(ev)
+            updated |= self.dispatch_event(ev)
 
-            if updated or pgzclock.fired or self.need_redraw:
-                self.dispatch_event(DrawEvent(DrawEvent, t, dt))
-                self.need_redraw = False
+            # Because the current draw strategy a single draw is
+            # only flipped at the next draw. Therefore we must always issue
+            # a draw event. However we pass the "updated" flag and hope the
+            # renderer can deal with this.
+            self.dispatch_event(DrawEvent(DrawEvent, t, dt, updated))
+
+            # Pygame has a clock class that can do constant framerate, but it
+            # only calculates time in milliseconds, which is not precise enough
+            # when each frame is about 16.7ms.
+            frametime = timefunc() - t
+            delay = max(0, MIN_FRAMETIME - frametime)
+            sleepfunc(delay)
+            dt = timefunc() - t
+            if self.lock_fps:
+                dt = 1.0 / 60.0
+            t += dt
+            updated = False

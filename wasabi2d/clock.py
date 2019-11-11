@@ -360,14 +360,15 @@ class Clock:
                     dead.append(cb)
         self._each_tick = [e for e in self._each_tick if e() not in dead]
 
-    def tick(self, dt):
+    def tick(self, dt: float) -> bool:
         """Update the clock time and fire all scheduled events.
 
         :param dt: The elapsed time in seconds.
+        :return bool: Return True if any callback was triggered.
 
         """
         if self.paused:
-            return
+            return False
         self.fired = False
         self.dt = dt = float(dt)
         self.t += dt
@@ -388,6 +389,7 @@ class Clock:
                 import traceback
                 traceback.print_exc()
                 self.unschedule(cb)
+        return self.fired
 
 
 # One instance of a clock is available by default, to simplify the API

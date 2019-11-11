@@ -212,20 +212,33 @@ class Scene:
         data = self.ctx.screen.read(components=3)
         self._ffmpeg.stdin.write(data)
 
-    def draw(self, t, dt):
-        assert len(self.background) == 3, \
-            "Scene.background must be a 3-element tuple."
-        if self._recording:
-            self._vid_frame()
-        self._flip()
-        self.ctx.clear(*self.background)
-        self.layers._update(self.camera.proj)
-        for op in self.chain:
-            op.draw(self)
+    _fps_query = None
+    fps = 60
+    unflipped = False
 
-    def _flip(self):
-        """The first flip is a no-op; switch in the real flip op."""
-        self._flip = pygame.display.flip
+    def draw(self, t, dt, updated):
+        if self._fps_query:
+            self._fps_query.__exit__(None, None, None)
+            self.fps = 1e9 / self._fps_query.elapsed
+
+        if self.unflipped:
+            if self._recording:
+                self._vid_frame()
+            self._flip()
+
+        if updated:
+            self._fps_query = self.ctx.query(time=True)
+            self._fps_query.__enter__()
+            self.ctx.clear(*self.background)
+            self.layers._update(self.camera.proj)
+            for op in self.chain:
+                op.draw(self)
+            self.unflipped = True
+        else:
+            self._fps_query = None
+            self.unflipped = False
+
+    _flip = staticmethod(pygame.display.flip)
 
 
 class HeadlessScene(Scene):
@@ -279,6 +292,10 @@ class Camera:
     def temporary_fbs(self, num=1, dtype='f1', samples=0):
         """Reserve temporary framebuffer objects of the given dtype.
 
+        It is recommended to use the single-framebuffer version instead of
+        this one; this one encourages reserving framebuffers that you are not
+        yet ready to use, which can result in over-allocation.
+
         The reservation is released when the context exits.
 
         For example::
@@ -302,6 +319,23 @@ class Camera:
             yield reserved
         finally:
             temps.extend(reserved)
+
+    @contextmanager
+    def temporary_fb(self, dtype='f1', samples=0):
+        """Reserve a temporary framebuffer of the given type.
+
+        The reservation is released when the context exits.
+
+        For example:
+
+            with camera.temporary_fb() as fb:
+                with bind_framebuffer(ctx, fb, clear=True):
+                    ... do something clever ...
+                # Use textures attached to fb
+
+        """
+        with self.temporary_fbs(1, dtype, samples) as (fb,):
+            yield fb
 
     def _make_fb(self, dtype='f1', div_x=1, div_y=1, samples=0):
         """Make a new framebuffer corresponding to this viewport."""
