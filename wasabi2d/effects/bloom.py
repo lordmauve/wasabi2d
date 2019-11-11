@@ -51,7 +51,7 @@ uniform sampler2D image;
 uniform float radius;
 uniform vec2 blur_direction;
 
-uniform float threshold;
+uniform float gamma;
 uniform float alpha;
 
 
@@ -63,8 +63,9 @@ float gauss(float off) {
 
 vec3 sample(vec2 pos) {
     vec3 val = texture(image, uv + pos).rgb;
-    float intensity = (val.r + val.g + val.b) / 3;
-    return val * step(threshold, intensity);
+    float lum = dot(val, vec3(0.3, 0.6, 0.1));
+    float intensity = pow(lum, gamma);
+    return val * intensity;
 }
 
 
@@ -92,7 +93,7 @@ void main()
 class Bloom:
     """A light bloom effect."""
     ctx: moderngl.Context
-    threshold: float = 0.3
+    gamma: float = 1.0
     radius: float = 10.0
     intensity: float = 0.5
 
@@ -104,10 +105,6 @@ class Bloom:
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
         self.camera = camera
-        self._threshold_pass = PostprocessPass(
-            self.ctx,
-            THRESHOLD_PROG,
-        )
         self._blur = PostprocessPass(
             self.ctx,
             BLUR_PROG
@@ -127,7 +124,7 @@ class Bloom:
                     with blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
                         self._blur.render(
                             image=fb1,
-                            threshold=self.threshold,
+                            gamma=self.gamma,
                             blur_direction=(0, 1),
                             radius=self.radius,
                             alpha=1.0
@@ -137,7 +134,7 @@ class Bloom:
                 with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
                     self._blur.render(
                         image=fb2,
-                        threshold=0.0,
+                        gamma=1e-6,
                         blur_direction=(1, 0),
                         radius=self.radius,
                         alpha=self.intensity

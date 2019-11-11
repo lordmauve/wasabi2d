@@ -65,7 +65,8 @@ poly.stroke_width = 0
 
 scene.layers[1].set_effect(
     'bloom',
-    threshold=0.9,
+    intensity=0.6,
+    gamma=4,
     radius=50
 )
 particles = scene.layers[1].add_particle_group(
@@ -76,7 +77,7 @@ particles = scene.layers[1].add_particle_group(
     drag=0.5,
 )
 particles.add_color_stop(0, (2, 2, 2, 1))
-particles.add_color_stop(0.3, (2.2, 0.8, 0, 1))
+particles.add_color_stop(0.3, (2.2, 1.0, 0, 1))
 particles.add_color_stop(0, (1, 0, 0, 1))
 particles.add_color_stop(1.0, 'gray')
 particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))

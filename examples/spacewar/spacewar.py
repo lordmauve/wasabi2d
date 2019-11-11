@@ -43,7 +43,7 @@ scene = w2d.Scene(1200, 800)
 scene.chain = [
     w2d.LayerRange()
     .wrap_effect('trails', alpha=0.4, fade=0.08)
-    .wrap_effect('bloom', radius=8, intensity=0.5)
+    .wrap_effect('bloom', radius=8)
 ]
 
 center = Vector2(scene.width, scene.height) * 0.5
