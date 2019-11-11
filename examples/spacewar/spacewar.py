@@ -43,7 +43,7 @@ scene = w2d.Scene(1200, 800)
 scene.chain = [
     w2d.LayerRange()
     .wrap_effect('trails', alpha=0.4, fade=0.08)
-    .wrap_effect('bloom', radius=12, intensity=0.3)
+    .wrap_effect('bloom', radius=8, intensity=0.5)
 ]
 
 center = Vector2(scene.width, scene.height) * 0.5
@@ -57,6 +57,13 @@ score2 = scene.layers[0].add_label(
     color=GREEN
 )
 score1.value = score2.value = 0
+
+fps = scene.layers[0].add_label(
+    'FPS: 60',
+    pos=(10, scene.height - 10),
+    fontsize=20,
+    color=GREEN,
+)
 
 particles = scene.layers[0].add_particle_group(grow=0.1, max_age=2)
 particles.add_color_stop(0, GREEN)
@@ -180,6 +187,7 @@ def collision_pairs(objects):
 
 
 def update(dt):
+    fps.text = f'FPS: {scene.fps:0.1f}'
     dt = min(dt, 0.5)
     dead = set()
 

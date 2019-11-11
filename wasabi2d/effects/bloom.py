@@ -63,7 +63,7 @@ float gauss(float off) {
 
 vec3 sample(vec2 pos) {
     vec3 val = texture(image, uv + pos).rgb;
-    float intensity = val.r + val.g + val.b;
+    float intensity = (val.r + val.g + val.b) / 3;
     return val * step(threshold, intensity);
 }
 
@@ -74,13 +74,11 @@ void main()
     vec3 result = texture(image, uv).rgb; // current fragment's contribution
 
     vec2 lookup_stride = tex_offset * blur_direction;
-    float weight_sum = 1.0;
     float weight;
     int irad = int(radius);
-    for(int i = 1; i < irad; ++i)
+    for(int i = 1; i <= irad; ++i)
     {
         weight = gauss(i);
-        weight_sum += i * 2;
         result += sample(lookup_stride * i) * weight;
         result += sample(lookup_stride * -i) * weight;
     }
@@ -94,7 +92,7 @@ void main()
 class Bloom:
     """A light bloom effect."""
     ctx: moderngl.Context
-    threshold: float = 1.0
+    threshold: float = 0.3
     radius: float = 10.0
     intensity: float = 0.5
 
@@ -120,25 +118,27 @@ class Bloom:
         return PostprocessPass(self.ctx, shader)
 
     def draw(self, draw_layer):
-        with self.camera.temporary_fbs(2, 'f2') as (fb1, fb2):
+        with self.camera.temporary_fb('f1') as fb1:
             with bind_framebuffer(self.ctx, fb1, clear=True):
                 draw_layer()
 
-            with bind_framebuffer(self.ctx, fb2, clear=True):
-                self._blur.render(
-                    image=fb1,
-                    threshold=1.0,
-                    blur_direction=(0, 1),
-                    radius=self.radius,
-                    alpha=1.0
-                )
+            with self.camera.temporary_fb() as fb2:
+                with bind_framebuffer(self.ctx, fb2):
+                    with blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
+                        self._blur.render(
+                            image=fb1,
+                            threshold=self.threshold,
+                            blur_direction=(0, 1),
+                            radius=self.radius,
+                            alpha=1.0
+                        )
 
-            self._copy.render(image=fb1)
-            with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
-                self._blur.render(
-                    image=fb2,
-                    threshold=0.0,
-                    blur_direction=(1, 0),
-                    radius=self.radius,
-                    alpha=self.intensity
-                )
+                self._copy.render(image=fb1)
+                with blend_func(self.ctx, moderngl.SRC_ALPHA, moderngl.ONE):
+                    self._blur.render(
+                        image=fb2,
+                        threshold=0.0,
+                        blur_direction=(1, 0),
+                        radius=self.radius,
+                        alpha=self.intensity
+                    )
