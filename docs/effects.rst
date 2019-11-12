@@ -106,6 +106,35 @@ The effects are described here as separate calls:
         :alt: Example of the drop shadow effect
 
 
+.. method:: Layer.set_effect('greyscale', amount: float=1.0)
+
+    Convert colours to greyscale or partially desaturate them.
+
+    :param amount: The fraction of the colour to remove; 0.0 means keep full
+                   colour, while 1.0 is fully black and white.
+
+    .. versionadded:: 1.3.0
+
+    .. image:: _static/effects/greyscale.png
+        :alt: Examples of the greyscale effect
+
+
+.. method:: Layer.set_effect('sepia', amount: float=1.0)
+
+    Convert colours to sepia.
+
+    Sepia is similar to greyscale effect in that it desaturates, but the sepia
+    spectrum is slightly warmer, like an old photograph.
+
+    :param amount: The fraction of the colour to remove; 0.0 means keep full
+                   colour, while 1.0 is fully sepia.
+
+    .. versionadded:: 1.3.0
+
+    .. image:: _static/effects/sepia.png
+        :alt: Examples of the sepia effect
+
+
 .. method:: Layer.clear_effect()
 
     Remove the active effect.
