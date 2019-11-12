@@ -101,12 +101,15 @@ def drawing_test(testfunc):
         try:
             scn = HeadlessScene(rootdir=ROOT)
             testfunc(scn)
-            scn.draw(0, 0)
+            scn.draw(0, 0, True)
             assert_screen_match(scn, testname)
+        except AssertionError:
+            raise
         except Exception:
             failname = ROOT / 'failed-image' / f'{testname}.png'
             if failname.exists():
                 failname.unlink()
+            raise
 
     # Can't use functools.wraps() because it copies spec and confuses
     # pytest.
