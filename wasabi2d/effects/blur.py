@@ -2,15 +2,9 @@
 from dataclasses import dataclass
 
 import moderngl
-import numpy as np
 
 from ..shaders import bind_framebuffer
 from .base import PostprocessPass
-
-
-def gaussian(x, mu, sig):
-    """Calculate a gaussian function."""
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
 
 # Shader code adapted from https://learnopengl.com/Advanced-Lighting/Bloom
@@ -22,13 +16,13 @@ in vec2 uv;
 out vec4 f_color;
 
 uniform sampler2D image;
-uniform sampler2D gauss_tex;
 uniform float radius;
 uniform vec2 blur_direction;
 
 
 float gauss(float off) {
-    return texture(gauss_tex, vec2(off / radius, 0)).r;
+    float x = off / radius * 2;
+    return exp(x * x / -2.0);
 }
 
 
@@ -64,9 +58,6 @@ class Blur:
         """Resize the effect for this viewport."""
         self.camera = camera
         self._outer_fb = self.ctx.screen
-        gauss = gaussian(np.arange(256), 0, 90).astype('f4')
-        self._gauss_tex = self.ctx.texture((256, 1), 1, data=gauss, dtype='f4')
-        self._gauss_tex.repeat_x = False
         self._blur = PostprocessPass(
             self.ctx,
             BLUR_PROG
@@ -77,17 +68,19 @@ class Blur:
             with bind_framebuffer(self.ctx, fb1, clear=True):
                 draw_layer()
 
+            # Hold onto this for the drop shadow effect to use.
+            # This is very much cheating.
+            self._fb1 = fb1
+
             with bind_framebuffer(self.ctx, fb2, clear=True):
                 self._blur.render(
                     image=fb1,
                     blur_direction=(0, 1),
                     radius=self.radius,
-                    gauss_tex=self._gauss_tex,
                 )
 
             self._blur.render(
                 image=fb2,
                 blur_direction=(1, 0),
                 radius=self.radius,
-                gauss_tex=self._gauss_tex,
             )
