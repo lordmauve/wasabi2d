@@ -10,6 +10,9 @@ only.
     Set the effect for the layer to the given name. Return an object that
     can be used to set the parameters of the effect.
 
+.. method:: Layer.clear_effect()
+
+    Remove the active effect.
 
 Available effects
 -----------------
@@ -135,7 +138,39 @@ The effects are described here as separate calls:
         :alt: Examples of the sepia effect
 
 
-.. method:: Layer.clear_effect()
+.. method:: Layer.set_effect('posterize', levels: int=2, gamma: float=0.7)
 
-    Remove the active effect.
+    Map colours to a reduced palette.
 
+    ``levels`` specifies the number of levels in each channel to reduce to
+    (plus 0); the total number of colours will be ``levels ** 3``. For example,
+    with ``levels=2`` the colours will be black, red, green, blue, yellow,
+    cyan, magenta and white.
+
+    ``gamma`` deserves particular attention. ``gamma`` is applied when
+    calculating how the levels fall in the ``[0, 1]`` interval. When
+    ``gamma=1``, levels will fall at regular intervals. Gamma less than 1
+    dedicates more bands to dark colours, and few bands to light colours;
+    gamma greater than 1 dedicates more bands to light colours, and more to
+    dark colours. The overall brightness of the image does not change so much,
+    but these can give very different effects, perhaps suiting different
+    graphic styles.
+
+    :param levels: The number of levels in each channel.
+    :param gamma: A power expressing the spacing of the levels.
+
+    .. versionadded:: 1.3.0
+
+    .. image:: _static/effects/posterize.png
+        :alt: Examples of the posterize effect
+
+
+.. tip:: Effects Examples
+
+    Each effect has an interactive example in the ``examples/effects/``
+    directory in the `wasabi2d repository`__.
+
+    Try cloning this repository and running the examples in order to better
+    understand the effects.
+
+.. __: https://github.com/lordmauve/wasabi2d/tree/master/examples/effects

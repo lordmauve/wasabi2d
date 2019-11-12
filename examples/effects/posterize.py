@@ -35,7 +35,7 @@ def on_mouse_move(pos):
     x, y = pos
     fracx = x / scene.width
     fracy = y / scene.height
-    effect.levels = round(18 * fracx) + 2
+    effect.levels = round(18 * fracx) + 1
     effect.gamma = 0.2 + 2 * fracy
     levels_label.text = f'Levels: {effect.levels}'
     gamma_label.text = f'Gamma: {effect.gamma:0.2f}'

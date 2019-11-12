@@ -8,9 +8,12 @@ History
 * New: make F12 :ref:`a built-in combination <screenshot>` for
   screenshots/video recording.
 * New: "chains" for more powerful post-processing effect configurations
-* New: fade effect takes an ``alpha`` parameter
+* New: ``trails`` effect takes an ``alpha`` parameter
+* New: ``bloom`` effects takes ``gamma`` and ``intensity`` parameters
+* New: shape primitives are drawn with antialiasing
 * New: tone generation supports square and saw waves
-* New: add a ``pixellate`` :doc:`post-processing effect <effects>`.
+* New: add ``pixellate``, ``greyscale``, ``sepia`` and ``posterize``
+  :doc:`post-processing effects <effects>`.
 * Fix: add missing documentation for ``Layer.add_line()``
 * Fix: grow a single texture atlas rather than allocating multiple. This
   removes a limit on how many unique text characters can be drawn with a single
