@@ -32,3 +32,16 @@ def test_greyscale(scene):
             (scene.height / 2 - 8) / photo.height
         )
         scene.layers[i].set_effect('greyscale', amount=i / 4)
+
+
+@drawing_test
+def test_posterize(scene):
+    """We can posterize an image."""
+    coords = grid_coords((2, 2), (scene.width, scene.height))
+    for i, pos in enumerate(coords, start=1):
+        photo = scene.layers[i].add_sprite('positano', pos=pos)
+        photo.scale = min(
+            (scene.width / 2 - 8) / photo.width,
+            (scene.height / 2 - 8) / photo.height
+        )
+        scene.layers[i].set_effect('posterize', levels=3 + i, gamma=0.5 * i)

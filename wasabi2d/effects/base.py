@@ -83,5 +83,8 @@ class PostprocessPass:
                 v = texnum
                 texnum += 1
 
-            self.prog[k].value = v
+            if isinstance(v, np.ndarray):
+                self.prog[k].write(v)
+            else:
+                self.prog[k].value = v
         self.vao.render(moderngl.TRIANGLES, 6)

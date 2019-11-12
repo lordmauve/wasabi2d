@@ -31,9 +31,6 @@ vec3 linear_to_srgb(vec3 lrgb) {
 void main()
 {
     vec4 frag = texture(image, uv);
-    if (frag.a < 1e-6) {
-        discard;
-    }
     vec3 rgb = frag.rgb;
     if (frag.a > 1e-6) {
         rgb /= frag.a;
@@ -72,5 +69,5 @@ class BaseMatrix(metaclass=abc.ABCMeta):
 
             self._color_mat.render(
                 image=fb,
-                color_matrix=tuple(self.get_matrix().reshape(-1)),
+                color_matrix=self.get_matrix(),
             )
