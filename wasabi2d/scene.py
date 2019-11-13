@@ -286,6 +286,7 @@ class Camera:
         self._cam_vel = np.zeros(2, dtype='f4')
         self._pos = np.zeros(2, dtype='f4')
         self._fbs = {}
+        self._shader_passes = {}
         self.pos = hw, hh
 
     @contextmanager
@@ -337,6 +338,10 @@ class Camera:
         with self.temporary_fbs(1, dtype, samples) as (fb,):
             yield fb
 
+    def bind_framebuffer(self, fb, clear=True):
+        """Bind a framebuffer during the context."""
+        return bind_framebuffer(self.ctx, fb, clear=clear)
+
     def _make_fb(self, dtype='f1', div_x=1, div_y=1, samples=0):
         """Make a new framebuffer corresponding to this viewport."""
         tex = self.ctx.texture(
@@ -347,6 +352,23 @@ class Camera:
         )
         tex.repeat_x = tex.repeat_y = False
         return self.ctx.framebuffer([tex])
+
+    def run_shader(self, fragment_shader: str, **uniforms):
+        """Execute a fragment shader over the viewport.
+
+        The actual program and buffers will be cached and re-used.
+
+        Uniforms may be given as keyword arguments. Be sure to specify all
+        uniforms, as reusing a program will mean that previously set values
+        will be used.
+
+        """
+        shader_pass = self._shader_passes.get(fragment_shader)
+        if shader_pass is None:
+            from .effects.base import PostprocessPass
+            shader_pass = PostprocessPass(self.ctx, fragment_shader)
+            self._shader_passes[fragment_shader] = shader_pass
+        shader_pass.render(**uniforms)
 
     @property
     def pos(self):

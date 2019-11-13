@@ -7,7 +7,9 @@ History
 * New: add a :doc:`coroutine system <coros>`
 * New: make F12 :ref:`a built-in combination <screenshot>` for
   screenshots/video recording.
-* New: "chains" for more powerful post-processing effect configurations
+* New: The :ref:`chain`, for more powerful post-processing effect
+  configurations
+* New: ``Mask`` chain effect.
 * New: ``trails`` effect takes an ``alpha`` parameter
 * New: ``bloom`` effects takes ``gamma`` and ``intensity`` parameters
 * New: shape primitives are drawn with antialiasing

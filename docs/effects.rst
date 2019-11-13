@@ -14,6 +14,7 @@ only.
 
     Remove the active effect.
 
+
 Available effects
 -----------------
 
@@ -174,3 +175,99 @@ The effects are described here as separate calls:
     understand the effects.
 
 .. __: https://github.com/lordmauve/wasabi2d/tree/master/examples/effects
+
+
+.. _chain:
+
+
+The Chain
+---------
+
+.. versionadded:: 1.3.0
+
+So far we've seen effects that apply to just one layer. This is a pretty quick
+way to get impressive results.
+
+However, this system is limited to acting on one layer at a time, and one
+effect at a time.
+
+To better customise rendering, we need to take a different approach; this is
+called **the chain**.
+
+.. attribute:: scene.chain
+
+    A list of ChainNodes that define how the scene is rendered. The list is
+    rendered in order, so later items render on top of earlier items.
+
+    The default value for a new scene is::
+
+        scene.chain = [wasabi2d.chain.LayerRange()]
+
+This gives the default strategy for rendering the scene: to simply render
+all layers from back (lowest id) to front (highest id). This is implemented
+by the LayerRange node:
+
+.. autoclass:: wasabi2d.chain.LayerRange
+
+There's a similar class that makes it easier to nominate specific layers:
+
+.. autoclass:: wasabi2d.chain.Layers
+
+
+Each of these classes subclasses `ChainNode`, which means that they can be
+wrapped in an effect. Effects can also be wrapped in effects.
+
+
+.. autoclass:: wasabi2d.chain.ChainNode
+    :members:
+
+
+.. tip::
+
+    Layers are, fundamentally, for organising primitives. The chain is for
+    configuring how the scene renders, even as layers come and go.
+
+    Layer effects straddle this: they apply to layers, but affect how the
+    scene renders. Think of this as a convenience - a way of getting started
+    with effects, before putting them onto the chain.
+
+
+Chain-Only Effects
+------------------
+
+In addition to applying the above effects, some effects can only be applied
+via the chain.
+
+.. class:: wasabi2d.chain.Mask
+
+    Paint one node, ``paint`` multiplied by the alpha channel from another
+    node, the ``mask``.
+
+    .. attribute:: paint
+
+        A chain node that will be painted, subject to the mask.
+
+    .. attribute:: mask
+
+        A chain node that forms the mask. Only the alpha channel from this node
+        is used.
+
+    For example::
+
+        scene.chain = [
+            w2d.chain.Mask(
+                w2d.chain.Layers([1]),
+                w2d.chain.LayerRange(stop=0),
+            )
+        ]
+
+    This code uses layer 1 as a mask for all layers 0 and below. Now if we put
+    an opaque circle on layer 1, and a photo on layer 0::
+
+        scene.layers[0].add_sprite('positano', pos=center)
+        scene.layers[1].add_circle(radius=200, pos=center)
+
+    It renders like this:
+
+    .. image:: _static/effects/mask.png
+        :alt: Examples of rendering an image inside a mask

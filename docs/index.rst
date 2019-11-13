@@ -27,9 +27,9 @@ Wasabi2d is
 
     intro
     scene
-    effects
     primitives
     particles
+    effects
     events
     sound
     animation
