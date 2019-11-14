@@ -1,6 +1,7 @@
 .. image:: _static/wasabi2d.png
     :alt: Welcome to Wasabi2d
 
+
 Wasabi2d is a game engine for Python, making it easy to use fast, modern
 graphical effects without low-level OpenGL programming.
 
@@ -20,6 +21,10 @@ Wasabi2d is
 * Fully featured; wasabi2d does not just support graphics but screenshots,
   sound, music, tones, storage and more.
 
+.. rst-class:: minititle
+
+Table of Contents
+=================
 
 .. toctree::
     :maxdepth: 2
