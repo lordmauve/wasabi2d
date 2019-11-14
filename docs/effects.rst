@@ -240,8 +240,9 @@ via the chain.
 
 .. class:: wasabi2d.chain.Mask
 
-    Paint one node, ``paint`` multiplied by the alpha channel from another
-    node, the ``mask``.
+    Paint one node, ``paint`` masked by another node, the ``mask``. By default,
+    the paint layer is drawn where the mask is opaque; other functions are
+    available.
 
     .. attribute:: paint
 
@@ -251,6 +252,16 @@ via the chain.
 
         A chain node that forms the mask. Only the alpha channel from this node
         is used.
+
+    .. attribute:: function
+
+        One of ``inside``, ``outside``, or ``luminance``. Defines what aspect
+        of the mask layer is used to calculate the alpha channel:
+
+        * ``inside`` - draw the paint layer where the mask is opaque.
+        * ``outside`` - draw the paint layer where the mask is transparent.
+        * ``luminance`` - draw the paint layer with more opacity where the mask
+          is bright (white), and more transparency where it is dark.
 
     For example::
 

@@ -3,6 +3,7 @@ from typing import Optional, List
 from dataclasses import dataclass
 from functools import partial
 import importlib
+from collections import Counter
 
 import numpy as np
 
@@ -66,6 +67,40 @@ class Layers(ChainNode):
                 scene.layers[layer_num]._draw()
 
 
+def to_node(val):
+    """Convert a user-provided value to a ChainNode.
+
+    This allows several shortcuts for specifying layers to a node.
+    """
+    if isinstance(val, ChainNode):
+        return val
+
+    if isinstance(val, int):
+        return Layers([val])
+
+    if isinstance(val, list):
+        types = Counter(map(type, val))
+
+        if len(types) == 1:
+            typ, _ = types.popitem()
+            if typ is int:
+                return Layers(val)
+
+        return Merge([to_node(v) for v in val])
+
+    raise TypeError(f"Cannot convert {val!r} to ChainNode.")
+
+
+@dataclass
+class Merge(ChainNode):
+    """Draw each of the given chain nodes in order."""
+    nodes: List[ChainNode]
+
+    def draw(self, scene):
+        for node in self.nodes:
+            node.draw(scene)
+
+
 class Effect(ChainNode):
     """Apply a post-processing effect to the contained subchain."""
     __slots__ = (
@@ -73,9 +108,11 @@ class Effect(ChainNode):
     )
 
     def __init__(self, child_node: ChainNode, effect: str, params: dict):
+        child_node = to_node(child_node)
+
         mod = importlib.import_module(f'wasabi2d.effects.{effect}')
         cls = getattr(mod, effect.title())
-        self._effect_keys = set(effect.__dataclass_fields__)
+        self._effect_keys = set(cls.__dataclass_fields__)
 
         unexpected = params.keys() - self._effect_keys
         if unexpected:
@@ -123,14 +160,22 @@ uniform sampler2D mask;
 void main()
 {
     vec4 paint_frag = texture(paint, uv);
-    float mask_a = texture(mask, uv).a;
+    vec4 mask = texture(mask, uv);
 
-    if (paint_frag.a * mask_a < 1e-6) {
+    float a = %s;
+
+    if (paint_frag.a * a < 1e-6) {
         discard;
     }
-    f_color = vec4(paint_frag.rgb / paint_frag.a, paint_frag.a * mask_a);
+    f_color = vec4(paint_frag.rgb / paint_frag.a, paint_frag.a * a);
 }
 """
+
+MASK_FUNCS = {
+    'inside': 'mask.a',
+    'outside': '1 - mask.a',
+    'luminance': 'dot(mask.rgb, vec3(0.3, 0.6, 0.1))',
+}
 
 
 @dataclass
@@ -139,6 +184,11 @@ class Mask(ChainNode):
 
     mask: ChainNode
     paint: ChainNode
+    function: str = 'inside'
+
+    def __post_init__(self):
+        self.mask = to_node(self.mask)
+        self.paint = to_node(self.paint)
 
     def draw(self, scene):
         """Draw the effect."""
@@ -152,7 +202,7 @@ class Mask(ChainNode):
                 self.paint.draw(scene)
 
             camera.run_shader(
-                MASK_PROG,
+                MASK_PROG % MASK_FUNCS[self.function],
                 paint=paint_fb,
                 mask=mask_fb,
             )
