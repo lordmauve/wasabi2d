@@ -22,7 +22,8 @@ many ways to specify color:
 
 * tuples of 3 or 4 floats between 0 and 1 - RGB or RGBA, respectively. If 3
   numbers are given then the alpha value will be 1 (ie. opaque).
-* Pygame color names like ``white``, ``yellow`` etc,
+* Color names like ``white``, ``yellow`` etc. See :doc:`colors_ref` for a list
+  of the color names.
 * Hex RGB or RGBA color codes like ``#eecc66`` or ``#eecc6688``
 
 While color channel values of 0-1 map directly to what a computer display can
@@ -139,6 +140,11 @@ Circles
     * `stroke_width` - `int` if `fill` is `False`, this is the width of the
       line that will be drawn.
 
+
+.. figure:: _static/primitives/circles.png
+
+    Circles, drawn filled and unfilled, with different stroke widths, colours,
+    and opacities.
 
 Stars
 -----

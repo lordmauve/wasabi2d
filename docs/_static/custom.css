@@ -44,4 +44,22 @@ div.body h1 {
 div.body h2,
 div.sphinxsidebar h3 {
     font-size: 16pt;
+    clear: both;
+}
+
+.color-swatch {
+    display: inline-block;
+    vertical-align: top;
+    width: 160px;
+    height: 40px;
+    padding: 20px;
+    text-align: center;
+    border-style: solid;
+    border-width: 1px;
+    margin: 0 5px 5px 0;
+}
+
+.color-swatch code {
+    color: inherit;
+    background-color: transparent;
 }
