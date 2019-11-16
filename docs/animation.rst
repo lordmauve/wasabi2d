@@ -21,25 +21,27 @@ screen to the position ``(100, 100)``::
 The tween argument can be one of the following:
 
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'linear'           | Animate at a constant speed from start to finish     | .. image:: _static/tween/linear.png           |
+| Name               | Description                                          | Plot (x = t, y = tween(t))                    |
++====================+======================================================+===============================================+
+| ``linear``         | Animate at a constant speed from start to finish     | .. image:: _static/tween/linear.png           |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'accelerate'       | Start slower and accelerate to finish                | .. image:: _static/tween/accelerate.png       |
+| ``accelerate``     | Start slower and accelerate to finish                | .. image:: _static/tween/accelerate.png       |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'decelerate'       | Start fast and decelerate to finish                  | .. image:: _static/tween/decelerate.png       |
+| ``decelerate``     | Start fast and decelerate to finish                  | .. image:: _static/tween/decelerate.png       |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'accel_decel'      | Accelerate to mid point and decelerate to finish     | .. image:: _static/tween/accel_decel.png      |
+| ``accel_decel``    | Accelerate to mid point and decelerate to finish     | .. image:: _static/tween/accel_decel.png      |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'in_elastic'       | Give a little wobble at the end                      | .. image:: _static/tween/in_elastic.png       |
+| ``in_elastic``     | Give a little wobble at the end                      | .. image:: _static/tween/in_elastic.png       |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'out_elastic'      | Have a little wobble at the start                    | .. image:: _static/tween/out_elastic.png      |
+| ``out_elastic``    | Have a little wobble at the start                    | .. image:: _static/tween/out_elastic.png      |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'in_out_elastic'   | Have a wobble at both ends                           | .. image:: _static/tween/in_out_elastic.png   |
+| ``in_out_elastic`` | Have a wobble at both ends                           | .. image:: _static/tween/in_out_elastic.png   |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'bounce_end'       | Accelerate to the finish and bounce there            | .. image:: _static/tween/bounce_end.png       |
+| ``bounce_end``     | Accelerate to the finish and bounce there            | .. image:: _static/tween/bounce_end.png       |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'bounce_start'     | Bounce at the start                                  | .. image:: _static/tween/bounce_start.png     |
+| ``bounce_start``   | Bounce at the start                                  | .. image:: _static/tween/bounce_start.png     |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
-| 'bounce_start_end' | Bounce at both ends                                  | .. image:: _static/tween/bounce_start_end.png |
+|``bounce_start_end``| Bounce at both ends                                  | .. image:: _static/tween/bounce_start_end.png |
 +--------------------+------------------------------------------------------+-----------------------------------------------+
 
 The ``animate()`` function returns an ``Animation`` instance:

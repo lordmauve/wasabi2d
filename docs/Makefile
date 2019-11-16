@@ -15,7 +15,7 @@ help:
 .PHONY: help Makefile generated_rst
 
 generated_rst:
-	@-/bin/true && python _scripts/update_tweener_generated_rst.py || echo "WARNING: Could not build images; reusing cached files"
+	@-/bin/true && python _scripts/update_tweener_plots.py || echo "WARNING: Could not build images; reusing cached files"
 	@-/bin/true && python _scripts/update_colors.py || echo "WARNING: Could not build color table; reusing cached files"
 
 
