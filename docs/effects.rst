@@ -284,6 +284,59 @@ via the chain.
         :alt: Examples of rendering an image inside a mask
 
 
+.. class:: wasabi2d.chain.DisplacementMap
+
+    Paint one node, ``paint`` offset by the image given by the ``displacement``
+    node.
+
+    The colour channels of the displacement layer give the offset to displace
+    by; the alpha channel selects how much of the paint layer to show (much
+    like a mask).
+
+    By default, the red channel of the displacement layer controls x offset,
+    while the green channel controls y offset. This can be overridden by
+    setting the ``x_channel`` and ``y_channel`` attributes.
+
+    The value of the offset is calculated as distance from the 0.5 mid-point.
+    A mid grey - ``#7f7f7f`` - represents no offset.
+
+    .. attribute:: paint
+
+        A chain node that will be painted, subject to the mask.
+
+    .. attribute:: displacement
+
+        A chain node that gives the displacement (And alpha value).
+
+    .. attribute:: scale
+
+        The distance that is offset at maximum.
+
+    For example::
+
+        scene.chain = [
+            w2d.chain.LayerRange(stop=0),
+            w2d.chain.DisplacementMap(
+                displacement=w2d.chain.Layers([1]),
+                paint=w2d.chain.LayerRange(stop=0),
+                scale=400
+            )
+        ]
+
+    This code renders layers below 0 normally, as well as drawing layer 1 with
+    a "refraction" of those layers.
+
+    A displacement map that gives a lens-like effect might be this one:
+
+    .. image:: _static/effects/lens.png
+        :alt: Example lens image
+
+    It renders like this:
+
+    .. image:: _static/effects/displacement.png
+        :alt: Examples of rendering a displacement effect
+
+
 .. class:: wasabi2d.chain.Fill
 
     Fill the scene with a colour.
