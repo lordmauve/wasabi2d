@@ -10,6 +10,7 @@ History
 * New: The :ref:`chain`, for more powerful post-processing effect
   configurations
 * New: ``Mask`` chain effect.
+* New: ``DisplacementMap`` chain effect.
 * New: ``trails`` effect takes an ``alpha`` parameter
 * New: ``bloom`` effects takes ``gamma`` and ``intensity`` parameters
 * New: shape primitives are drawn with antialiasing
