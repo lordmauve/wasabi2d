@@ -20,7 +20,7 @@ photo.scale = max(
 
 
 def make_lens():
-    sz = 100
+    sz = 800
     surf = pygame.Surface((sz, sz), depth=32, flags=pygame.SRCALPHA)
     center = sz * 0.5
     for y in range(sz):
@@ -28,9 +28,9 @@ def make_lens():
             off = np.array([x, sz - y]) - center
             off /= center
 
-            dist = np.sqrt(np.sum(off * off))
+            dist = np.sum(off * off)
             color = (
-                *np.clip(127 + 127 * (off * dist ** 2 - off), 0, 255),
+                *np.clip(127.5 - 64 * off - 64 * off * dist, 0, 255),
                 dist,
                 0 if dist > 1 else 255
             )
@@ -39,10 +39,10 @@ def make_lens():
     pygame.image.save(surf, str(Path(__file__).parent / 'images/lens.png'))
 
 
-make_lens()
+#make_lens()
 
 lens = scene.layers[1].add_sprite(
-    'lens',
+    'lens_8x',
     pos=center,
 )
 
@@ -51,7 +51,7 @@ scene.chain = [
     w2d.chain.DisplacementMap(
         displacement=w2d.chain.Layers([1]),
         paint=w2d.chain.LayerRange(stop=0),
-        scale=100
+        scale=400
     )
 ]
 

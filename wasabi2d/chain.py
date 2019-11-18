@@ -266,7 +266,7 @@ void main()
     float r = unpremultiplied.r;
     float g = unpremultiplied.g;
     float b = unpremultiplied.b;
-    vec2 offset = (vec2(%s, %s) - vec2(0.5, 0.5)) * scale;
+    vec2 offset = (vec2(%s, %s) - vec2(0.5, 0.5)) * (2.0 * scale);
 
     vec4 paint_frag = texture(paint, uv + offset / textureSize(paint, 0));
     if (paint_frag.a < 1e-6) {
