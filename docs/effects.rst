@@ -282,3 +282,16 @@ via the chain.
 
     .. image:: _static/effects/mask.png
         :alt: Examples of rendering an image inside a mask
+
+
+.. class:: wasabi2d.chain.Fill
+
+    Fill the scene with a colour.
+
+    Overwrites everything, even if the colour given has partial transparency.
+
+    This is primarily useful as input to an effect like Mask.
+
+    .. attribute:: color
+
+        The colour that will be used to fill the buffer.

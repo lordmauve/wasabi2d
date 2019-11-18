@@ -1,11 +1,13 @@
 """Classes for representing the render graph."""
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dataclasses import dataclass
 from functools import partial
 import importlib
 from collections import Counter
 
 import numpy as np
+
+from .color import convert_color
 
 
 class ChainNode:
@@ -206,3 +208,29 @@ class Mask(ChainNode):
                 paint=paint_fb,
                 mask=mask_fb,
             )
+
+
+class Fill(ChainNode):
+    """Fill the screen with a single colour.
+
+    This can be useful as input to another chain node, such as a mask. Note
+    that ``Scene.background`` is also available if you simply want to clear
+    the screen to a certain colour before rendering.
+
+    """
+    color: Tuple[float, float, float, float]
+
+    def __init__(self, color):
+        self.color = color
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, v):
+        self._color = convert_color(v)
+
+    def draw(self, scene):
+        """Draw the effect."""
+        scene.ctx.clear(*self._color)

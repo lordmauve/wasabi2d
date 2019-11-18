@@ -96,3 +96,14 @@ def test_mask_luminance(scene):
             function='luminance',
         ).wrap_effect('dropshadow', offset=(10, 10))
     ]
+
+
+@drawing_test
+def test_fill(scene):
+    """We can fill the scene."""
+    scene.background = 'white'
+    scene.chain = [
+        chain.Fill(
+            color='tomato'
+        )
+    ]
