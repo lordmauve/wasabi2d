@@ -221,9 +221,10 @@ class Scene:
             self._fps_query.__exit__(None, None, None)
             self.fps = 1e9 / self._fps_query.elapsed
 
+        if self._recording:
+            self._vid_frame()
+
         if self.unflipped:
-            if self._recording:
-                self._vid_frame()
             self._flip()
 
         if updated:
