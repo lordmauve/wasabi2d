@@ -310,7 +310,17 @@ via the chain.
 
     .. attribute:: scale
 
-        The distance that is offset at maximum.
+        A float; the distance that is offset at maximum.
+
+    .. attribute:: x_channel
+
+        Either ``'r'``, ``'g'``, or ``'b'``: the channel that gives the offset
+        in the *x* direction.
+
+    .. attribute:: y_channel
+
+        Either ``'r'``, ``'g'``, or ``'b'``: the channel that gives the offset
+        in the *y* direction.
 
     For example::
 
