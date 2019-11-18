@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from functools import partial
 import importlib
 from collections import Counter
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -180,6 +181,21 @@ MASK_FUNCS = {
 }
 
 
+@contextmanager
+def rendered_node(scene, node):
+    """Context manager to render a node to a temporary framebuffer.
+
+    The framebuffer is reserved for the duration of the context, but then
+    released.
+
+    """
+    camera = scene.camera
+    with camera.temporary_fb() as fb:
+        with camera.bind_framebuffer(fb):
+            node.draw(scene)
+        yield fb
+
+
 @dataclass
 class Mask(ChainNode):
     """Draw one 'paint' layer only where the 'mask' layer is opaque."""
@@ -194,19 +210,12 @@ class Mask(ChainNode):
 
     def draw(self, scene):
         """Draw the effect."""
-        camera = scene.camera
-        with camera.temporary_fb() as mask_fb:
-            with camera.bind_framebuffer(mask_fb):
-                self.mask.draw(scene)
-
-            with camera.temporary_fb() as paint_fb, \
-                    camera.bind_framebuffer(paint_fb):
-                self.paint.draw(scene)
-
-            camera.run_shader(
+        with rendered_node(scene, self.mask) as mask, \
+                rendered_node(scene, self.paint) as paint:
+            scene.camera.run_shader(
                 MASK_PROG % MASK_FUNCS[self.function],
-                paint=paint_fb,
-                mask=mask_fb,
+                paint=paint,
+                mask=mask,
             )
 
 
@@ -234,3 +243,57 @@ class Fill(ChainNode):
     def draw(self, scene):
         """Draw the effect."""
         scene.ctx.clear(*self._color)
+
+
+DISPLACEMENT_PROG = """ \
+#version 330 core
+
+in vec2 uv;
+out vec4 f_color;
+uniform sampler2D paint;
+uniform sampler2D displacement;
+uniform float scale;
+
+
+void main()
+{
+    vec4 disp_frag = texture(displacement, uv);
+
+    if (disp_frag.a < 1e-6) {
+        discard;
+    }
+    vec3 unpremultiplied = disp_frag.rgb / disp_frag.a;
+    float r = unpremultiplied.r;
+    float g = unpremultiplied.g;
+    float b = unpremultiplied.b;
+    vec2 offset = (vec2(%s, %s) - vec2(0.5, 0.5)) * scale;
+
+    vec4 paint_frag = texture(paint, uv + offset / textureSize(paint, 0));
+    if (paint_frag.a < 1e-6) {
+        discard;
+    }
+    f_color = vec4(paint_frag.rgb / paint_frag.a, paint_frag.a * disp_frag.a);
+}
+"""
+
+
+@dataclass
+class DisplacementMap(ChainNode):
+    """Offset one input using the values of another."""
+
+    paint: ChainNode
+    displacement: ChainNode
+    scale: float = 10.0
+    x_channel: str = 'r'
+    y_channel: str = 'g'
+
+    def draw(self, scene):
+        """Draw the effect."""
+        with rendered_node(scene, self.displacement) as disp, \
+                rendered_node(scene, self.paint) as paint:
+            scene.camera.run_shader(
+                DISPLACEMENT_PROG % (self.x_channel, self.y_channel),
+                paint=paint,
+                displacement=disp,
+                scale=self.scale
+            )
