@@ -54,12 +54,11 @@ class Scene:
 
         pygame.init()
         self.drawer = Drawer()
+        self.width = width
+        self.height = height
+
         ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
-
-        # Actual context may be a different size to expected
-        self.width = ctx.screen.width
-        self.height = ctx.screen.height
 
         self.title = title
 
@@ -92,7 +91,9 @@ class Scene:
             k = getattr(pygame, k)
             pygame.display.gl_set_attribute(k, v)
 
-        flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.SCALED
+        flags = pygame.OPENGL | pygame.DOUBLEBUF
+        if self._scaler:
+            flags |= pygame.SCALED
         pygame.display.set_mode(
             (width, height),
             flags=flags,
