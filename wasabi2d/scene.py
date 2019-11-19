@@ -17,7 +17,7 @@ from .layers import LayerGroup
 from .loaders import set_root
 from .color import convert_color_rgb
 from .chain import LayerRange
-from .shaders import bind_framebuffer
+from .shaders import bind_framebuffer, blend_func
 
 
 def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
@@ -39,8 +39,10 @@ class Scene:
             width=800,
             height=600,
             title="wasabi2d",
-            rootdir=None):
+            rootdir=None,
+            scaler=None):
         self._recording = False
+        self._scaler = scaler
 
         if rootdir is None:
             try:
@@ -51,6 +53,7 @@ class Scene:
         set_root(rootdir)
 
         pygame.init()
+        self.drawer = Drawer()
         ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
 
@@ -89,13 +92,17 @@ class Scene:
             k = getattr(pygame, k)
             pygame.display.gl_set_attribute(k, v)
 
+        flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.SCALED
         pygame.display.set_mode(
             (width, height),
-            flags=pygame.OPENGL | pygame.DOUBLEBUF,
+            flags=flags,
             depth=24
         )
-
         ctx = moderngl.create_context(require=410)
+
+        real_size = pygame.display.get_window_size()
+        if real_size != (width, height):
+            self.drawer = ScaledDrawer(ctx, (width, height))
         return ctx
 
     @property
@@ -230,16 +237,54 @@ class Scene:
         if updated:
             self._fps_query = self.ctx.query(time=True)
             self._fps_query.__enter__()
-            self.ctx.clear(*self.background)
             self.layers._update(self.camera.proj)
-            for op in self.chain:
-                op.draw(self)
+            self.drawer.draw(self)
             self.unflipped = True
         else:
             self._fps_query = None
             self.unflipped = False
 
     _flip = staticmethod(pygame.display.flip)
+
+
+class Drawer:
+    """Render the scene using the chain."""
+    def draw(self, scene):
+        scene.ctx.clear(*scene.background)
+        for op in scene.chain:
+            op.draw(scene)
+
+
+class ScaledDrawer(Drawer):
+    """Render the scene using the chain, but scaled."""
+    def __init__(self, ctx, logical_size):
+        self.tex = ctx.texture(
+            logical_size,
+            3,
+            dtype='f1',
+        )
+        self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self._fb = ctx.framebuffer(color_attachments=[self.tex])
+
+    def draw(self, scene):
+        with scene.camera.bind_framebuffer(self._fb):
+            super().draw(scene)
+        with blend_func(scene.ctx, moderngl.ONE, moderngl.ZERO):
+            scene.camera.run_shader(
+                """\
+#version 330 core
+
+in vec2 uv;
+out vec4 f_color;
+uniform sampler2D image;
+
+void main()
+{
+    f_color = texture(image, uv);
+}
+""",
+                image=self.tex,
+            )
 
 
 class HeadlessScene(Scene):
