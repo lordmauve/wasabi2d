@@ -161,7 +161,7 @@ class SpriteArray:
         if self.vao:
             self.vao.release()
             self.vbo.release()
-            self.uvo.release()
+            self.uvbo.release()
             self.ibuf.release()
 
     def __del__(self):
