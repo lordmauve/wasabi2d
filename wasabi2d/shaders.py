@@ -56,6 +56,10 @@ class ShaderManager:
                 continue
             uniform.write(proj.tobytes())
 
+    def __del__(self):
+        for prog in self.programs.values():
+            prog.release()
+
 
 def shadermgr(ctx: moderngl.Context) -> ShaderManager:
     """Shortcut to get or create the shader manager for a context."""

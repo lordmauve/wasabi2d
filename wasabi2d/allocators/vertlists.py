@@ -161,17 +161,22 @@ class IndirectBuffer:
             [vs, insts, base_idx, base_v, base_inst],
             dtype='u4'
         )
-        self.buffer = None
+        self._release()
         return key
+
+    def _release(self):
+        if self.buffer:
+            self.buffer.release()
+            self.buffer = None
 
     def __delitem__(self, key):
         del self.allocations[key]
-        self.buffer = None
+        self._release()
 
     def __setitem__(self, key, vals):
         assert len(vals) == 5, "Invalid indirect draw command"
         self.allocations[key][:] = vals
-        self.buffer = None
+        self._release()
 
 
 class MemoryBackedBuffer:
@@ -203,7 +208,9 @@ class MemoryBackedBuffer:
         new_array[:len(self.array)] = self.array
         self.array = new_array
         self.allocator.grow(new_size)
-        self.buffer = None
+        if self.buffer:
+            self.buffer.release()
+            self.buffer = None
         self.on_resize(self.array)
 
     def get_buffer(self, dirty=False) -> moderngl.Buffer:
@@ -229,6 +236,11 @@ class MemoryBackedBuffer:
     def free(self, offset: typing.Union[int, slice]):
         """Free the allocation."""
         self.allocator.free(offset)
+
+    def __del__(self):
+        """Delete the buffer."""
+        if self.buffer:
+            self.buffer.release()
 
 
 class VAO:
@@ -379,3 +391,4 @@ class VAO:
             )
         else:
             self.indirect.render_direct(vao, self.mode)
+        vao.release()

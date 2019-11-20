@@ -100,6 +100,7 @@ class TexSurface:
                 blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
             vao.render(vertices=6)
         self._dirty = True
+        self.tex.release()
         self.tex = newtex
 
     def write(self, img: pygame.Surface, rect: pygame.Rect):
@@ -129,6 +130,9 @@ class TexSurface:
     def use(self, texunit: int):
         """Shortcut to bind the texture to a texture unit."""
         self.tex.use(texunit)
+
+    def __del__(self):
+        self.tex.release()
 
 
 @dataclass

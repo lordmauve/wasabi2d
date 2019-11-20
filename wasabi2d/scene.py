@@ -400,6 +400,11 @@ class Camera:
         tex.repeat_x = tex.repeat_y = False
         return self.ctx.framebuffer([tex])
 
+    def __del__(self):
+        for fbs in self._fbs.values():
+            for fb in fbs:
+                fb.release()
+
     def run_shader(self, fragment_shader: str, **uniforms):
         """Execute a fragment shader over the viewport.
 

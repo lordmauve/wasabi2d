@@ -48,6 +48,7 @@ class SpriteArray:
         self.ctx = ctx
         self.prog = prog
         self.sprites = list(sprites)
+        self.vao = None
         self._allocate()
 
     def _allocate(self):
@@ -75,6 +76,7 @@ class SpriteArray:
             + [np.zeros((4 * extra, 7), dtype='f4')]
         )
 
+        self._release()
         self.vbo = self.ctx.buffer(self.verts, dynamic=True)
         self.uvbo = self.ctx.buffer(self.uvs)
         self.ibuf = self.ctx.buffer(self.indexes)
@@ -154,6 +156,16 @@ class SpriteArray:
             self.uvbo.write(self.uvs)
             self._dirty = False
         self.vao.render(vertices=self.allocated * 6)
+
+    def _release(self):
+        if self.vao:
+            self.vao.release()
+            self.vbo.release()
+            self.uvo.release()
+            self.ibuf.release()
+
+    def __del__(self):
+        self._release()
 
 
 class Sprite(Colorable, Transformable):

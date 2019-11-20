@@ -50,6 +50,7 @@ class Trails:
     clock: Clock = default_clock
 
     camera: 'wasabi2d.scene.Camera' = None
+    _trails_buf: moderngl.Framebuffer = None
 
     def _set_camera(self, camera: 'wasabi2d.scene.Camera'):
         """Resize the effect for this viewport."""
@@ -65,6 +66,10 @@ class Trails:
             COMPOSITE_PROG,
         )
         self.t = self.clock.t
+
+    def __del__(self):
+        if self._trails_buf:
+            self._trails_buf.release()
 
     def draw(self, draw_layer):
         dt = self.clock.t - self.t
