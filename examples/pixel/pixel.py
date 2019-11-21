@@ -27,6 +27,7 @@ alien = scene.layers[1].add_sprite(
 alien.fpos = Vector2(*alien.pos)
 alien.v = Vector2(0, 0)
 alien.stood = True
+alien.crouch = False
 
 
 def create_platform(x1, x2, y):
@@ -62,9 +63,10 @@ create_platform(0, 15, 9)
 create_platform(12, 14, 8)
 create_platform(3, 6, 6)
 
-ACCEL = 1.5
-JUMP = 12
-GRAVITY = 1
+ACCEL = 0.5
+JUMP = 7
+GRAVITY = 0.5
+DRAG = 0.9
 
 
 def world_to_grid(pos):
@@ -93,11 +95,12 @@ def tile_ceil(val):
 
 @w2d.event
 def update(keyboard):
-    if keyboard.left:
-        alien.v.x -= ACCEL
-    elif keyboard.right:
-        alien.v.x += ACCEL
-    alien.v.x *= 0.7
+    if not alien.crouch:
+        if keyboard.left:
+            alien.v.x -= ACCEL
+        elif keyboard.right:
+            alien.v.x += ACCEL
+    alien.v.x *= DRAG
     alien.fpos += alien.v
 
     br = alien.fpos + Vector2(11, -1)
@@ -108,23 +111,27 @@ def update(keyboard):
     x, y = alien.fpos
     vx, vy = alien.v
 
-    if not alien.stood:
-        vy += GRAVITY
-        if vy > 0:
-            if collide_point(bl, br):
-                alien.stood = True
-                vy = 0
-                y = tile_floor(y)
-        else:
-            if collide_point(tl, tr):
-                vy = 0
-                y = tile_ceil(y)
-    else:
+    if alien.stood:
         belowl = bl + Vector2(0, 1)
         belowr = br + Vector2(0, 1)
         if not (collide_point(belowl, belowr)):
             alien.stood = False
+            alien.image = 'pc_standing'
             vy += GRAVITY
+    else:
+        vy += GRAVITY
+        if vy > 0:
+            if collide_point(bl, br):
+                alien.image = 'pc_standing'
+                alien.stood = True
+                vy = 0
+                y = tile_floor(y)
+            else:
+                alien.image = 'pc_falling'
+        else:
+            if collide_point(tl, tr):
+                vy = 0
+                y = tile_ceil(y)
 
     alien.fpos = Vector2(x, y)
     br = alien.fpos + Vector2(11, -1)
@@ -133,10 +140,12 @@ def update(keyboard):
     tr = alien.fpos + Vector2(11, -20)
 
     if vx > 0:
+        alien.scale_x = 1
         if collide_point(tr, br):
             vx = 0
             x = tile_floor(x) + 10
     else:
+        alien.scale_x = -1
         if collide_point(tl, bl):
             vx = 0
             x = tile_ceil(x) - 11
@@ -149,8 +158,22 @@ def update(keyboard):
 @w2d.event
 def on_key_down(key):
     if key is w2d.keys.UP:
-        if alien.stood:
+        if alien.stood and not alien.crouch:
             alien.v.y = -JUMP
             alien.stood = False
+            alien.image = 'pc_jumping'
+    elif key is w2d.keys.DOWN:
+        if alien.stood:
+            print("crouch")
+            alien.image = 'pc_crouch'
+            alien.crouch = True
+
+
+@w2d.event
+def on_key_up(key):
+    if key is w2d.keys.DOWN:
+        if alien.crouch:
+            alien.image = 'pc_standing'
+            alien.crouch = False
 
 w2d.run()
