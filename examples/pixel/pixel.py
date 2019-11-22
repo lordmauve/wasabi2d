@@ -120,16 +120,18 @@ def update(keyboard):
             vy += GRAVITY
     else:
         vy += GRAVITY
-        if vy > 0:
+        if vy > y - tile_floor(y) > 0:
             if collide_point(bl, br):
+                print("land")
                 alien.image = 'pc_standing'
                 alien.stood = True
                 vy = 0
                 y = tile_floor(y)
             else:
                 alien.image = 'pc_falling'
-        else:
+        elif vy < tl.y - tile_ceil(tl.y) < 0:
             if collide_point(tl, tr):
+                print("oof")
                 vy = 0
                 y = tile_ceil(y)
 
@@ -139,16 +141,18 @@ def update(keyboard):
     tl = alien.fpos + Vector2(-10, -20)
     tr = alien.fpos + Vector2(11, -20)
 
-    if vx > 0:
+    eps = 1e-4
+    if vx + eps > tr.x - tile_floor(tr.x) > 0:
         alien.scale_x = 1
         if collide_point(tr, br):
+            print("rhit")
             vx = 0
-            x = tile_floor(x) + 10
-    else:
+            x = tile_floor(tr.x) - 11
+    elif vx - eps < tl.x - tile_ceil(tl.x) < 0:
         alien.scale_x = -1
         if collide_point(tl, bl):
             vx = 0
-            x = tile_ceil(x) - 11
+            x = tile_ceil(tl.x) + 10
 
     alien.v = Vector2(vx, vy)
     alien.fpos = Vector2(x, y)
