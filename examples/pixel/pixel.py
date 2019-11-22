@@ -64,7 +64,7 @@ create_platform(12, 14, 8)
 create_platform(3, 6, 6)
 
 ACCEL = 0.5
-JUMP = 7
+JUMP = 7.7
 GRAVITY = 0.5
 DRAG = 0.9
 
@@ -103,10 +103,11 @@ def update(keyboard):
     alien.v.x *= DRAG
     alien.fpos += alien.v
 
-    br = alien.fpos + Vector2(11, -1)
-    bl = alien.fpos + Vector2(-10, -1)
-    tl = alien.fpos + Vector2(-10, -20)
-    tr = alien.fpos + Vector2(11, -20)
+    eps = 1e-4
+    br = alien.fpos + Vector2(11 - eps, -eps)
+    bl = alien.fpos + Vector2(-10 + eps, -eps)
+    tl = alien.fpos + Vector2(-10 + eps, -21 + eps)
+    tr = alien.fpos + Vector2(11 - eps, -21 + eps)
 
     x, y = alien.fpos
     vx, vy = alien.v
@@ -119,33 +120,32 @@ def update(keyboard):
             alien.image = 'pc_standing'
             vy += GRAVITY
     else:
-        vy += GRAVITY
-        if vy > y - tile_floor(y) > 0:
+        if vy + eps > y - tile_floor(y) > 0:
             if collide_point(bl, br):
-                print("land")
                 alien.image = 'pc_standing'
                 alien.stood = True
                 vy = 0
                 y = tile_floor(y)
             else:
                 alien.image = 'pc_falling'
-        elif vy < tl.y - tile_ceil(tl.y) < 0:
+        elif vy - eps < tl.y - tile_ceil(tl.y) < 0:
             if collide_point(tl, tr):
                 print("oof")
                 vy = 0
                 y = tile_ceil(y)
+        if not alien.stood:
+            vy += GRAVITY
 
     alien.fpos = Vector2(x, y)
-    br = alien.fpos + Vector2(11, -1)
-    bl = alien.fpos + Vector2(-10, -1)
-    tl = alien.fpos + Vector2(-10, -20)
-    tr = alien.fpos + Vector2(11, -20)
+    br = alien.fpos + Vector2(11 - eps, -eps)
+    bl = alien.fpos + Vector2(-10 + eps, -eps)
+    tl = alien.fpos + Vector2(-10 + eps, -21 + eps)
+    tr = alien.fpos + Vector2(11 - eps, -21 + eps)
 
     eps = 1e-4
     if vx + eps > tr.x - tile_floor(tr.x) > 0:
         alien.scale_x = 1
         if collide_point(tr, br):
-            print("rhit")
             vx = 0
             x = tile_floor(tr.x) - 11
     elif vx - eps < tl.x - tile_ceil(tl.x) < 0:
