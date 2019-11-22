@@ -63,10 +63,10 @@ create_platform(0, 15, 9)
 create_platform(12, 14, 8)
 create_platform(3, 6, 6)
 
-ACCEL = 0.5
+ACCEL = 0.7
 JUMP = 7.7
 GRAVITY = 0.5
-DRAG = 0.9
+DRAG = 0.8
 
 
 def world_to_grid(pos):
