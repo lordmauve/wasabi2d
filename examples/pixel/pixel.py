@@ -93,24 +93,32 @@ def tile_ceil(val):
     return math.ceil(val / TILE) * TILE
 
 
+eps = 1e-4
+BOUNDS = [
+    Vector2(11 - eps, -eps),  # br
+    Vector2(-10 + eps, -eps),  # bl
+    Vector2(-10 + eps, -21 + eps),  # tl
+    Vector2(11 - eps, -21 + eps),  # tr
+]
+
+
+def bounds():
+    """Get the alien's bounds as a tuple (br, bl, tl, tr)."""
+    pos = alien.fpos
+    return tuple(pos + v for v in BOUNDS)
+
+
 @w2d.event
 def update(keyboard):
-    if not alien.crouch:
-        if keyboard.left:
-            alien.v.x -= ACCEL
-        elif keyboard.right:
-            alien.v.x += ACCEL
-    alien.v.x *= DRAG
-    alien.fpos += alien.v
-
-    eps = 1e-4
-    br = alien.fpos + Vector2(11 - eps, -eps)
-    bl = alien.fpos + Vector2(-10 + eps, -eps)
-    tl = alien.fpos + Vector2(-10 + eps, -21 + eps)
-    tr = alien.fpos + Vector2(11 - eps, -21 + eps)
-
     x, y = alien.fpos
     vx, vy = alien.v
+
+    y += vy
+    alien.fpos.y = y
+
+    eps = 1e-4
+
+    br, bl, tl, tr = bounds()
 
     if alien.stood:
         belowl = bl + Vector2(0, 1)
@@ -136,13 +144,17 @@ def update(keyboard):
         if not alien.stood:
             vy += GRAVITY
 
-    alien.fpos = Vector2(x, y)
-    br = alien.fpos + Vector2(11 - eps, -eps)
-    bl = alien.fpos + Vector2(-10 + eps, -eps)
-    tl = alien.fpos + Vector2(-10 + eps, -21 + eps)
-    tr = alien.fpos + Vector2(11 - eps, -21 + eps)
+    if not alien.crouch:
+        if keyboard.left:
+            vx -= ACCEL
+        elif keyboard.right:
+            vx += ACCEL
+    vx *= DRAG
+    x += vx
+    alien.fpos.x = x
 
-    eps = 1e-4
+    br, bl, tl, tr = bounds()
+
     if vx + eps > tr.x - tile_floor(tr.x) > 0:
         alien.scale_x = 1
         if collide_point(tr, br):
@@ -153,6 +165,7 @@ def update(keyboard):
         if collide_point(tl, bl):
             vx = 0
             x = tile_ceil(tl.x) + 10
+    alien.fpos.x = vx
 
     alien.v = Vector2(vx, vy)
     alien.fpos = Vector2(x, y)
