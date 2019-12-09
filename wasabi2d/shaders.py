@@ -57,8 +57,12 @@ class ShaderManager:
             uniform.write(proj.tobytes())
 
     def __del__(self):
+        self.release()
+
+    def release(self):
         for prog in self.programs.values():
             prog.release()
+        self.programs.clear()
 
 
 def shadermgr(ctx: moderngl.Context) -> ShaderManager:
