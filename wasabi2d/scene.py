@@ -1,15 +1,17 @@
 """Wrapper around window creation."""
 import sys
 import math
+import gc
+from typing import Tuple, Optional
+from contextlib import contextmanager
+
 import numpy as np
 import pygame
 import pygame.image
 import pygame.transform
 import pygame.display
 import moderngl
-from typing import Tuple, Optional
 from pyrr import Matrix44
-from contextlib import contextmanager
 
 
 from . import clock
@@ -79,6 +81,19 @@ class Scene:
         event(self.on_screenshot_requested)
 
         self._background = (0.0, 0.0, 0.0)
+
+    def release(self):
+        self.layers.clear()
+        gc.collect()
+        if self.ctx:
+            self.camera.release()
+            self.camera = None
+            self.ctx.extra.pop('shadermgr').release()
+            self.ctx.release()
+            self.ctx = None
+
+    def __del__(self):
+        self.release()
 
     def _make_context(self, width, height):
         """Create the ModernGL context."""
@@ -401,9 +416,13 @@ class Camera:
         return self.ctx.framebuffer([tex])
 
     def __del__(self):
+        self.release()
+
+    def release(self):
         for fbs in self._fbs.values():
             for fb in fbs:
                 fb.release()
+        self._fbs.clear()
 
     def run_shader(self, fragment_shader: str, **uniforms):
         """Execute a fragment shader over the viewport.

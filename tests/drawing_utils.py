@@ -19,7 +19,9 @@ ROOT = Path(__file__).parent
 @fixture()
 def scene():
     """Fixture to create a new Scene object for use in a test."""
-    return HeadlessScene(rootdir=ROOT)
+    scene = HeadlessScene(rootdir=ROOT)
+    yield scene
+    scene.release()
 
 
 def assert_screen_match(scene, name):
@@ -110,6 +112,8 @@ def drawing_test(testfunc):
             if failname.exists():
                 failname.unlink()
             raise
+        finally:
+            scn.release()
 
     # Can't use functools.wraps() because it copies spec and confuses
     # pytest.
