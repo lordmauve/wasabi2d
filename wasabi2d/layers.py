@@ -45,8 +45,10 @@ class Layer:
 
     def clear(self):
         """Remove everything from the layer."""
-        # We don't need to call .delete() on anything, faster to throw away
-        # absolutely everything including VAOs.
+        # We need to release GL buffers we hold; everything else can be
+        # destroyed by the GC.
+        for a in self.arrays.values():
+            a.release()
         self.arrays.clear()
         self.objects.clear()
         self._dirty.clear()
@@ -359,3 +361,12 @@ class LayerGroup(dict):
 
         # TODO: let the chain handle this
         self.shadermgr.set_proj(proj)
+
+    def clear(self):
+        """Clear the layer group.
+
+        We override this to explicitly release resources.
+        """
+        for v in self.values():
+            v.clear()
+        super().clear()

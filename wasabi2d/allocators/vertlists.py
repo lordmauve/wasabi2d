@@ -161,22 +161,22 @@ class IndirectBuffer:
             [vs, insts, base_idx, base_v, base_inst],
             dtype='u4'
         )
-        self._release()
+        self.release()
         return key
 
-    def _release(self):
+    def release(self):
         if self.buffer:
             self.buffer.release()
             self.buffer = None
 
     def __delitem__(self, key):
         del self.allocations[key]
-        self._release()
+        self.release()
 
     def __setitem__(self, key, vals):
         assert len(vals) == 5, "Invalid indirect draw command"
         self.allocations[key][:] = vals
-        self._release()
+        self.release()
 
 
 class MemoryBackedBuffer:
@@ -237,10 +237,13 @@ class MemoryBackedBuffer:
         """Free the allocation."""
         self.allocator.free(offset)
 
-    def __del__(self):
+    def release(self):
         """Delete the buffer."""
         if self.buffer:
             self.buffer.release()
+            self.buffer = None
+
+    __del__ = release
 
 
 class VAO:
@@ -284,19 +287,6 @@ class VAO:
             on_resize=_update_lst_idxs
         )
         self.indirect = IndirectBuffer(ctx)
-        self.vao = None
-
-    def _initialise(self):
-        """Create OpenGL objects."""
-        self.vbo = self.verts.get_buffer()
-        self.ibo = self.indexes.get_buffer()
-        self.vao = self.ctx.vertex_array(
-            self.prog,
-            [
-                (self.vbo, *self.dtype),
-            ],
-            self.ibo
-        )
 
     def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
@@ -392,3 +382,9 @@ class VAO:
         else:
             self.indirect.render_direct(vao, self.mode)
         vao.release()
+
+    def release(self):
+        """Release this array."""
+        self.verts.release()
+        self.indexes.release()
+        self.indirect.release()

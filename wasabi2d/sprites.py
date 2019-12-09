@@ -76,7 +76,7 @@ class SpriteArray:
             + [np.zeros((4 * extra, 7), dtype='f4')]
         )
 
-        self._release()
+        self.release()
         self.vbo = self.ctx.buffer(self.verts, dynamic=True)
         self.uvbo = self.ctx.buffer(self.uvs)
         self.ibuf = self.ctx.buffer(self.indexes)
@@ -157,15 +157,15 @@ class SpriteArray:
             self._dirty = False
         self.vao.render(vertices=self.allocated * 6)
 
-    def _release(self):
+    def release(self):
         if self.vao:
             self.vao.release()
             self.vbo.release()
             self.uvbo.release()
             self.ibuf.release()
+            self.vao = None
 
-    def __del__(self):
-        self._release()
+    __del__ = release
 
 
 class Sprite(Colorable, Transformable):
