@@ -93,8 +93,8 @@ class Layer:
         *,
         pos=(0, 0),
         angle=0,
-        anchor_x=None,
-        anchor_y=None,
+        anchor_x='center',
+        anchor_y='center',
         color=(1, 1, 1, 1),
         scale=1.0
     ):

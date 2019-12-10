@@ -1,5 +1,5 @@
 """Pack sprites into texture atlases."""
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 from dataclasses import dataclass
 
 import moderngl
@@ -238,17 +238,28 @@ class TextureRegion:
             self.rot - 90,
         )
 
+    ANCHOR_X_NAMES = {
+        'left': 0,
+        'center': 0.5,
+        'right': 1,
+    }
+    ANCHOR_Y_NAMES = {
+        'top': 0,
+        'center': 0.5,
+        'bottom': 1,
+    }
+
     def get_verts(
         self,
-        anchor_x: Optional[int] = None,
-        anchor_y: Optional[int] = None
+        anchor_x: Union[float, str] = 'center',
+        anchor_y: Union[float, str] = 'center',
     ) -> np.ndarray:
         """Get an array or transformed vertices."""
-        offset = (
-            anchor_x if anchor_x is not None else self.width / 2,
-            anchor_y if anchor_y is not None else self.height / 2,
-            0.0
-        )
+        if isinstance(anchor_x, str):
+            anchor_x = self.width * self.ANCHOR_X_NAMES[anchor_x]
+        if isinstance(anchor_y, str):
+            anchor_y = self.height * self.ANCHOR_Y_NAMES[anchor_y]
+        offset = (float(anchor_x), float(anchor_y), 0.0)
         vs = self.verts.copy()
         vs -= offset
         return vs

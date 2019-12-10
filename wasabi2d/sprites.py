@@ -173,8 +173,8 @@ class Sprite(Colorable, Transformable):
             self,
             layer,
             image,
-            anchor_x=None,
-            anchor_y=None):
+            anchor_x='center',
+            anchor_y='center'):
         super().__init__()
         self.verts = None
         self.layer = layer

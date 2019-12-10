@@ -60,8 +60,14 @@ scene.layers[-2].add_sprite(
 
 class Pipes:
     def __init__(self):
-        self.top = scene.layers[-1].add_sprite('top', anchor=('left', 'bottom'))
-        self.bottom = scene.layers[-1].add_sprite('bottom', anchor=('left', 'top'))
+        self.top = scene.layers[-1].add_sprite(
+            'top',
+            anchor_y='bottom',
+        )
+        self.bottom = scene.layers[-1].add_sprite(
+            'bottom',
+            anchor_y='top',
+        )
         self.x = scene.width
         self.w = self.top.width
         self.gap = 0
@@ -79,8 +85,8 @@ class Pipes:
 
     def set_gap(self, y):
         self.gap = y
-        self.top.y = y - GAP // 2 - self.pipe_h / 2
-        self.bottom.y = y + GAP // 2 + self.pipe_h / 2
+        self.top.y = y - GAP // 2
+        self.bottom.y = y + GAP // 2
 
 
 pipes = Pipes()
