@@ -2,7 +2,7 @@
 import sys
 import math
 import gc
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 from contextlib import contextmanager
 
 import numpy as np
@@ -34,15 +34,26 @@ def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
 
 
 class Scene:
-    """Top-level interface for renderable objects."""
+    """Top-level interface for renderable objects.
+
+    :param width: The width of the window to create, in pixels.
+    :param height: The height of the window to create, in pixels.
+    :param rootdir: The root directory to load for asset loading. Images will
+                    be loaded from the ``images/`` directory inside `rootdir`,
+                    for example, and corresponding directories for sounds,
+                    fonts, and music.
+    :param title: The initial window title.
+    :param scaler: If True or a string, activate scene scaling using the named
+                   scaler, or 'nearest' if ``True`` is given.
+    """
 
     def __init__(
             self,
-            width=800,
-            height=600,
-            title="wasabi2d",
-            rootdir=None,
-            scaler=None):
+            width: int = 800,
+            height: int = 600,
+            title: int = "wasabi2d",
+            rootdir: Optional[str] = None,
+            scaler: Union[str, bool, None] = False):
         self._recording = False
         self._scaler = scaler
 
@@ -84,13 +95,14 @@ class Scene:
 
     def release(self):
         self.layers.clear()
-        gc.collect()
         if self.ctx:
+            self.drawer = None
             self.camera.release()
             self.camera = None
             self.ctx.extra.pop('shadermgr').release()
             self.ctx.release()
             self.ctx = None
+        gc.collect()
 
     def __del__(self):
         self.release()
@@ -118,8 +130,17 @@ class Scene:
 
         real_size = pygame.display.get_window_size()
         if real_size != (width, height):
-            self.drawer = ScaledDrawer(ctx, (width, height))
+            self.drawer = self._make_scaler(ctx, (width, height))
         return ctx
+
+    def _make_scaler(self, ctx, dims):
+        """Get a scaler instance."""
+        cls = {
+            True: NearestScaler,
+            'nearest': NearestScaler,
+            'linear': LinearScaler,
+        }[self._scaler]
+        return cls(ctx, dims)
 
     @property
     def background(self) -> Tuple[float, float, float]:
@@ -271,7 +292,7 @@ class Drawer:
             op.draw(scene)
 
 
-class ScaledDrawer(Drawer):
+class NearestScaler(Drawer):
     """Render the scene using the chain, but scaled."""
     def __init__(self, ctx, logical_size):
         self.tex = ctx.texture(
@@ -281,6 +302,10 @@ class ScaledDrawer(Drawer):
         )
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self._fb = ctx.framebuffer(color_attachments=[self.tex])
+
+    def __del__(self):
+        self._fb.release()
+        self.tex.release()
 
     def draw(self, scene):
         with scene.camera.bind_framebuffer(self._fb):
@@ -303,12 +328,27 @@ void main()
             )
 
 
+class LinearScaler(NearestScaler):
+    """Render and upscale the scene using linear interpolation."""
+
+    def __init__(self, ctx, logical_size):
+        super().__init__(ctx, logical_size)
+        self.tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+
+
 class HeadlessScene(Scene):
     """A scene that doesn't create a window.
 
     This can be used in automated applications and for testing.
 
     """
+    def __init__(
+            self,
+            width: int = 800,
+            height: int = 600,
+            rootdir: Optional[str] = None):
+        super().__init__(width=width, height=height, rootdir=rootdir)
+
     def _make_context(self, width, height):
         ctx = moderngl.create_standalone_context(require=410)
         screen = ctx._screen = ctx.simple_framebuffer(

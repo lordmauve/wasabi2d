@@ -46,6 +46,53 @@ Create a scene with::
     (read-only) The Camera object used to render the scene. See :ref:`camera`.
 
 
+There's also an off-screen version, which will mainly be useful for testing
+and screenshotting:
+
+.. autoclass:: wasabi2d.scene.HeadlessScene
+
+
+.. _scene-scaling:
+
+Scene scaling
+-------------
+
+Scene scaling allows the wasabi2d scene to be scaled independently of the
+final window size. Two uses of this are:
+
+* Supporting high dpi/retina displays with practically the same performance
+  as standard displays (but reduced quality).
+* Retro games, in order to draw everything pixellated.
+
+The scene will aways have the requested dimensions, but the window will usually
+be a bigger size; the biggest integer multiple that fits your screen. The
+scaler in use determines how the scene is upscaled to the window.
+
+To use this, set ``scaler`` to one of:
+
+* ``True`` or ``'nearest'`` - nearest pixel; creates a pixellated appearance.
+  Ideal for retro games.
+* ``'linear'`` - linearly interpolate between pixel values.
+
+For example, to create a retro game with a 200x100 pixel screen (very blocky
+indeed), create a scene with a small viewport size, but set ``scaler`` to
+``True``:
+
+.. code-block:: python
+
+    scene = Scene(
+        width=200,
+        height=120,
+        scaler=True
+    )
+
+This will create a scene that is logically 200x120:
+
+* All rendering will take place on a 200x120 frame buffer.
+* Mouse coordinates will be correctly translated to scene coordinates, eg. the
+  bottom right corner is ``(199, 119)``.
+
+
 Coordinate system
 -----------------
 
