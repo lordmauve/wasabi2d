@@ -111,9 +111,12 @@ will work on with case sensitive and insensitive filenames.
 
     * ``.scale`` - a scale factor for the sprite. 1 is original size.
 
-    * ``anchor_x``, ``anchor_y`` - the position within the sprite image that
-      is the "anchor point" around which rotation and scaling occurs. By
-      defaualt, this is the center of the sprite.
+    * ``anchor_x``, ``anchor_y`` - the position within the sprite image that is
+      the "anchor point" around which rotation and scaling occurs. By default,
+      this is the center of the sprite. This can be a number, in which case it
+      is an offset from the top-left of the sprite. It can also be one of the
+      special strings ``'center'``, or ``'top'``/``'bottom'`` (anchor_y only)
+      ``'left'``/``'right'`` (anchor_x only).
 
     All of these attributes can be set on the returned sprite object also.
 

@@ -1,13 +1,13 @@
 History
 =======
 
-1.3.0 - unreleased
+1.3.0 - 2019-12-10
 ------------------
 
 * New: add a :doc:`coroutine system <coros>`
 * New: make F12 :ref:`a built-in combination <screenshot>` for
   screenshots/video recording.
-* New: The :ref:`chain`, for more powerful post-processing effect
+* New: :ref:`chain`, for more powerful post-processing effect
   configurations
 * New: ``Mask`` chain effect.
 * New: ``DisplacementMap`` chain effect.
@@ -17,6 +17,10 @@ History
 * New: tone generation supports square and saw waves
 * New: add ``pixellate``, ``greyscale``, ``sepia`` and ``posterize``
   :doc:`post-processing effects <effects>`.
+* New: :ref:`scene-scaling` for high dpi displays and retro games
+* New: Sprites now support ``.anchor_x`` and ``.anchor_y``
+  parameters/attributes
+* Fix: actually release OpenGL resources, which needed to be done explicitly
 * Fix: add missing documentation for ``Layer.add_line()``
 * Fix: grow a single texture atlas rather than allocating multiple. This
   removes a limit on how many unique text characters can be drawn with a single
