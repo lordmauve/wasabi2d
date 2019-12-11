@@ -9,7 +9,7 @@ from pygame import Rect
 
 from .loaders import images
 from .allocators.textures import Packer, NoFit
-from .sprites import QUAD
+from .primitives.sprites import QUAD
 from .shaders import shadermgr, blend_func, bind_framebuffer
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 
-from .primitives.base import Colorable, Transformable, Bounds
-from .descriptors import CallbackProp
+from ..descriptors import CallbackProp
+from .base import Colorable, Transformable, Bounds
 
 
 TEXTURED_QUADS_PROGRAM = dict(

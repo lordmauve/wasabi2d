@@ -1,6 +1,25 @@
 History
 =======
 
+1.4.0 - unreleased
+------------------
+
+**Provisional Roadmap**:
+
+Features:
+
+* Sparse tile map primitive
+* Pixel mode for sprites
+* Textured Line primitive
+* Trail primitive
+
+Refactors:
+
+* Abandon indirect rendering (not available on Mac) in favour of managing
+  contiguous index buffers (with primitive restarts).
+* Unified primitive attribute/factory parameter model
+
+
 1.3.0 - 2019-12-10
 ------------------
 

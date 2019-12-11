@@ -8,8 +8,8 @@ import pygame.font
 
 from ..allocators.vertlists import VAO
 from ..loaders import fonts
-from ..sprites import TEXTURED_QUADS_PROGRAM, QUAD
 from ..atlas import Atlas
+from .sprites import TEXTURED_QUADS_PROGRAM, QUAD
 from .base import Bounds, Transformable, Colorable
 
 

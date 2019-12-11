@@ -5,8 +5,8 @@ import moderngl
 import pygame.image
 
 from .clock import default_clock
-from .sprites import SpriteArray, Sprite
 from .atlas import Atlas
+from .primitives.sprites import SpriteArray, Sprite
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
