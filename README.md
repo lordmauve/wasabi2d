@@ -55,6 +55,11 @@ This screenshot shows off polygons, sprites, text and particle effects:
 
 ![Screenshot as of Wasabi2d 1.0.0](https://github.com/lordmauve/wasabi2d/raw/master/docs/2019-09-21-screenshot.png)
 
+[Roller Knight](https://pyweek.org/e/wasabi28) was an entry in PyWeek 28:
+
+![Roller Knight screenshot](https://github.com/lordmauve/wasabi2d/raw/master/docs/roller-knight.png)
+
+
 ## Installation
 
 
