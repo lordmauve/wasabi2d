@@ -49,16 +49,6 @@ w2d.run()
 
 ![Output of the above program](https://github.com/lordmauve/wasabi2d/raw/master/docs/2020-01-10-screenshot.png)
 
-## Screenshots
-
-This screenshot shows off polygons, sprites, text and particle effects:
-
-![Screenshot as of Wasabi2d 1.0.0](https://github.com/lordmauve/wasabi2d/raw/master/docs/2019-09-21-screenshot.png)
-
-[Roller Knight](https://pyweek.org/e/wasabi28) was an entry in PyWeek 28:
-
-![Roller Knight screenshot](https://github.com/lordmauve/wasabi2d/raw/master/docs/roller-knight.png)
-
 
 ## Installation
 
@@ -76,3 +66,18 @@ continue to make breaking API and graphical changes in major versions.
 ## Documentation
 
 Documentation is available at https://wasabi2d.readthedocs.io/
+
+
+## Screenshots
+
+This screenshot shows off polygons, sprites, text and particle effects:
+
+![Screenshot as of Wasabi2d 1.0.0](https://github.com/lordmauve/wasabi2d/raw/master/docs/2019-09-21-screenshot.png)
+
+[Roller Knight](https://pyweek.org/e/wasabi28) was an entry in PyWeek 28, written with Wasabi2D by Daniel Pope and Larry Hastings:
+
+![Roller Knight screenshot](https://github.com/lordmauve/wasabi2d/raw/master/docs/roller-knight.png)
+
+[Spire of Chaos](https://pyweek.org/e/blaze/) was another entry in PyWeek 28 written with Wasabi2D by Daniel Moisset:
+
+![Spire of Chaos screenshot](https://github.com/lordmauve/wasabi2d/raw/master/docs/spire-of-chaos.png)
