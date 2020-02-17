@@ -26,13 +26,13 @@ class IndexBuffer:
 
     """
 
-    def __init__(self, ctx: mgl.Context, capacity: int = 1024):
+    def __init__(self, ctx: mgl.Context):
+        self.buffer = None
         self.ctx = ctx
-        self.capacity = capacity
 
         # Keep sort keys in a separate mapping
         self.sort_keys: Dict[int, Any] = {}
-        self.allocations = SortedDict(key=self._sort_key)
+        self.allocations = SortedDict(self._sort_key)
 
         # Track whether we have updates
         self.dirty: bool = True
@@ -41,29 +41,47 @@ class IndexBuffer:
         # and form part of the sort key; this ensures that insertion order
         # can be preserved.
         self.next_id: int = 0
-        self.id_map: Dict[int, list] = {}
 
     def _sort_key(self, id: int) -> Tuple[Any, int]:
         """Get a sort key for the given index."""
         return self.sort_keys.get(id), id
 
-    def add(self, indexes: np.ndarray, sort: Any = None) -> int:
+    def insert(self, indexes: np.ndarray, sort: Any = None) -> int:
         """Add indexes to the buffer."""
-        assert indexes.dtype is np.uint32, f"invalid dtype {indexes.dtype!r}"
+        assert indexes.dtype == np.uint32, \
+            f"incorrect dtype {indexes.dtype!r}, expected uint32"
         id = self.next_id
         self.next_id += 1
 
         self.sort_keys[id] = sort
         self.allocations[id] = indexes
         self.dirty = True
+        return id
 
     def remove(self, id: int):
+        """Remove an index range."""
         del self.sort_keys[id]
         del self.allocations[id]
+        self.dirty = True
+
+    def clear(self):
+        """Clear all allocations."""
+        self.allocations.clear()
+        self.sort_keys.clear()
+        self.next_id = 0
+        self.dirty = True
+
+    def __contains__(self, id: int) -> bool:
+        """Return True if the given id is allocated."""
+        return id in self.allocations
+
+    def __bool__(self) -> bool:
+        return bool(self.allocations)
 
     def set_indexes(self, id: int, indexes: np.ndarray):
         """Replace the indexes for an allocation."""
-        assert indexes.dtype is np.uint32, f"invalid dtype {indexes.dtype!r}"
+        assert indexes.dtype == np.uint32, \
+            f"incorrect dtype {indexes.dtype!r}, expected uint32"
         self.allocations[id] = indexes
         self.dirty = True
 
@@ -72,21 +90,28 @@ class IndexBuffer:
         indexes = self.allocations.pop(id)
         self.sort_keys[id] = sort
         self.allocations[id] = indexes
+        self.dirty = True
 
     def update(self, id: int, indexes: np.ndarray, sort: Any = None):
         """Update sort and indexes for an allocation."""
-        assert indexes.dtype is np.uint32, f"invalid dtype {indexes.dtype!r}"
+        assert indexes.dtype == np.uint32, \
+            f"incorrect dtype {indexes.dtype!r}, expected uint32"
         del self.allocations[id]
         self.sort_keys[id] = sort
         self.allocations[id] = indexes
+        self.dirty = True
+
+    def as_array(self) -> np.ndarray:
+        """Flatten the allocations to a numpy array."""
+        return np.hstack(self.allocations.values())
 
     def get_buffer(self) -> mgl.Buffer:
         """Get the index buffer."""
         if self.dirty:
             if self.buffer:
+                # TODO: use moderngl orphan with resize
                 self.buffer.release()
-            data = np.hstack(self.allocations.values())
-            self.buffer = self.ctx.buffer(data, dtype='u4')
+            self.buffer = self.ctx.buffer(self.as_array(), dtype='u4')
         return self.buffer
 
     def release(self):
@@ -94,5 +119,6 @@ class IndexBuffer:
         if self.buffer:
             self.buffer.release()
             self.buffer = None
+            self.dirty = True
 
     __del__ = release
