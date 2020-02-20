@@ -3,16 +3,25 @@
 Here we test allocation and deallocation, but not uploading to the GL.
 
 """
-
+from typing import List
 import pytest
 from unittest.mock import Mock
 
 import numpy as np
 
-from wasabi2d.allocators.index import IndexBuffer
+from wasabi2d.allocators.index import IndexBuffer, merge_seq
 
 
-@pytest.fixture
+def callablefixture(func):
+    """Fuck off, pytest."""
+    f = pytest.fixture(func)
+    copy_attrs = ['__pytest_wrapped__', '_pytestfixturefunction']
+    for a in copy_attrs:
+        setattr(func, a, getattr(f, a))
+    return func
+
+
+@callablefixture
 def idxbuf() -> IndexBuffer:
     """Fixture to return an IndexBuffer with a mock context."""
     return IndexBuffer(Mock())
@@ -103,3 +112,31 @@ def test_clear(idxbuf, indexes):
     assert not idxbuf
     assert id1 not in idxbuf
     assert idxbuf.dirty
+
+
+def indexarray(v: List[int]) -> np.ndarray:
+    """Create an array of one index."""
+    return np.array(v, dtype=np.uint32)
+
+
+def test_merge():
+    """We can merge together buffers."""
+    bufa, bufb = idxbuf(), idxbuf()
+    bufa.insert(indexarray([1]), 1)
+    bufa.insert(indexarray([2, 3]), 2)
+    bufb.insert(indexarray([5, 6]), 5)
+    bufb.insert(indexarray([20]), 20)
+    bufa.insert(indexarray([10]), 10)
+    bufa.insert(indexarray([11]), 11)
+
+    merged = merge_seq([bufa, bufb])
+    diffable = [
+        ('bufa' if b is bufa else 'bufb', start, stop)
+        for b, start, stop in merged
+    ]
+    assert diffable == [
+        ('bufa', 0, 3),
+        ('bufb', 0, 2),
+        ('bufa', 3, 5),
+        ('bufb', 2, 3),
+    ]

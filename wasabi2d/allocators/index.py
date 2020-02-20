@@ -11,7 +11,10 @@ These buffers support sorting of the allocations, which can be used to
 implement depth-sorted or y-sorted layers.
 
 """
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Iterable, Sequence, Mapping
+import heapq
+from functools import total_ordering
+from operator import itemgetter
 
 import numpy as np
 import moderngl as mgl
@@ -21,8 +24,9 @@ from sortedcontainers import SortedDict
 class IndexBuffer:
     """Abstraction over index lists.
 
-    We use integer identifiers to track the allocations. This allows
-    encapsulating modifications; returning a reference would not.
+    We use integer identifiers to track the allocations, for encapsulation.
+    These are generated anyway as a way to preserve insertion order in the
+    absence of any other sort key.
 
     """
 
@@ -30,9 +34,11 @@ class IndexBuffer:
         self.buffer = None
         self.ctx = ctx
 
-        # Keep sort keys in a separate mapping
-        self.sort_keys: Dict[int, Any] = {}
-        self.allocations = SortedDict(self._sort_key)
+        # Allocation id to sort key
+        self.id_lookup: Dict[int, Tuple[Any, int]] = {}
+        # Sorted list of sort keys to index arrays
+        # This
+        self.allocations: Mapping[Tuple[Any, int], np.ndarray] = SortedDict()
 
         # Track whether we have updates
         self.dirty: bool = True
@@ -42,10 +48,6 @@ class IndexBuffer:
         # can be preserved.
         self.next_id: int = 0
 
-    def _sort_key(self, id: int) -> Tuple[Any, int]:
-        """Get a sort key for the given index."""
-        return self.sort_keys.get(id), id
-
     def insert(self, indexes: np.ndarray, sort: Any = None) -> int:
         """Add indexes to the buffer."""
         assert indexes.dtype == np.uint32, \
@@ -53,56 +55,69 @@ class IndexBuffer:
         id = self.next_id
         self.next_id += 1
 
-        self.sort_keys[id] = sort
-        self.allocations[id] = indexes
+        indexes.flags.writeable = False
+        k = sort, id
+        self.id_lookup[id] = k
+        self.allocations[k] = indexes
         self.dirty = True
         return id
 
     def remove(self, id: int):
         """Remove an index range."""
-        del self.sort_keys[id]
-        del self.allocations[id]
+        k = self.id_lookup.pop(id)
+        del self.allocations[k]
         self.dirty = True
 
     def clear(self):
         """Clear all allocations."""
         self.allocations.clear()
-        self.sort_keys.clear()
+        self.id_lookup.clear()
         self.next_id = 0
         self.dirty = True
 
     def __contains__(self, id: int) -> bool:
         """Return True if the given id is allocated."""
-        return id in self.allocations
+        return id in self.id_lookup
 
     def __bool__(self) -> bool:
-        return bool(self.allocations)
+        return bool(self.id_lookup)
 
     def set_indexes(self, id: int, indexes: np.ndarray):
         """Replace the indexes for an allocation."""
         assert indexes.dtype == np.uint32, \
             f"incorrect dtype {indexes.dtype!r}, expected uint32"
-        self.allocations[id] = indexes
+        indexes.flags.writeable = False
+        k = self.id_lookup[id]
+        self.allocations[k] = indexes
         self.dirty = True
 
     def set_sort(self, id: int, sort: Any):
         """Set the sort key for an allocation."""
-        indexes = self.allocations.pop(id)
-        self.sort_keys[id] = sort
-        self.allocations[id] = indexes
+        k = self.id_lookup[id]
+        indexes = self.allocations.pop(k)
+        k = sort, id
+        self.id_lookup[id] = k
+        self.allocations[k] = indexes
         self.dirty = True
 
     def update(self, id: int, indexes: np.ndarray, sort: Any = None):
         """Update sort and indexes for an allocation."""
         assert indexes.dtype == np.uint32, \
             f"incorrect dtype {indexes.dtype!r}, expected uint32"
-        del self.allocations[id]
-        self.sort_keys[id] = sort
-        self.allocations[id] = indexes
+        indexes.flags.writeable = False
+        k = self.id_lookup.pop(id)
+        del self.allocations[k]
+
+        k = sort, id
+        self.id_lookup[id] = k
+        self.allocations[k] = indexes
         self.dirty = True
 
     def as_array(self) -> np.ndarray:
         """Flatten the allocations to a numpy array."""
+        # TODO: maybe track the total length of the allocations and keep a
+        # memoized array here. This would let us hstack into an existing array
+        # if our allocations have simply changed sort key.
         return np.hstack(self.allocations.values())
 
     def get_buffer(self) -> mgl.Buffer:
@@ -122,3 +137,67 @@ class IndexBuffer:
             self.dirty = True
 
     __del__ = release
+
+
+@total_ordering
+class BufIter:
+    """An iterator for the merge."""
+    __slots__ = ('it', 'peeked', 'idxs', 'idxpos')
+
+    def __init__(self, buffer: IndexBuffer):
+        self.it = iter(buffer.allocations.items())
+        self.peeked, self.idxs = next(self.it)
+        self.idxpos = 0
+
+    def next(self):
+        item = self.peeked, self.idxs
+        self.idxpos += len(self.idxs)
+        self.peeked, self.idxs = next(self.it, None)
+        return item
+
+    def __lt__(self, other):
+        return self.peeked < other.peeked
+
+    def __eq__(self, other):
+        return self.peeked == other.peeked
+
+
+def bufiter(buf: IndexBuffer) -> Iterable[Tuple[Any, IndexBuffer, int, int]]:
+    """Iterate over allocations in a buffer."""
+    pos = 0
+    for (sort, id), indexes in buf.allocations.items():
+        nextpos = pos + len(indexes)
+        yield sort, buf, pos, nextpos
+        pos = nextpos
+
+
+def merge_seq(
+    buffers: Sequence[IndexBuffer]
+) -> Iterable[Tuple[IndexBuffer, int, int]]:
+    """Merge a set of index buffers sorted by a common sort key.
+
+    Yield contiguous groups of indexes.
+
+    This implementation is O(n) in the number of allocations. We could do
+    better - closer to O(m log n) for n allocations and m switches - if we
+    had cached offsets for each index range. Then we could bisect into a
+    buffer and read out the offset. This would still be an optimisation if we
+    can avoid rebuilding that cache every frame. This is true if primitives
+    do not move.
+
+    """
+    bufiters = map(bufiter, buffers)
+    merged_allocs = heapq.merge(*bufiters, key=lambda i: (i[0], id(i[1])))
+    try:
+        _, lastbuf, laststart, lastend = next(merged_allocs)
+    except StopIteration:
+        return
+    for _, buf, start, end in merged_allocs:
+        if buf is not lastbuf:
+            yield lastbuf, laststart, lastend
+            lastbuf = buf
+            laststart = start
+            lastend = end
+        else:
+            lastend = end
+    yield lastbuf, laststart, lastend
