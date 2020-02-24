@@ -1,7 +1,9 @@
+from contextlib import contextmanager
 import numpy as np
 
 from ..descriptors import CallbackProp
 from .base import Colorable, Transformable, Bounds
+from ..allocators.packed import PackedBuffer
 
 
 TEXTURED_QUADS_PROGRAM = dict(
@@ -140,8 +142,6 @@ class SpriteArray:
 
     def render(self, camera):
         """Render all sprites in the array."""
-        self.prog['tex'].value = 0
-        self.tex.use(0)
         dirty = self._dirty
         for i, s in enumerate(self.sprites):
             if s._dirty:
@@ -166,6 +166,13 @@ class SpriteArray:
             self.vao = None
 
     __del__ = release
+
+
+def texture_context(tex, prog):
+    """Bind the given texture to the given program during the context."""
+    prog['tex'].value = 0
+    tex.use(0)
+    yield
 
 
 class Sprite(Colorable, Transformable):
@@ -217,6 +224,16 @@ class Sprite(Colorable, Transformable):
             # migrate to a different vao
             self.array.delete(self)
             self.layer._migrate_sprite(self, tex)
+
+    def _get_array(self, tex):
+        k = ('sprite', id(tex))
+        array = self.layer.arrays.get(k)
+        if not array:
+            prog = self.layer.group.shadermgr.get(**TEXTURED_QUADS_PROGRAM)
+            array = PackedBuffer(self.ctx, prog, tex, [spr])
+            self.layer.arrays[k] = array
+
+        array.add(spr)
 
     def _reset_verts(self):
         self.orig_verts = None
