@@ -1,5 +1,6 @@
 from typing import Tuple, Optional, Any
 import importlib
+import weakref
 
 import moderngl
 import pygame.image
@@ -37,7 +38,7 @@ class Layer:
     def __init__(self, ctx, group):
         self.ctx = ctx
         self.group = group
-        self.arrays = {}
+        self.arrays = weakref.WeakValueDictionary()
         self.visible = True
         self.objects = set()
         self._dirty = set()

@@ -1,6 +1,6 @@
 """Sparse Vertex buffer with a packed index buffer."""
 from typing import Dict, Tuple, ContextManager
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 
 import moderngl
 import numpy as np
@@ -16,7 +16,7 @@ class PackedBuffer:
             ctx: moderngl.Context,
             prog: moderngl.Program,
             dtype: np.dtype,
-            draw_context=nullcontext,
+            draw_context: ContextManager = nullcontext(),
             capacity: int = 256,
             index_capacity: int = 512):
         self.mode = mode
@@ -26,16 +26,38 @@ class PackedBuffer:
         self.allocs: Dict[int, Tuple[slice, np.ndarray]] = {}
         self.verts = MemoryBackedBuffer(ctx, capacity, dtype)
         self.indexes = IndexBuffer(ctx)
+        self.draw_context = draw_context
         self.dirty = False
+
+    def empty(self) -> bool:
+        """Return True if there are no allocations in this buffer."""
+        return bool(self.allocs)
+
+    def alloc(
+        self,
+        num_verts: int,
+        indexes: np.ndarray
+    ) -> Tuple[int, np.ndarray]:
+        """Allocate a list from within this buffer.
+
+        Return the allocated ID and an array view that can be used to set
+        the vertex data immediately.
+
+        The array view is not guaranteed to be valid after other array
+        update operations.
+
+        """
+        vertoff, vertbuf = self.verts.allocate(num_verts)
+        id = self.indexes.insert(indexes + vertoff.start)
+
+        self.allocs[id] = vertoff
+        self.dirty = True
+        return id, vertbuf
 
     def insert(self, verts: np.ndarray, indexes: np.ndarray) -> int:
         """Allocate a list from within this buffer."""
-        vs, vertbuf = self.verts.allocate(len(verts))
-        id = self.indexes.insert(indexes + vs.start)
-
+        id, vertbuf = self.alloc(len(verts), indexes)
         vertbuf[:] = verts
-        self.allocs[id] = vs, vertbuf
-        self.dirty = True
         return id
 
     def realloc(self, id: int, verts: np.ndarray, indexes: np.ndarray):
@@ -48,22 +70,26 @@ class PackedBuffer:
         )
         vertbuf[:] = verts
         self.indexes.set_indexes(id, indexes + vertoff.start)
-        self.allocs[id] = vertoff, vertbuf
+        self.allocs[id] = vertoff
         self.dirty = True
 
-    @contextmanager
-    def get_verts(self, id: int) -> ContextManager[np.ndarray]:
-        """Get the vertices for the given allocation.
+    def get_verts(self, id: int) -> np.ndarray:
+        """Get the vertex slice for the given allocation.
 
-        This is a context manager mainly to indicate that the calling code
-        should not hold a reference to this array outside of the context.
+        It is assumed that the vertices will be modified and need to be
+        synced to the GL.
+
+        It is not guaranteed that the slice will remain valid after other
+        array update operations.
+
         """
         self.dirty = True
-        yield self.allocs[id][1]
+        vertoff = self.allocs[id]
+        return self.verts.array[vertoff]
 
     def remove(self, id: int):
         """Remove a list from the array."""
-        vertoff, _ = self.allocs.pop(id)
+        vertoff = self.allocs.pop(id)
         self.verts.free(vertoff)
         self.indexes.remove(id)
         self.dirty = True

@@ -182,13 +182,16 @@ class IndirectBuffer:
 class MemoryBackedBuffer:
     """Maintain a GL buffer plus a numpy arrays for storage."""
 
-    def __init__(self, ctx, capacity, dtype, on_resize):
+    def __init__(self, ctx, capacity, dtype, on_resize=None):
         self.ctx = ctx
         self.allocator = AbstractAllocator(capacity)
         self.dtype = dtype
-        self.array = np.empty(capacity, dtype=self.dtype)
         self.buffer = None
         self.on_resize = on_resize
+
+        # The CPU memory buffer for the buffer data.
+        # This attribute is accessed externally; do not rename!
+        self.array = np.empty(capacity, dtype=self.dtype)
 
     def allocate(self, num: int) -> Tuple[slice, np.ndarray]:
         """Allocate a slice of the array.
@@ -211,7 +214,8 @@ class MemoryBackedBuffer:
         if self.buffer:
             self.buffer.release()
             self.buffer = None
-        self.on_resize(self.array)
+        if self.on_resize:
+            self.on_resize(self.array)
 
     def get_buffer(self, dirty=False) -> moderngl.Buffer:
         """Get the buffer."""

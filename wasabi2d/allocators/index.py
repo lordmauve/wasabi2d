@@ -46,7 +46,7 @@ class IndexBuffer:
         # We allocate identifiers for each allocation. These are sequential
         # and form part of the sort key; this ensures that insertion order
         # can be preserved.
-        self.next_id: int = 0
+        self.next_id: int = 1  # start at 1 so we can test bool(id)
 
     def insert(self, indexes: np.ndarray, sort: Any = None) -> int:
         """Add indexes to the buffer."""
@@ -126,7 +126,7 @@ class IndexBuffer:
             if self.buffer:
                 # TODO: use moderngl orphan with resize
                 self.buffer.release()
-            self.buffer = self.ctx.buffer(self.as_array(), dtype='u4')
+            self.buffer = self.ctx.buffer(self.as_array())
         return self.buffer
 
     def release(self):

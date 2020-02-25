@@ -1,5 +1,7 @@
-from contextlib import contextmanager
+from dataclasses import dataclass
+
 import numpy as np
+import moderngl
 
 from ..descriptors import CallbackProp
 from .base import Colorable, Transformable, Bounds
@@ -38,7 +40,7 @@ TEXTURED_QUADS_PROGRAM = dict(
         }
     ''',
 )
-QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='i4')
+QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='u4')
 
 
 class SpriteArray:
@@ -168,11 +170,18 @@ class SpriteArray:
     __del__ = release
 
 
-def texture_context(tex, prog):
-    """Bind the given texture to the given program during the context."""
-    prog['tex'].value = 0
-    tex.use(0)
-    yield
+@dataclass
+class TextureContext:
+    tex: moderngl.Texture
+    prog: moderngl.Program
+
+    def __enter__(self):
+        """Bind the given texture to the given program during the context."""
+        self.prog['tex'].value = 0
+        self.tex.use(0)
+
+    def __exit__(self, *_):
+        pass
 
 
 class Sprite(Colorable, Transformable):
@@ -185,11 +194,14 @@ class Sprite(Colorable, Transformable):
         super().__init__()
         self.verts = None
         self.layer = layer
-        self.array = None
         self._image = None
         self._anchor_x = anchor_x
         self._anchor_y = anchor_y
         self._vert_color = np.ones((4, 4), dtype='f4')
+
+        self._array = None
+        self._array_id = None
+
         self.image = image  # trigger sprite load and migration
 
     @property
@@ -217,23 +229,34 @@ class Sprite(Colorable, Transformable):
 
         tex = self.texregion.tex
 
-        if not self.array:
-            # initial migration into an array
-            self.layer._migrate_sprite(self, tex)
-        elif tex is not self.array.tex:
-            # migrate to a different vao
-            self.array.delete(self)
-            self.layer._migrate_sprite(self, tex)
+        if not self._array:
+            # migrate into a new array
+            self._array = self._get_array(tex)
+            self._array_id, _ = self._array.alloc(4, QUAD)
+        elif tex is not self._array.draw_context.tex:
+            # migrate out of this buffer
+            self._array.remove(self._array_id)
+            self._array = self._get_array(tex)
+            self._array_id, _ = self._array.alloc(4, QUAD)
 
     def _get_array(self, tex):
         k = ('sprite', id(tex))
         array = self.layer.arrays.get(k)
         if not array:
             prog = self.layer.group.shadermgr.get(**TEXTURED_QUADS_PROGRAM)
-            array = PackedBuffer(self.ctx, prog, tex, [spr])
+            array = PackedBuffer(
+                moderngl.TRIANGLES,
+                self.layer.ctx,
+                prog,
+                dtype=np.dtype([
+                    ('in_vert', '3f4'),
+                    ('in_color', '4f2'),
+                    ('in_uv', '2u2'),
+                ]),
+                draw_context=TextureContext(tex, prog),
+            )
             self.layer.arrays[k] = array
-
-        array.add(spr)
+        return array
 
     def _reset_verts(self):
         self.orig_verts = None
@@ -246,11 +269,9 @@ class Sprite(Colorable, Transformable):
         """Delete this sprite."""
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
-        array = self.array
-        self.array.delete(self)
-        if not array.sprites:
-            self.layer._delete_sprite_array(array)
+        self._array.remove(self._array_id)
         self.layer = None
+        self._array = self._array_id = None
 
     def _set_dirty(self):
         if self.layer:
@@ -268,9 +289,12 @@ class Sprite(Colorable, Transformable):
 
         xform = self._xform()
 
-        self._vert_color[:] = self._color
-        self.verts = np.hstack([
-            self.orig_verts @ xform,
-            self._vert_color,
-        ])
-        self._dirty = True
+        verts = self._array.get_verts(self._array_id)
+        verts['in_color'][:] = self._color
+        verts['in_uv'][:] = self.texregion.texcoords
+
+        np.matmul(
+            self.orig_verts,
+            xform,
+            out=verts['in_vert']
+        )
