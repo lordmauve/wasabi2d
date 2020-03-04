@@ -36,7 +36,7 @@ def indexes() -> np.ndarray:
 def test_insert(idxbuf, indexes):
     """We can insert indices into the buffer."""
     id = idxbuf.insert(indexes)
-    assert id == 0
+    assert id == 1
     assert np.all(idxbuf.as_array() == indexes)
     assert idxbuf.dirty
 
@@ -56,7 +56,7 @@ def test_concat(idxbuf, indexes):
     """We can insert two sets of indices and concatenate them."""
     id = idxbuf.insert(indexes)
     id2 = idxbuf.insert(indexes + 2)
-    assert [id, id2] == [0, 1]
+    assert [id, id2] == [1, 2]
     assert np.all(idxbuf.as_array() == np.array([0, 1, 2, 3]))
 
 
