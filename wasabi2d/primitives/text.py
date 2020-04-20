@@ -149,7 +149,7 @@ class Label(Colorable, Transformable):
         we may not be very sophisticated at this point.
 
         """
-        text = unicodedata.normalize('NFKC', text)
+        self._str = unicodedata.normalize('NFKC', str(text))
         self._text = text
         self._layout()
 
@@ -160,12 +160,12 @@ class Label(Colorable, Transformable):
         font = self.font_atlas.font
 
         descent = font.get_descent()
-        n_chars = len(self._text) - self._text.count('\n')
+        n_chars = len(self._str) - self._str.count('\n')
         verts = np.ones((4 * n_chars, 3), dtype='f4')
         uvs = np.zeros((4 * n_chars, 2), dtype='f4')
         indices = np.zeros(n_chars * 6, dtype='u4')
 
-        lines = self._text.split('\n')
+        lines = self._str.split('\n')
 
         # We lay out based on 48px tex so line size is scaled later
         line_height = 48 * 1.3
