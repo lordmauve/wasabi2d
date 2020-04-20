@@ -36,6 +36,21 @@ class Polygon(AbstractShape):
         self._color = convert_color(color)
         self._set_dirty()
 
+    @property
+    def vertices(self):
+        """Get the vertices of the polygon."""
+        return self.orig_verts[:, :2].copy()
+
+    @vertices.setter
+    def vertices(self, v):
+        """Set the vertices of the polygon.
+
+        It is currently not allowed to increase or decrease the number of
+        vertices.
+        """
+        self.orig_verts[:, :2] = v
+        self._set_dirty()
+
     def _stroke_indices(self):
         """Indexes for drawing the stroke as a LINE_STRIP_ADJACENCY."""
         verts = len(self.orig_verts)
