@@ -127,3 +127,22 @@ def test_aa_blend(scene):
             pos=pos,
             color=(y / 60, 0, y / 60, x / 80),
         )
+
+
+@drawing_test
+def test_coincident_points(scene):
+    """With coincident points we still get a line segment."""
+    center = scene.width // 2, scene.height // 2
+
+    angles = np.linspace(0, np.pi * 2, 20)
+    points = np.array([
+        np.cos(angles),
+        np.sin(angles),
+    ]).T * 200 + center
+
+    scene.layers[0].add_polygon(
+        points,
+        fill=False,
+        color=(0.9, 0.9, 1.2),
+        stroke_width=4
+    )

@@ -37,11 +37,11 @@ class Polygon(AbstractShape):
         self._set_dirty()
 
     def _stroke_indices(self):
-        """Indexes for drawing the stroke as a LINE_STRIP."""
+        """Indexes for drawing the stroke as a LINE_STRIP_ADJACENCY."""
         verts = len(self.orig_verts)
-        idxs = np.arange(verts + 1, dtype='i4')
-        idxs[-1] = 0
-        return idxs[[-1, *range(verts), 0, 1, 2]]
+        idxs = np.arange(verts, dtype='i4')
+        winding = idxs[[-1, *idxs, 0, 1, 2]]
+        return winding
 
     def _fill_indices(self):
         """Indexes for drawing the fill as TRIANGLES."""

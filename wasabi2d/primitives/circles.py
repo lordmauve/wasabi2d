@@ -80,7 +80,10 @@ void mitre(vec2 a, vec2 b, vec2 c, float width) {
     vec2 ab = normalize(b - a);
     vec2 bc = normalize(c - b);
 
-    if (length(bc) < 1e-6) {
+    if (dot(b, a) < 1e-6) {
+        ab = bc;
+    }
+    if (dot(b, c) < 1e-6) {
         bc = ab;
     }
 
@@ -104,6 +107,11 @@ void mitre(vec2 a, vec2 b, vec2 c, float width) {
 }
 
 
+bool is_nonzero(vec2 v) {
+    return dot(v, v) > 1e-4;
+}
+
+
 void main() {
     color = g_color[1];
 
@@ -112,8 +120,18 @@ void main() {
     vec2 c = gl_in[2].gl_Position.xy;
     vec2 d = gl_in[3].gl_Position.xy;
 
-    mitre(a, b, c, widths[1]);
-    mitre(b, c, d, widths[2]);
+    vec2 along = c - b;
+
+    if (is_nonzero(b - a)) {
+        mitre(a, b, c, widths[1]);
+    } else {
+        mitre(b - along, b, c, widths[1]);
+    }
+    if (is_nonzero(d - c)) {
+        mitre(b, c, d, widths[2]);
+    } else {
+        mitre(b, c, c + along, widths[2]);
+    }
 
     EndPrimitive();
 }
