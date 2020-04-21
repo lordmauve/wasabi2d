@@ -46,14 +46,14 @@ class Scene:
     :param scaler: If True or a string, activate scene scaling using the named
                    scaler, or 'nearest' if ``True`` is given.
     """
-
     def __init__(
             self,
             width: int = 800,
             height: int = 600,
             title: int = "wasabi2d",
             rootdir: Optional[str] = None,
-            scaler: Union[str, bool, None] = False):
+            scaler: Union[str, bool, None] = False,
+            background: Union[str, Tuple[float, float, float]] = 'black'):
         self._recording = False
         self._scaler = scaler
 
@@ -91,7 +91,7 @@ class Scene:
         event(self.draw)
         event(self.on_screenshot_requested)
 
-        self._background = (0.0, 0.0, 0.0)
+        self.background = background
 
     def release(self):
         self.layers.clear()

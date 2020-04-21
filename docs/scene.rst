@@ -21,6 +21,10 @@ Create a scene with::
     Get/set the background color of the entire scene as an RGB triple. `(1, 1,
     1)` is white and `(0, 0, 0)` is black.
 
+    You can also assign color names or HTML color codes (but the value is
+    stored and returned as a tuple).
+
+
 .. attribute:: Scene.layers
 
     The collection of layers that will be drawn. Layers are created on access
