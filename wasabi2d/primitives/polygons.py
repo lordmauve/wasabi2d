@@ -1,4 +1,3 @@
-from unittest.mock import ANY
 import numpy as np
 
 import mapbox_earcut as earcut
@@ -18,19 +17,12 @@ class Polygon(AbstractShape):
             pos=(0, 0),
             color=(1, 1, 1, 1),
             stroke_width=1.0):
-
-        verts = np.array(vertices, dtype='f4')
-        if verts.shape != (ANY, 2):
-            raise ValueError(
-                f"Unsupported vertex shape {verts.shape}, expected (*, 2)"
-            )
+        self.orig_verts = np.ones((len(vertices), 3), dtype='f4')
+        self.orig_verts[:, :2] = vertices
 
         super().__init__()
         self.layer = layer
         self.pos = pos
-
-        self.orig_verts = np.ones((len(verts), 3), dtype='f4')
-        self.orig_verts[:, :2] = verts
         self._stroke_width = stroke_width
 
         self._color = convert_color(color)
