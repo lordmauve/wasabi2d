@@ -149,7 +149,7 @@ class Label(Colorable, Transformable):
         we may not be very sophisticated at this point.
 
         """
-        self._str = unicodedata.normalize('NFKC', str(text))
+        self._str = unicodedata.normalize('NFC', str(text))
         self._text = text
         self._layout()
 
