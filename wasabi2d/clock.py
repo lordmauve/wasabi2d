@@ -17,6 +17,7 @@ from itertools import chain, count
 from functools import total_ordering
 from collections import namedtuple
 from types import MethodType
+import types
 
 
 __all__ = [
@@ -193,6 +194,7 @@ class Coroutines:
 
     def run(self, coro):
         """Schedule a coroutine."""
+        assert isinstance(coro, types.CoroutineType)
         task = Task(self.clock, coro)
         return task
 
@@ -207,6 +209,9 @@ class Task:
     def _step(self, dt=None):
         clock = self.clock
         clock.unschedule(self._step)
+
+        if self.coro is None:
+            return
 
         try:
             res = self.coro.send(dt)
@@ -234,11 +239,12 @@ class Task:
         """Cancel the task."""
         try:
             self.coro.throw(Coroutines.Cancelled)
-        except StopIteration:
+        except (StopIteration, Coroutines.Cancelled):
             # Coroutine halted successfully. If not it may be awaiting
             # something during exception handling, and we should not unschedule
             # it.
             self.clock.unschedule(self._step)
+            self.coro = None
 
 
 class Clock:
