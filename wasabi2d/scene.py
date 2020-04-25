@@ -263,7 +263,7 @@ class Scene:
     def draw(self, t, dt, updated):
         if self._fps_query:
             self._fps_query.__exit__(None, None, None)
-            self.fps = 1e9 / self._fps_query.elapsed
+            self.fps = 1e9 / (self._fps_query.elapsed or 1e9)
 
         if self._recording:
             self._vid_frame()
