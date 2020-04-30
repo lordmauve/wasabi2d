@@ -271,7 +271,8 @@ class Layer:
             width=width,
             height=height,
             pos=pos,
-            color=color
+            color=color,
+            stroke_width=stroke_width,
         )
         self.objects.add(c)
         if fill:
