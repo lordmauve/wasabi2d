@@ -2,6 +2,8 @@
 
 ![PyPI](https://img.shields.io/pypi/v/wasabi2d) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/wasabi2d) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/wasabi2d)
 
+[![Discord](https://img.shields.io/discord/705530610847973407)](https://discord.gg/jBWaWHU)
+
 A fast, cutting-edge 2D game engine for Python.
 
 Current features include:
