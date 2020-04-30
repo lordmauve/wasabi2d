@@ -73,6 +73,10 @@ vec2 rot90(vec2 v) {
     return vec2(-v.y, v.x);
 }
 
+bool is_nonzero(vec2 v) {
+    return dot(v, v) > 1e-4;
+}
+
 uniform mat4 proj;
 
 
@@ -80,10 +84,10 @@ void mitre(vec2 a, vec2 b, vec2 c, float width) {
     vec2 ab = normalize(b - a);
     vec2 bc = normalize(c - b);
 
-    if (dot(b, a) < 1e-6) {
+    if (!is_nonzero(ab)) {
         ab = bc;
     }
-    if (dot(b, c) < 1e-6) {
+    if (!is_nonzero(bc)) {
         bc = ab;
     }
 
@@ -104,11 +108,6 @@ void mitre(vec2 a, vec2 b, vec2 c, float width) {
 
     gl_Position = proj * vec4(b - across, 0.0, 1.0);
     EmitVertex();
-}
-
-
-bool is_nonzero(vec2 v) {
-    return dot(v, v) > 1e-4;
 }
 
 

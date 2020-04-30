@@ -58,9 +58,21 @@ def test_draw_rects(scene):
             pos=pos,
             fill=filled,
             color=colors[i % len(colors)],
-            stroke_width=i
         )
         r.angle = i * 0.1
+
+
+@drawing_test
+def test_draw_rect_origin(scene):
+    """We can draw a rectangle centred at the origin."""
+    scene.background = '#223366'
+    scene.camera.pos = 0, 0
+    scene.layers[0].add_rect(
+        100, 100,
+        pos=(0, 0),
+        fill=False,
+        stroke_width=4
+    )
 
 
 @drawing_test
