@@ -14,7 +14,7 @@ TEXTURED_QUADS_PROGRAM = dict(
 
         uniform mat4 proj;
 
-        in vec3 in_vert;
+        in vec2 in_vert;
         in vec4 in_color;
         in ivec2 in_uv;
         out vec2 uv;
@@ -77,7 +77,7 @@ class SpriteArray:
         )
         self.verts = np.vstack(
             [s.verts for s in self.sprites]
-            + [np.zeros((4 * extra, 7), dtype='f4')]
+            + [np.zeros((4 * extra, 6), dtype='f4')]
         )
 
         self.release()
@@ -87,7 +87,7 @@ class SpriteArray:
         self.vao = self.ctx.vertex_array(
             self.prog,
             [
-                (self.vbo, '3f 4f', 'in_vert', 'in_color'),
+                (self.vbo, '2f 4f', 'in_vert', 'in_color'),
                 (self.uvbo, '2u2', 'in_uv'),
             ],
             self.ibuf
@@ -249,7 +249,7 @@ class Sprite(Colorable, Transformable):
                 self.layer.ctx,
                 prog,
                 dtype=np.dtype([
-                    ('in_vert', '3f4'),
+                    ('in_vert', '2f4'),
                     ('in_color', '4f2'),
                     ('in_uv', '2u2'),
                 ]),
@@ -295,6 +295,6 @@ class Sprite(Colorable, Transformable):
 
         np.matmul(
             self.orig_verts,
-            xform,
+            xform[:, :2],
             out=verts['in_vert']
         )
