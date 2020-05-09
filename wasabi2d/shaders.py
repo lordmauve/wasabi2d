@@ -98,12 +98,13 @@ class ShaderManager:
 
     def set_proj(self, proj: np.ndarray):
         """Set the projection matrix."""
+        projmatrix = proj.tobytes()
         for prog in self.programs.values():
             try:
                 uniform = prog['proj']
             except KeyError:
                 continue
-            uniform.write(proj.tobytes())
+            uniform.write(projmatrix)
 
     def __del__(self):
         self.release()

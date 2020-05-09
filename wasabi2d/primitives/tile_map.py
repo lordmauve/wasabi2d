@@ -6,6 +6,7 @@ from typing import Tuple, Dict, Set, Optional, List
 import moderngl
 import numpy as np
 
+import wasabi2d
 from ..allocators.abstract import FreeListAllocator, NoCapacity
 from ..allocators.vertlists import dtype_to_moderngl
 
@@ -82,8 +83,12 @@ class TileManager:
 
     def release(self):
         """Release the ModernGL objects."""
-        self.verts.release()
-        self.texture.release()
+        if self.verts:
+            self.verts.release()
+            self.verts = None
+        if self.texture:
+            self.texture.release()
+            self.texture = None
 
     def __del__(self):
         self.release()
@@ -95,15 +100,14 @@ class TileManager:
             self.resize(e.capacity)
             tile_id = self.alloc.alloc()
 
+        vert_id = len(self.block_map)
+
         tile = self.mktile()
         self.block_map[pos] = tile_id
         self.texture_blocks[tile_id] = tile
         self.dirty_blocks.add(tile_id)
 
-        vert_id = len(self.block_map)
-        vert = self.vertdata[vert_id]
-        vert['in_vert'] = pos
-        vert['in_tilemap_block'] = tile_id
+        self.vertdata[vert_id] = pos, tile_id
         self.verts.write(self.vertdata)  # TODO: write just this one
 
         return tile
@@ -220,7 +224,7 @@ class TileMap:
             texdata[i, ...] = region.texcoords
             self._names[t] = i
         self.tex = tex
-        self.tile_size = size
+        self.block_size = tuple(c * 64 for c in size)
         self._tile_tex = self.layer.ctx.texture(
             (num, 2),
             4,
@@ -278,7 +282,7 @@ class TileMap:
         self.layer.objects.discard(self)
         self.layer = None
 
-    def render(self, camera):
+    def render(self, camera: wasabi2d.scene.Camera):
         self._tilemgr.bind_texture(0)
         self.prog['tiles'] = 0
 
@@ -287,7 +291,6 @@ class TileMap:
 
         self.tex.tex.use(2)
         self.prog['tex'] = 2
-
-        self.prog['tile_size'] = self.tile_size
+        self.prog['block_size'] = self.block_size
 
         self.vao.render(vertices=len(self._tilemgr))
