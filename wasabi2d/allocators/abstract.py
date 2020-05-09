@@ -11,12 +11,13 @@ class NoCapacity(Exception):
 
 
 class AbstractAllocator:
-    """Manage allocations within a block of items.
+    """Manage allocations of arbitrary size within a sliceable block of items.
 
     This is abstract because we don't actually assume anything about the types
     of the items or how to write to them.
 
     """
+    # TODO: rename this to something like ContiguousBlockAllocator
 
     def __init__(self, capacity: int = 8192):
         self.capacity = capacity
@@ -154,3 +155,33 @@ class AbstractAllocator:
         except KeyError:
             raise KeyError(f"Offset {offset} is not allocated.") from None
         self._release(offset, size)
+
+
+class FreeListAllocator:
+    """An abstract allocator that allocates individual items from a block.
+
+    Instead of maintaining a structure representing contiguous ranges, we
+    can simply maintain a list of unallocated items.
+
+    """
+    def __init__(self, capacity: int = 8):
+        self.capacity = capacity
+        self.freelist = SortedList(range(capacity))
+
+    def alloc(self) -> int:
+        """Allocate an entry."""
+        if not self.freelist:
+            err = NoCapacity()
+            err.recommended = self.capacity + max(self.capacity // 2, 1)
+            raise err
+        return self.freelist.pop(0)
+
+    def grow(self, new_capacity: int):
+        """Tell the allocator about a new capacity."""
+        self.freelist.update(range(self.capacity, new_capacity))
+        self.capacity = new_capacity
+
+    def release(self, idx: int):
+        """Deallocate an index."""
+        assert idx not in self.freelist
+        self.freelist.add(idx)
