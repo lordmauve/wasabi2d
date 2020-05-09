@@ -31,7 +31,9 @@ and calling ``run()``, add this code::
 
 All objects in wasabi2d are created in **layers**. Layers are drawn from lowest
 to highest and are created on demand. So the choice of ``scene.layers[0]`` is
-arbitrary - but ``0`` is a good a place as any to start.
+arbitrary - but ``0`` is a good a place as any to start. Layers are added when
+you access them, you don't need to create them. Scene coordinates run from
+(0, 0) in the top left to (width, height) in the bottom right.
 
 When you run the game, you'll now see a green circle in the center of the
 screen. We're making progress, but this still isn't very interesting! To start
