@@ -9,6 +9,18 @@ from wasabi2d.keyboard import keyboard, keys
 
 scene = w2d.Scene(width=1280, height=720, background="#ccaa88")
 
+tilemap = scene.layers[0].add_tile_map([
+    'sand_base_1',
+    'sand_base_2',
+])
+tilemap.fill_rect(
+    ['sand_base_1', 'sand_base_2'],
+    left=0,
+    right=scene.width // 64,
+    top=0,
+    bottom=scene.height // 64,
+)
+
 scene.layers[1].set_effect('dropshadow', offset=(2, 2))
 tank = scene.layers[1].add_sprite('tank_green', pos=(50, 50))
 tank.speed = 0

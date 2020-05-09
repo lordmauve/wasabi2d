@@ -338,6 +338,13 @@ class Layer:
         c._migrate(vao)
         return c
 
+    def add_tile_map(self, *args, **kwargs):
+        """Create a tile map in the layer."""
+        from .primitives.tile_map import TileMap
+        tiles = TileMap(self, *args, **kwargs)
+        self.objects.add(tiles)
+        return tiles
+
 
 class LayerGroup(dict):
     def __new__(cls, ctx, camera):
