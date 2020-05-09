@@ -7,7 +7,7 @@ import pygame.image
 
 from .clock import default_clock
 from .atlas import Atlas
-from .primitives.sprites import SpriteArray, Sprite
+from .primitives.sprites import Sprite
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
@@ -111,23 +111,6 @@ class Layer:
         spr.scale = scale
         self.objects.add(spr)
         return spr
-
-    def _migrate_sprite(self, spr, tex):
-        """Move sprite spr into the correct vertex array."""
-        k = ('sprite', id(tex))
-        array = self.arrays.get(k)
-        if not array:
-            prog = self.group.shadermgr.get(**SpriteArray.PROGRAM)
-            array = SpriteArray(self.ctx, prog, tex, [spr])
-            self.arrays[k] = array
-        else:
-            array.add(spr)
-
-    def _delete_sprite_array(self, array):
-        tex = array.tex
-        k = ('sprite', id(tex))
-        if k in self.arrays:
-            del self.arrays[k]
 
     def _get_or_create_vao(self, k, constructor):
         """Get a VAO identified by key k, or construct it using constructor."""

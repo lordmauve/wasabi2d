@@ -14,7 +14,6 @@ implement depth-sorted or y-sorted layers.
 from typing import Any, Dict, Tuple, Iterable, Sequence, Mapping
 import heapq
 from functools import total_ordering
-from operator import itemgetter
 
 import numpy as np
 import moderngl as mgl
@@ -36,8 +35,8 @@ class IndexBuffer:
 
         # Allocation id to sort key
         self.id_lookup: Dict[int, Tuple[Any, int]] = {}
+
         # Sorted list of sort keys to index arrays
-        # This
         self.allocations: Mapping[Tuple[Any, int], np.ndarray] = SortedDict()
 
         # Track whether we have updates
