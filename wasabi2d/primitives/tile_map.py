@@ -1,113 +1,191 @@
 """Sparse tile maps."""
-import numpy as np
 import random
 from itertools import product
-from typing import Tuple
+from typing import Tuple, Dict, Set, Optional, List
 
-from .base import Colorable, Transformable
-from ..allocators.vertlists import MemoryBackedBuffer, dtype_to_moderngl
+import moderngl
+import numpy as np
 
-
-TILES_PROGRAM = dict(
-    vertex_shader='''
-#version 330
-
-in vec2 in_vert;
-in ivec2 in_tilemap_blok;
-
-void main() {
-    gl_Position = vec4(in_vert, 0.0, 1.0);
-}
-    ''',
-    geometry_shader="""
-in ivec2 in_uv;
-out vec2 uv;
-uniform sampler2D tile_coords;
-uniform vec2 tile_size;
-
-uniform mat4 proj;
-
-const vec2 corners[4] = vec2[4](
-    vec2(0.0, 0.0),
-    vec2(0.0, 1.0),
-    vec2(1.0, 0.0),
-    vec2(1.0, 1.0),
-);
+from ..allocators.abstract import FreeListAllocator, NoCapacity
+from ..allocators.vertlists import dtype_to_moderngl
 
 
-/* Project a relative vector using the mvp matrix. */
-vec2 project_vec(vec2 v) {
-    return (proj * vec4(v, 0.0, 0.0)).xy;
-}
+def grow(arr: np.ndarray, newsize: int) -> np.ndarray:
+    shape = list(arr.shape)
+    shape[0] = newsize
+
+    new = np.empty_like(arr, shape=shape)
+    new[:len(arr)] = arr
+    return new
 
 
-/* Project a point using the mvp matrix. */
-vec2 project_point(vec2 v) {
-    return (proj * vec4(v, 0.0, 1.0)).xy;
-}
+class TileManager:
+    """Manage tile blocks in a texture and a vertex buffer enumerating them.
+
+    Each vertex buffer entry will contain the block coordinates for the block
+    and the location in the texture where the texture data is found. This
+    latter location is stored as an integer index.
+
+    """
+    ctx: moderngl.Context
+
+    # Allocator for texture areas
+    alloc: FreeListAllocator
+    texture: moderngl.Texture
+
+    # Vertices and a backing memory array
+    verts: moderngl.Buffer
+    vertdata: np.ndarray
+    verts_dirty: bool = True
+
+    block_map: Dict[Tuple[int, int], int]
+    texture_blocks: Dict[int, np.ndarray]
+    dirty_blocks: Set[int]
+
+    NP_DTYPE = np.dtype([
+        ('in_vert', '2i4'),
+        ('in_tilemap_block', 'u2'),
+    ])
+    MGL_DTYPE = dtype_to_moderngl(NP_DTYPE)
+
+    def __init__(self, ctx: moderngl.Context):
+        self.ctx = ctx
+        self.alloc = FreeListAllocator()
+        self.block_map = {}
+        self.dirty_blocks = set()
+        self.texture_blocks = {}
+
+        self.mktex(self.alloc.capacity)
+        self.vertdata = np.empty(self.alloc.capacity, dtype=self.NP_DTYPE)
+        self.verts = self.ctx.buffer(self.vertdata)
+
+    def mktex(self, capacity: int):
+        """Create a new texture."""
+        self.texture = self.ctx.texture(
+            (capacity * 64, 64), 1,
+            dtype='u1'
+        )
+
+    def mktile(self) -> np.ndarray:
+        """Create a tile in memory."""
+        return np.zeros((64, 64), dtype='u1')
+
+    def _resize(self, new_capacity: int):
+        """Resize to hold new_capacity tiles."""
+        self.texture.release()
+        self.mktex(new_capacity)
+        self.alloc.grow(new_capacity)
+        self.dirty_blocks.update(self.block_map.values())
+        self.vertdata = grow(self.vertdata, new_capacity)
+        self.verts.orphan(new_capacity)
+        self.verts_dirty = True
+
+    def release(self):
+        """Release the ModernGL objects."""
+        self.verts.release()
+        self.texture.release()
+
+    def __del__(self):
+        self.release()
+
+    def create_block(self, pos: Tuple[int, int]) -> np.ndarray:
+        try:
+            tile_id = self.alloc.alloc()
+        except NoCapacity as e:
+            self.resize(e.capacity)
+            tile_id = self.alloc.alloc()
+
+        tile = self.mktile()
+        self.block_map[pos] = tile_id
+        self.texture_blocks[tile_id] = tile
+        self.dirty_blocks.add(tile_id)
+
+        vert_id = len(self.block_map)
+        vert = self.vertdata[vert_id]
+        vert['in_vert'] = pos
+        vert['in_tilemap_block'] = tile_id
+        self.verts.write(self.vertdata)  # TODO: write just this one
+
+        return tile
+
+    def __len__(self):
+        return len(self.block_map)
+
+    def get_or_create_block(self, pos: Tuple[int, int]) -> np.ndarray:
+        """Get or create the block for the given coordinates.
+
+        This method is intended for updates to the block and will mark the
+        block as dirty.
+
+        """
+        id = self.block_map.get(pos)
+        if id is None:
+            return self.create_block(pos)
+        self.dirty_blocks.add(id)
+        return self.texture_blocks[id]
+
+    def get_block(self, pos: Tuple[int, int]) -> Optional[np.ndarray]:
+        """Retrieve the block with the given coordinates if it exists.
+
+        This method does not mark the block as dirty.
+        """
+        id = self.block_map[pos]
+        if id is None:
+            return None
+        return self.texture_blocks[id]
+
+    def touch_block(self, pos: Tuple[int, int]):
+        """Mark a block as dirty."""
+        self.dirty_blocks.append(self.block_map[pos])
+
+    def bind_texture(self, unit: int):
+        """Bind the texture to a texture unit."""
+        for tile_id in self.dirty_blocks:
+            tile = self.texture_blocks[tile_id]
+            self.texture.write(tile, (tile_id * 64, 0, 64, 64))
+        self.dirty_blocks.clear()
+        self.texture.use(unit)
 
 
-void main() {
-    vec4 point = gl_in[0].gl_Position;
-
-    vec2 topleft = project_point(point.xy);
-    vec2 tile_x = project_vec(vec2(tile_size.x, 0.0));
-    vec2 tile_y = project_vec(vec2(0.0, tile_size.y));
-
-    vec2 tile_across = tile_x + tile_y;
-
-    // Cull
-    vec4 xform_centre = topleft + tile_across * 4.0;
-    float radius = length(tile_across);
-    if (all(greaterThan(xform_centre, vec2(1.0 - radius, 1.0 - radius)))) {
-        return;
-    }
-
-    mat2 tilespace = mat2(tile_x, tile_y);
-
-    for (int y = 0; y < 8; y++) {
-        for (int x = 0; x < 8; x++) {
-            vec2 coord = vec2(x, y);
-            for (int c = 0; c < 4; c++) {
-                gl_Position = topleft + tilespace * (coord + corners[c]);
-                EmitVertex();
-            }
-            EndPrimitive();
-        }
-    }
-}
-""",
-    fragment_shader='''
-#version 330
-
-out vec4 f_color;
-in vec2 uv;
-uniform vec4 color;
-uniform sampler2D tex;
-
-void main() {
-    f_color = color * texture(tex, uv);
-}
-''',
-)
-
-
-class TextureBlockManager:
-    ctx: 'moderngl.Context'
-
-
-class TileMap(Colorable):
+class TileMap:
     """A sparse tile map."""
+    _tiles: List[str]
+    layer: 'wasabi2d.layers.Layer'
+    _tilemgr: TileManager
+    _tile_tex: moderngl.Texture = None
+    vao: moderngl.VertexArray = None
 
-    def __init__(self, layer, tiles):
+    def __init__(self, layer, tiles: List[str]):
         super().__init__()
         self.layer = layer
         self._tiles = list(tiles)
-        self._tile_tex = None
-        self._build_texture()
-        self._build_buffer()
 
-    def _build_texture(self):
+        self._tilemgr = TileManager(self.layer.ctx)
+
+        self._build_tiledata_texture()
+
+        shadermgr = layer.group.shadermgr
+
+        self.prog = shadermgr.load('tile_map')
+        self.vao = self.layer.ctx.vertex_array(
+            self.prog,
+            [(self._tilemgr.verts, *TileManager.MGL_DTYPE)]
+        )
+        layer.arrays[id(self)] = self
+
+    def release(self):
+        if self.vao:
+            self.vao.release()
+        if self._tile_tex:
+            self._tile_tex.release()
+        if self._tilemgr:
+            self._tilemgr.release()
+        self._tilemgr = self._tile_tex = self.vao = None
+
+    def __del__(self):
+        self.release()
+
+    def _build_tiledata_texture(self):
         """Build a texture of UV coordinates for our tile map."""
         if self._tile_tex:
             self._tile_tex.release()
@@ -141,6 +219,8 @@ class TileMap(Colorable):
                 tex = region.tex
             texdata[i, ...] = region.texcoords
             self._names[t] = i
+        self.tex = tex
+        self.tile_size = size
         self._tile_tex = self.layer.ctx.texture(
             (num, 2),
             4,
@@ -171,51 +251,21 @@ class TileMap(Colorable):
 
     def __getitem__(self, pos):
         x, y = pos
-        cellx, x = divmod(x, 8)
-        celly, y = divmod(y, 8)
-        index = self._allocations[cellx, celly]
-        return self._data[index]['in_tiles'][x + y * 8]
+        cellx, x = divmod(x, 64)
+        celly, y = divmod(y, 64)
+        block = self._tilemgr.get_block(cellx, celly)
+        return block[x, y]
 
     def __setitem__(self, pos, value):
         if isinstance(value, str):
             value = self._names[value]
         assert isinstance(value, int) and 0 <= value < 255
         x, y = pos
-        cellx, x = divmod(x, 8)
-        celly, y = divmod(y, 8)
-        pos = cellx, celly
-        index = self._allocations.get(pos)
-        if index is None:
-            index = self._allocate(pos)
-        print(self._data.shape, self._data.dtype)
-        self._data[index]['in_tiles'][x + y * 8] = value
-        self._set_dirty()
+        cellx, x = divmod(x, 64)
+        celly, y = divmod(y, 64)
 
-    def __delitem__(self, pos):
-        self[pos] = 256
-
-    NP_DTYPE = np.dtype([
-        ('in_vert', '2f4'),
-        ('in_tilemap_block', '2u2'),
-    ])
-    MGL_DTYPE = dtype_to_moderngl(NP_DTYPE)
-
-    def _build_buffer(self):
-        self._capacity = 1024
-        self._allocated = 0
-        self._allocations = {}
-        self._data = np.zeros((self._capacity,), dtype=self.NP_DTYPE)
-
-    def _allocate(self, pos: Tuple[int, int]) -> int:
-        if self._allocated >= self._capacity:
-            raise NotImplementedError("resize is not implemented")
-
-        idx = self._allocations[pos] = self._allocated
-        self._allocated += 1
-        return idx
-
-    def _set_dirty(self):
-        self.layer._dirty.add(self)
+        block = self._tilemgr.get_or_create_block((cellx, celly))
+        block[x, y] = value
 
     @property
     def bounds(self):
@@ -227,3 +277,17 @@ class TileMap(Colorable):
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
         self.layer = None
+
+    def render(self, camera):
+        self._tilemgr.bind_texture(0)
+        self.prog['tiles'] = 0
+
+        self._tile_tex.use(1)
+        self.prog['tilemap_coords'] = 1
+
+        self.tex.tex.use(2)
+        self.prog['tex'] = 2
+
+        self.prog['tile_size'] = self.tile_size
+
+        self.vao.render(vertices=len(self._tilemgr))

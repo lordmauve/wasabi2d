@@ -1,6 +1,7 @@
 """Manage the compilation of programs in a context."""
 from typing import Optional, Dict, Tuple
 from contextlib import contextmanager
+import pkgutil
 
 import moderngl
 import numpy as np
@@ -13,6 +14,7 @@ class ShaderManager:
 
     """
     ctx: moderngl.Context
+    files: Dict[str, str]
     programs: Dict[Tuple[str, str, Optional[str]], moderngl.Program]
 
     def __init__(self, ctx: moderngl.Context):
@@ -22,7 +24,54 @@ class ShaderManager:
         if 'shadermgr' in ctx.extra:
             raise ValueError(f"ShaderManager is already defined for {ctx}")
         ctx.extra['shadermgr'] = self
+        self.files = {}
         self.programs = {}
+
+    def _read(self, name: str):
+        """Read a GLSL file from the wasabi2d directory."""
+        return pkgutil.get_data('wasabi2d', 'glsl/' + name).decode('utf-8')
+
+    def load(self, *names) -> moderngl.Program:
+        """Load a program from the wasabi2d/glsl directory.
+
+        If a single argument is given, load shaders from files with a common
+        name, and use a geometry shader if it exists.
+
+        Also accepts two or three arguments to specify separate filenames for
+        each shader stage. Stages are in vert, geom, frag order and the geom
+        stage is optional.
+
+        """
+        if names in self.programs:
+            return self.programs[names]
+
+        if len(names) == 1:
+            name = names[0]
+            try:
+                geom_shader = self._read(f'{name}.geom')
+            except FileNotFoundError:
+                geom_shader = None
+            prog = self.programs[names] = self.ctx.program(
+                vertex_shader=self._read(f'{name}.vert'),
+                geometry_shader=geom_shader,
+                fragment_shader=self._read(f'{name}.frag'),
+            )
+        elif len(names) == 2:
+            vert, frag = names
+            prog = self.programs[names] = self.ctx.program(
+                vertex_shader=self._read(f'{vert}.vert'),
+                fragment_shader=self._read(f'{frag}.frag'),
+            )
+        elif len(names) == 3:
+            vert, geom, frag = names
+            prog = self.programs[names] = self.ctx.program(
+                vertex_shader=self._read(f'{vert}.vert'),
+                geometry_shader=self._read(f'{geom}.geom'),
+                fragment_shader=self._read(f'{frag}.frag'),
+            )
+        else:
+            raise ValueError("Unexpected number of files.")
+        return prog
 
     def get(
         self,
