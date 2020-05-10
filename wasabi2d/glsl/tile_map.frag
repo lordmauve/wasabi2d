@@ -33,21 +33,19 @@ void main() {
     vec2 tr = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
     vec2 bl = texelFetch(tilemap_coords, ivec2(3, tilenum), 0).xy;
 
-    /*
-    vec4 tc01 = texelFetch(tilemap_coords, ivec2(tilenum, 0), 0);
-    vec4 tc23 = texelFetch(tilemap_coords, ivec2(tilenum, 1), 0);
+    vec2 across = tr - tl;
+    vec2 up = bl - tl;
 
-    vec2 tl = tc01.xy;
-    vec2 tr = tc01.zw;
-    vec2 bl = tc23.xz;
-    vec2 br = tc23.zw;
-    */
+    // Clamp at edges of this tile
+    float w = length(across);
+    float h = length(up);
+    vec2 edge = 0.5 / vec2(w, h);
+    tileuv = clamp(tileuv, edge, vec2(1.0, 1.0) - edge);
 
+    // Texture map
     mat2 tilespace = mat2(
-        tr - tl,
-        bl - tl
+        across,
+        up
     );
-
-    //f_color = texture(tex, to_frac_coords(tl + tileuv * 64.0));
     f_color = texture(tex, to_frac_coords(tl + tilespace * tileuv));
 }

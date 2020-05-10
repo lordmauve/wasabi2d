@@ -70,9 +70,9 @@ class DrivingController:
             self.speed -= self.acceleration * dt
 
         if keyboard.left:
-            self.primitive.angle -= self.turn * dt
+            self.primitive.angle -= np.copysign(self.turn * dt, self.speed)
         elif keyboard.right:
-            self.primitive.angle += self.turn * dt
+            self.primitive.angle += np.copysign(self.turn * dt, self.speed)
 
         displacement = self.speed * dt
         self.primitive.pos += displacement * self.forward_vector()
