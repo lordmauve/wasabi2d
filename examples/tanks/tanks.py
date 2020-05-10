@@ -12,6 +12,7 @@ scene = w2d.Scene(
     height=720,
     background="#004000" # "#ccaa88"
 )
+scene.camera.zoom = 4
 
 tilemap = scene.layers[0].add_tile_map([
     'sand_base_1',
@@ -96,7 +97,7 @@ tank_control = DrivingController(
 @w2d.event
 def update(dt):
     tank_control.update(dt)
-#    scene.camera.pos = tank.pos
+    scene.camera.pos = tank.pos
 
 
 w2d.run()
