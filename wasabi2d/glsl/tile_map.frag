@@ -21,16 +21,17 @@ void main() {
 
     // Look up tile for this position
     ivec2 tilemap_pos = cell + ivec2(frag_tilemap_block * 64U, 0);
-    uint tilenum = uint(texelFetch(tiles, tilemap_pos, 0).r * 255.0);
+    uint tilenum = uint(texelFetch(tiles, tilemap_pos, 0).r * 255.0 + 0.1);
     //uint tilenum = frag_tilemap_block;
     if (tilenum == 0U) {
         discard;
     }
+    tilenum--;
 
     /* Fetch UV coordinates of the tile in the texture. */
     vec2 tl = texelFetch(tilemap_coords, ivec2(0, tilenum), 0).xy;
     vec2 tr = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
-    vec2 bl = texelFetch(tilemap_coords, ivec2(2, tilenum), 0).xy;
+    vec2 bl = texelFetch(tilemap_coords, ivec2(3, tilenum), 0).xy;
 
     /*
     vec4 tc01 = texelFetch(tilemap_coords, ivec2(tilenum, 0), 0);
@@ -47,6 +48,6 @@ void main() {
         bl - tl
     );
 
-    f_color = texture(tex, to_frac_coords(tl + tileuv * 64.0));
-    //f_color = texture(tex, to_frac_coords(tl + tilespace * tileuv));
+    //f_color = texture(tex, to_frac_coords(tl + tileuv * 64.0));
+    f_color = texture(tex, to_frac_coords(tl + tilespace * tileuv));
 }

@@ -144,30 +144,13 @@ class TileManager:
 
     def bind_texture(self, unit: int):
         """Bind the texture to a texture unit."""
-
-        def nonzeros(arr):
-            w, h = arr.shape
-            for x in range(w):
-                for y in range(h):
-                    v = arr[x, y]
-                    if v != 0:
-                        print((x, y), v)
-
         for tile_id in self.dirty_blocks:
             tile = self.texture_blocks[tile_id]
-            nonzeros(tile)
             self.texture.write(
                 tile,
                 (tile_id * 64, 0, 64, 64),
                 alignment=1
             )
-
-            readback = np.frombuffer(
-                self.texture.read(alignment=1),
-                dtype=np.uint8
-            ).reshape(512, 64)
-
-            nonzeros(readback)
         self.dirty_blocks.clear()
         self.texture.use(unit)
 
@@ -249,8 +232,8 @@ class TileMap:
         self._tile_tex = self.layer.ctx.texture(
             (4, num),
             2,
-            data=texdata,
-            dtype='u2'
+            data=texdata.astype(np.float32),
+            dtype='f4'
         )
         self._tile_tex.filter = moderngl.NEAREST, moderngl.NEAREST
 
