@@ -64,12 +64,12 @@ class TileManager:
         """Create a new texture."""
         self.texture = self.ctx.texture(
             (capacity * 64, 64), 1,
-            dtype='u1'
+            dtype='f1'
         )
 
     def mktile(self) -> np.ndarray:
         """Create a tile in memory."""
-        return np.zeros((64, 64), dtype='u1')
+        return np.zeros((64, 64), dtype=np.uint8)
 
     def _resize(self, new_capacity: int):
         """Resize to hold new_capacity tiles."""
@@ -144,9 +144,30 @@ class TileManager:
 
     def bind_texture(self, unit: int):
         """Bind the texture to a texture unit."""
+
+        def nonzeros(arr):
+            w, h = arr.shape
+            for x in range(w):
+                for y in range(h):
+                    v = arr[x, y]
+                    if v != 0:
+                        print((x, y), v)
+
         for tile_id in self.dirty_blocks:
             tile = self.texture_blocks[tile_id]
-            self.texture.write(tile, (tile_id * 64, 0, 64, 64))
+            nonzeros(tile)
+            self.texture.write(
+                tile,
+                (tile_id * 64, 0, 64, 64),
+                alignment=1
+            )
+
+            readback = np.frombuffer(
+                self.texture.read(alignment=1),
+                dtype=np.uint8
+            ).reshape(512, 64)
+
+            nonzeros(readback)
         self.dirty_blocks.clear()
         self.texture.use(unit)
 
@@ -222,15 +243,16 @@ class TileMap:
                 size = rsize
                 tex = region.tex
             texdata[i, ...] = region.texcoords
-            self._names[t] = i
+            self._names[t] = i + 1
         self.tex = tex
         self.block_size = tuple(c * 64 for c in size)
         self._tile_tex = self.layer.ctx.texture(
-            (num, 2),
-            4,
+            (4, num),
+            2,
             data=texdata,
             dtype='u2'
         )
+        self._tile_tex.filter = moderngl.NEAREST, moderngl.NEAREST
 
     def fill_rect(self, value, left, right, top, bottom):
         """Fill a rectangle of the tile map.
@@ -258,7 +280,7 @@ class TileMap:
         cellx, x = divmod(x, 64)
         celly, y = divmod(y, 64)
         block = self._tilemgr.get_block(cellx, celly)
-        return block[x, y]
+        return block[y, x]
 
     def __setitem__(self, pos, value):
         if isinstance(value, str):
@@ -269,7 +291,7 @@ class TileMap:
         celly, y = divmod(y, 64)
 
         block = self._tilemgr.get_or_create_block((cellx, celly))
-        block[x, y] = value
+        block[y, x] = value
 
     @property
     def bounds(self):
@@ -293,4 +315,7 @@ class TileMap:
         self.prog['tex'] = 2
         self.prog['block_size'] = self.block_size
 
-        self.vao.render(vertices=len(self._tilemgr))
+        self.vao.render(
+            mode=moderngl.POINTS,
+            vertices=len(self._tilemgr)
+        )

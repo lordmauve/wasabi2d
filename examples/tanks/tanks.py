@@ -7,19 +7,27 @@ import wasabi2d as w2d
 from wasabi2d.keyboard import keyboard, keys
 
 
-scene = w2d.Scene(width=1280, height=720, background="#ccaa88")
+scene = w2d.Scene(
+    width=1280,
+    height=720,
+    background="#004000" # "#ccaa88"
+)
 
 tilemap = scene.layers[0].add_tile_map([
     'sand_base_1',
     'sand_base_2',
+    'sand_road_lr',
 ])
-tilemap.fill_rect(
-    ['sand_base_1', 'sand_base_2'],
-    left=0,
-    right=scene.width // 64,
-    top=0,
-    bottom=scene.height // 64,
-)
+#tilemap.fill_rect(
+#    ['sand_base_1', 'sand_base_2', 'sand_road_lr'],
+#    left=0,
+#    right=64, #scene.width // 64,
+#    top=0,
+#    bottom=64, #scene.height // 64,
+#)
+tilemap[0, 0] = 'sand_base_2'
+tilemap[1, 0] = 'sand_base_2'
+tilemap[1, 1] = 'sand_road_lr'
 
 scene.layers[1].set_effect('dropshadow', offset=(2, 2))
 tank = scene.layers[1].add_sprite('tank_green', pos=(50, 50))
@@ -78,12 +86,17 @@ class DrivingController:
         )
 
 
-tank_control = DrivingController(tank, primitive_forward=math.pi / 2)
+tank_control = DrivingController(
+    tank,
+    acceleration=500,
+    primitive_forward=math.pi / 2
+)
 
 
 @w2d.event
 def update(dt):
     tank_control.update(dt)
+#    scene.camera.pos = tank.pos
 
 
 w2d.run()

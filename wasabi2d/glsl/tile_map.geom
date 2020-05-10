@@ -2,7 +2,6 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
-in ivec2[1] vert;
 in uint[1] tilemap_block;
 flat out uint frag_tilemap_block;
 out vec2 uv;
@@ -12,8 +11,8 @@ uniform mat4 proj;
 
 const vec2 corners[4] = vec2[4](
     vec2(0.0, 0.0),
-    vec2(0.0, 1.0),
     vec2(1.0, 0.0),
+    vec2(0.0, 1.0),
     vec2(1.0, 1.0)
 );
 
