@@ -10,22 +10,21 @@ from wasabi2d.keyboard import keyboard, keys
 scene = w2d.Scene(
     width=1280,
     height=720,
-    background="#004000" # "#ccaa88"
+    background="#ccaa88",
 )
-scene.camera.zoom = 4
 
 tilemap = scene.layers[0].add_tile_map([
     'sand_base_1',
     'sand_base_2',
     'sand_road_lr',
 ])
-#tilemap.fill_rect(
-#    ['sand_base_1', 'sand_base_2', 'sand_road_lr'],
-#    left=0,
-#    right=64, #scene.width // 64,
-#    top=0,
-#    bottom=64, #scene.height // 64,
-#)
+tilemap.fill_rect(
+    ['sand_base_1', 'sand_base_2'],
+    left=0,
+    right=scene.width // 64 + 1,
+    top=0,
+    bottom=scene.height // 64 + 1,
+)
 tilemap[0, 0] = 'sand_base_2'
 tilemap[1, 0] = 'sand_base_2'
 tilemap[1, 1] = 'sand_road_lr'
@@ -97,7 +96,7 @@ tank_control = DrivingController(
 @w2d.event
 def update(dt):
     tank_control.update(dt)
-    scene.camera.pos = tank.pos
+    #scene.camera.pos = tank.pos
 
 
 w2d.run()
