@@ -2,6 +2,8 @@
 
 out vec4 f_color;
 flat in uint frag_tilemap_offset;
+flat in float lod;
+flat in vec2 clamp_min;
 in vec2 uv;
 
 uniform sampler2D tiles;
@@ -35,15 +37,12 @@ void main() {
     vec2 up = bl - tl;
 
     // Clamp at edges of this tile
-    float w = length(across);
-    float h = length(up);
-    vec2 edge = 0.5 / vec2(w, h);
-    vec2 mapped_uv = clamp(tileuv, edge, 1.0 - edge);
+    vec2 mapped_uv = clamp(tileuv, clamp_min, vec2(1.0) - clamp_min);
 
     // Texture map
     vec2 lookup_uv = to_frac_coords(
         tl + across * mapped_uv.x + up * mapped_uv.y
     );
 
-    f_color = texture(tex, lookup_uv, -10000.0);
+    f_color = textureLod(tex, lookup_uv, lod);
 }

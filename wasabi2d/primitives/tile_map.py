@@ -297,6 +297,7 @@ class TileMap:
         self.tex.tex.use(2)
         self.prog['tex'] = 2
         self.prog['block_size'] = self.block_size
+        self.prog['screen_width'] = camera.width
 
         self.vao.render(
             mode=moderngl.POINTS,
