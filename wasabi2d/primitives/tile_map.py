@@ -5,6 +5,7 @@ from typing import Tuple, Dict, Set, Optional, List
 
 import moderngl
 import numpy as np
+import bresenham
 
 import wasabi2d
 from ..allocators.abstract import FreeListAllocator, NoCapacity
@@ -241,26 +242,41 @@ class TileMap:
         )
         self._tile_tex.filter = moderngl.NEAREST, moderngl.NEAREST
 
+    def _value_gen(self, value):
+        """Return a generator for tile values."""
+        if isinstance(value, str):
+            value = self._names[value]
+
+        if isinstance(value, int):
+            while True:
+                yield value
+
+        choices = [
+            self._names[v] if isinstance(v, str) else int(v)
+            for v in value
+        ]
+        while True:
+            yield random.choice(choices)
+
     def fill_rect(self, value, left, right, top, bottom):
         """Fill a rectangle of the tile map.
 
         Note that right/bottom are exclusive.
         """
         cells = product(range(left, right), range(top, bottom))
-        if isinstance(value, str):
-            value = self._names[value]
+        for pos, v in zip(cells, self._value_gen(value)):
+            self[pos] = v
 
-        if isinstance(value, int):
-            for pos in cells:
-                self[pos] = value
-        else:
-            # Map values to integers once
-            value = [
-                self._names[v] if isinstance(v, str) else int(v)
-                for v in value
-            ]
-            for pos in cells:
-                self[pos] = random.choice(value)
+    def line(self, value, start, stop):
+        """Fill a line from coordinates start to stop.
+
+        Value may be an individual tile value or a list in order to choose
+        at random.
+
+        """
+        cells = bresenham.bresenham(*start, *stop)
+        for pos, v in zip(cells, self._value_gen(value)):
+            self[pos] = v
 
     def __getitem__(self, pos):
         x, y = pos

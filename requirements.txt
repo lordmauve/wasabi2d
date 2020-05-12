@@ -5,3 +5,4 @@ pyrr
 sortedcontainers
 dataclasses; python_version < '3.7'
 mapbox-earcut==0.12.*
+bresenham==0.2.*
