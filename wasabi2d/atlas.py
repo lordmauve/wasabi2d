@@ -367,6 +367,8 @@ class Atlas:
             self.texsurf.update()
 
     def dump(self):
-        """Save screenshots of all the textures."""
-        for i, surftex in enumerate(self.surfs_texs):
-            surftex.save(f'atlas{i}.png')
+        tex = self.texsurf.tex
+        data = tex.read()
+        img = pygame.image.fromstring(data, (tex.width, tex.height), 'RGBA')
+        img = pygame.transform.flip(img, False, True)
+        pygame.image.save(img, 'atlas.png')

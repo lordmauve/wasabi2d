@@ -482,14 +482,22 @@ class Camera:
         shader_pass.render(**uniforms)
 
     @property
+    def zoom(self):
+        return self._xform[0, 0]
+
+    @zoom.setter
+    def zoom(self, zoom):
+        self._xform[0, 0] = self._xform[1, 1] = zoom
+
+    @property
     def pos(self):
-        return -self._xform[-1][:2]
+        return -self._xform[-1, :2]
 
     @pos.setter
     def pos(self, v):
         assert len(v) == 2
         self._pos[:] = v
-        self._xform[-1][:2] = self._cam_offset - self._pos
+        self._xform[-1, :2] = self._cam_offset - self._pos
 
     @property
     def proj(self):

@@ -109,7 +109,10 @@ venv.bak/
 *.ipynb
 screenshot_*.png
 venv*
+
+# Libraries cloned here
 moderngl
+glcontext
 
 # Videos and screenshots
 video_*.mp4

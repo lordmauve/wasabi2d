@@ -7,7 +7,29 @@ import wasabi2d as w2d
 from wasabi2d.keyboard import keyboard, keys
 
 
-scene = w2d.Scene(width=1280, height=720, background="#ccaa88")
+scene = w2d.Scene(
+    width=1280,
+    height=720,
+    background="#ccaa88",
+)
+#scene.camera.zoom = 0.1
+
+tilemap = scene.layers[0].add_tile_map([
+    'sand_base_1',
+    'sand_base_2',
+    'sand_road_lr',
+])
+#tilemap.fill_rect(
+#    ['sand_base_1', 'sand_base_2'],
+#    left=0,
+#    right=scene.width // 64 + 1,
+#    top=0,
+#    bottom=scene.height // 64 + 1,
+#)
+tilemap[-1, 0] = 'sand_base_2'
+tilemap[0, 0] = 'sand_base_2'
+tilemap[1, 0] = 'sand_base_2'
+tilemap[1, 1] = 'sand_road_lr'
 
 scene.layers[1].set_effect('dropshadow', offset=(2, 2))
 tank = scene.layers[1].add_sprite('tank_green', pos=(50, 50))
@@ -50,9 +72,9 @@ class DrivingController:
             self.speed -= self.acceleration * dt
 
         if keyboard.left:
-            self.primitive.angle -= self.turn * dt
+            self.primitive.angle -= np.copysign(self.turn * dt, self.speed)
         elif keyboard.right:
-            self.primitive.angle += self.turn * dt
+            self.primitive.angle += np.copysign(self.turn * dt, self.speed)
 
         displacement = self.speed * dt
         self.primitive.pos += displacement * self.forward_vector()
@@ -66,12 +88,17 @@ class DrivingController:
         )
 
 
-tank_control = DrivingController(tank, primitive_forward=math.pi / 2)
+tank_control = DrivingController(
+    tank,
+    acceleration=500,
+    primitive_forward=math.pi / 2
+)
 
 
 @w2d.event
 def update(dt):
     tank_control.update(dt)
+    scene.camera.pos = tank.pos
 
 
 w2d.run()
