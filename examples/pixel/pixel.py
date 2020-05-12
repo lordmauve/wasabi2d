@@ -14,7 +14,12 @@ grid.update((x, TILES_H) for x in range(TILES_W))
 grid.update((-1, y) for y in range(-TILES_H, TILES_H))
 grid.update((TILES_W, y) for y in range(-TILES_H, TILES_H))
 
-scene = w2d.Scene(width=TILE * TILES_W, height=TILE * TILES_H, scaler=True)
+scene = w2d.Scene(
+    width=TILE * TILES_W,
+    height=TILE * TILES_H,
+    scaler=True,
+    pixel_art=True,
+)
 scene.background = '#5e81a2'
 scene.layers[1].set_effect('dropshadow', radius=2, offset=(0, 1))
 
@@ -72,11 +77,6 @@ DRAG = 0.8
 def world_to_grid(pos):
     x, y = pos
     return x / TILE, y / TILE
-
-
-def round_pos(pos):
-    x, y = pos
-    return int(x), int(y)
 
 
 def collide_point(*pos):
@@ -168,8 +168,8 @@ def update(keyboard):
     alien.fpos.x = vx
 
     alien.v = Vector2(vx, vy)
-    alien.fpos = Vector2(x, y)
-    alien.pos = round(x), round(y)
+    alien.pos = alien.fpos = Vector2(x, y)
+
 
 
 @w2d.event

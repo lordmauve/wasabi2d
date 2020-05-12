@@ -53,7 +53,8 @@ class Scene:
             title: int = "wasabi2d",
             rootdir: Optional[str] = None,
             scaler: Union[str, bool, None] = False,
-            background: Union[str, Tuple[float, float, float]] = 'black'):
+            background: Union[str, Tuple[float, float, float]] = 'black',
+            pixel_art: bool = False):
         self._recording = False
         self._scaler = scaler
 
@@ -72,6 +73,11 @@ class Scene:
 
         ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
+        ctx.extra['texture_filter'] = (
+            (moderngl.NEAREST_MIPMAP_NEAREST, moderngl.NEAREST)
+            if pixel_art else
+            (moderngl.LINEAR_MIPMAP_LINEAR, moderngl.LINEAR)
+        )
 
         self.title = title
 

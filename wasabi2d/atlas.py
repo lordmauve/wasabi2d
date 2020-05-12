@@ -112,6 +112,7 @@ class TexSurface:
     def update(self):
         """Sync texture data to the GPU."""
         self.tex.build_mipmaps(max_level=2)
+        self.tex.filter = self.ctx.extra['texture_filter']
         self._dirty = False
 
     def save(self, fname: str):
@@ -313,6 +314,7 @@ class Atlas:
         tex = self.ctx.texture(size, 4)
         tex.write(pygame.image.tostring(img, "RGBA", 1))
         tex.build_mipmaps(max_level=2)
+        tex.filter = self.ctx.extra['texture_filter']
         texcoords = np.array([
             (0, h),
             (w, h),
