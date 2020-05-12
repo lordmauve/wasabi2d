@@ -22,9 +22,11 @@ tilemap = scene.layers[0].add_tile_map([
     'sand_road_ur',
     'sand_road_ld',
     'sand_road_udr',
+    'grass_base_1',
+    'grass_base_2',
 ])
 tilemap.fill_rect(
-    ['sand_base_1', 'sand_base_2'],
+    'sand_base_1',
     left=0,
     right=scene.width // 64 + 1,
     top=0,
@@ -51,6 +53,12 @@ tilemap[1, 4] = 'sand_road_udr'
 tilemap.line('sand_road_ld', (2, 4), (6, 8))
 tilemap.line('sand_road_ur', (2, 5), (6, 9))
 tilemap[1, 9] = 'sand_road_ur'
+
+
+tilemap.flood_fill(
+    ['grass_base_1', 'grass_base_2'],
+    (2, 6)
+)
 
 scene.layers[1].set_effect('dropshadow', offset=(2, 2))
 tank = scene.layers[1].add_sprite('tank_green', pos=(50, 50))

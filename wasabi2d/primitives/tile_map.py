@@ -2,6 +2,7 @@
 import random
 from itertools import product
 from typing import Tuple, Dict, Set, Optional, List, TypeVar, Union
+from collections import deque
 
 import moderngl
 import numpy as np
@@ -281,6 +282,41 @@ class TileMap:
         for pos, v in zip(cells, self._value_gen(value)):
             self[pos] = v
 
+    def flood_fill(self, value, start, *, limit=10_000):
+        """Flood fill from the given position.
+
+        Because the tile map is unbounded, `limit` caps the number of
+        tiles that can be considered for filling. If this limit is hit
+        then an exception is raised and no tiles are updated.
+
+        """
+        values = self._value_gen(value)
+        match_value = self.get(start)
+        queue = deque([start])
+        seen = {start, }
+        fill = []
+        for _ in range(limit):
+            if not queue:
+                break
+            pos = queue.popleft()
+            if self[pos] != match_value:
+                continue
+            fill.append(pos)
+
+            x, y = pos
+            neighbours = {
+                (x + 1, y),
+                (x - 1, y),
+                (x, y + 1),
+                (x, y - 1),
+            } - seen
+            queue.extend(neighbours)
+            seen.update(neighbours)
+        else:
+            raise ValueError(f"Hit flood-fill limit of {limit} tiles")
+        for pos, v in zip(fill, values):
+            self[pos] = v
+
     def __getitem__(self, pos: Tuple[int, int]) -> int:
         """Get the tile id at the given position."""
         v = self.get(pos)
@@ -295,7 +331,7 @@ class TileMap:
         """
         cell, pos = np.divmod(pos, 64)
         block = self._tilemgr.get_block(tuple(cell))
-        return block and block[tuple(pos)] or default
+        return block is not None and block[tuple(pos)] or default
 
     def __setitem__(self, pos, value):
         """Set the tile at the given position."""
