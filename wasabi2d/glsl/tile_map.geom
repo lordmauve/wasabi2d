@@ -33,12 +33,12 @@ vec2 project_point(vec2 v) {
 
 
 void main() {
-    vec4 point = gl_in[0].gl_Position;
+    vec2 point = gl_in[0].gl_Position.xy;
 
-    vec2 topleft = project_point(point.xy);
+    vec2 topleft = project_point(point);
     vec2 tile_across = project_vec(block_size);
 
-    // Cull
+    //Cull
     vec2 xform_centre = topleft + tile_across * 0.5;
     float radius = length(tile_across) * 0.5;
     if (all(greaterThan(abs(xform_centre), vec2(1.0 + radius, 1.0 + radius)))) {
@@ -57,7 +57,7 @@ void main() {
     frag_tilemap_offset = tilemap_block[0] * 64U;
     for (int c = 0; c < 4; c++) {
         uv = corners[c] * 64.0;
-        gl_Position = proj * vec4(topleft + corners[c] * block_size, 0.0, 1.0);
+        gl_Position = proj * vec4(point + corners[c] * block_size, 0.0, 1.0);
 
         EmitVertex();
     }

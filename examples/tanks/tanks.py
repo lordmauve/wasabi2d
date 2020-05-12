@@ -12,20 +12,21 @@ scene = w2d.Scene(
     height=720,
     background="#ccaa88",
 )
-scene.camera.zoom = 0.5
+#scene.camera.zoom = 0.1
 
 tilemap = scene.layers[0].add_tile_map([
     'sand_base_1',
     'sand_base_2',
     'sand_road_lr',
 ])
-tilemap.fill_rect(
-    ['sand_base_1', 'sand_base_2'],
-    left=0,
-    right=scene.width // 64 + 1,
-    top=0,
-    bottom=scene.height // 64 + 1,
-)
+#tilemap.fill_rect(
+#    ['sand_base_1', 'sand_base_2'],
+#    left=0,
+#    right=scene.width // 64 + 1,
+#    top=0,
+#    bottom=scene.height // 64 + 1,
+#)
+tilemap[-1, 0] = 'sand_base_2'
 tilemap[0, 0] = 'sand_base_2'
 tilemap[1, 0] = 'sand_base_2'
 tilemap[1, 1] = 'sand_road_lr'

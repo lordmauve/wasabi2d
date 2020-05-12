@@ -108,8 +108,12 @@ class TileManager:
         self.dirty_blocks.add(tile_id)
 
         self.vertdata[vert_id] = pos, tile_id
-        self.verts.write(self.vertdata)  # TODO: write just this one
 
+        stride = self.vertdata.strides[0]
+        self.verts.write(
+            data=self.vertdata[vert_id:vert_id + 1],
+            offset=stride * vert_id
+        )
         return tile
 
     def __len__(self):
