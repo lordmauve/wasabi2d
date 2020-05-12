@@ -1,7 +1,7 @@
 """Sparse tile maps."""
 import random
 from itertools import product
-from typing import Tuple, Dict, Set, Optional, List
+from typing import Tuple, Dict, Set, Optional, List, TypeVar, Union
 
 import moderngl
 import numpy as np
@@ -19,6 +19,9 @@ def grow(arr: np.ndarray, newsize: int) -> np.ndarray:
     new = np.empty_like(arr, shape=shape)
     new[:len(arr)] = arr
     return new
+
+
+T = TypeVar('T')
 
 
 class TileManager:
@@ -131,7 +134,7 @@ class TileManager:
         if id is None:
             return self.create_block(pos)
         self.dirty_blocks.add(id)
-        return self.texture_blocks[id]
+        return self.texture_blocks[id].T
 
     def get_block(self, pos: Tuple[int, int]) -> Optional[np.ndarray]:
         """Retrieve the block with the given coordinates if it exists.
@@ -141,7 +144,7 @@ class TileManager:
         id = self.block_map[pos]
         if id is None:
             return None
-        return self.texture_blocks[id]
+        return self.texture_blocks[id].T
 
     def touch_block(self, pos: Tuple[int, int]):
         """Mark a block as dirty."""
@@ -278,23 +281,45 @@ class TileMap:
         for pos, v in zip(cells, self._value_gen(value)):
             self[pos] = v
 
-    def __getitem__(self, pos):
-        x, y = pos
-        cellx, x = divmod(x, 64)
-        celly, y = divmod(y, 64)
-        block = self._tilemgr.get_block(cellx, celly)
-        return block[y, x]
+    def __getitem__(self, pos: Tuple[int, int]) -> int:
+        """Get the tile id at the given position."""
+        v = self.get(pos)
+        if v == 0:
+            raise KeyError(f"No tile at position {pos}")
+        return v
+
+    def get(self, pos: Tuple[int, int], default: T = 0) -> Union[int, T]:
+        """Get the tile id at the given position.
+
+        If there is no tile at that position, 0 is returned.
+        """
+        cell, pos = np.divmod(pos, 64)
+        block = self._tilemgr.get_block(tuple(cell))
+        return block and block[tuple(pos)] or default
 
     def __setitem__(self, pos, value):
+        """Set the tile at the given position."""
         if isinstance(value, str):
             value = self._names[value]
         assert isinstance(value, int) and 0 <= value < 255
-        x, y = pos
-        cellx, x = divmod(x, 64)
-        celly, y = divmod(y, 64)
+        cell, pos = np.divmod(pos, 64)
+        block = self._tilemgr.get_or_create_block(tuple(cell))
+        block[tuple(pos)] = value
 
-        block = self._tilemgr.get_or_create_block((cellx, celly))
-        block[y, x] = value
+    def setdefault(self, pos, value):
+        """Set a tile in the tile map if it is not set."""
+        if isinstance(value, str):
+            value = self._names[value]
+        assert isinstance(value, int) and 0 <= value < 255
+        cell, pos = np.divmod(pos, 64)
+        block = self._tilemgr.get_or_create_block(tuple(cell))
+        pos = tuple(pos)
+        v = block[pos] = block[pos] or value
+        return v
+
+    def __delitem__(self, pos: Tuple[int, int]):
+        """Clear the tile at the given position."""
+        self[pos] = 0
 
     @property
     def bounds(self):
@@ -306,6 +331,7 @@ class TileMap:
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
         self.layer = None
+        self.release()
 
     def render(self, camera: wasabi2d.scene.Camera):
         self._tilemgr.bind_texture(0)
