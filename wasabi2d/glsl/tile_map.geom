@@ -49,7 +49,7 @@ void main() {
     float screen_native = length(block_size) / (screen_width * 1.44 / 2.0);
 
     // Estimate LOD for the whole tile
-    lod = max(0.0, screen_native / length(tile_across) - 1.0);
+    lod = clamp(screen_native / length(tile_across) - 1.0, 0.0, 2.0);
 
     // Clamp the UV for each tile to 0.5 texels in
     clamp_min = 0.5 * vec2(pow(2.0, lod)) / vec2(block_size / 64.0);
