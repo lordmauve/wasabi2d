@@ -45,12 +45,16 @@ class Scene:
     :param title: The initial window title.
     :param scaler: If True or a string, activate scene scaling using the named
                    scaler, or 'nearest' if ``True`` is given.
+    :param background: An initial setting for the :py:attr:`.background`.
+    :param pixel_art: If True, turn off texture filtering globally. This
+                      makes pixels look square. See :ref:`pixel-art`.
     """
     def __init__(
             self,
             width: int = 800,
             height: int = 600,
             title: int = "wasabi2d",
+            *,
             rootdir: Optional[str] = None,
             scaler: Union[str, bool, None] = False,
             background: Union[str, Tuple[float, float, float]] = 'black',

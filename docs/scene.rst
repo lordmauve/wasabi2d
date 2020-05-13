@@ -15,7 +15,6 @@ Create a scene with::
     scene = Scene(width, height)
 
 
-
 .. attribute:: Scene.background
 
     Get/set the background color of the entire scene as an RGB triple. `(1, 1,
@@ -55,6 +54,25 @@ and screenshotting:
 
 .. autoclass:: wasabi2d.scene.HeadlessScene
 
+
+.. _pixel-art:
+
+Pixel Art
+---------
+
+Setting ``pixel_art=True`` in the scene constructor turns off bilinear
+interpolation of textures. This means that pixel edges will be clearly
+visible and pixels will appear square, but may be rotated. This is
+slightly different to :ref:`scene-scaling`, which applies filtering at
+a higher level. The two options can be used together or not.
+
++---------------------+----------------------------------------------+-----------------------------------------------------+
+|                     | ``scaler=None``                              | ``scaler='nearest'``                                |
++---------------------+----------------------------------------------+-----------------------------------------------------+
+| ``pixel_art=False`` | .. image:: _static/scaling/tank-filtered.png | .. image:: _static/scaling/tank-filtered-scaler.png |
++---------------------+----------------------------------------------+-----------------------------------------------------+
+| ``pixel_art=True``  | .. image:: _static/scaling/tank-pixel.png    | .. image:: _static/scaling/tank-scaler.png          |
++---------------------+----------------------------------------------+-----------------------------------------------------+
 
 .. _scene-scaling:
 

@@ -4,12 +4,19 @@ History
 1.4.0 - unreleased
 ------------------
 
-**Provisional Roadmap**:
+* New: Tile maps
+* New: scene-wide :ref:`pixel_art mode <pixel-art>`
+* New: vertices of a line can now be updated
+* New: `background=` can be set in Scene constructor
+* New: `label.text` can be assigned a non-str
+* Fix: bug with drawing end segments of lines and lines at right angles
+* Fix: `stroke_width` wasn't passed through in `add_rect`
+* Fix: Use NFC not NFKC for Unicode normalisation
+
+**Still planned**
 
 Features:
 
-* Sparse tile map primitive
-* Pixel mode for sprites
 * Textured Line primitive
 * Trail primitive
 
@@ -17,7 +24,9 @@ Refactors:
 
 * Abandon indirect rendering (not available on Mac) in favour of managing
   contiguous index buffers (with primitive restarts).
+  * *Some work on this; currently only sprites use the new storage.*
 * Unified primitive attribute/factory parameter model
+  * *Branch abandoned because it seemed the abstraction was slow*
 
 
 1.3.0 - 2019-12-10

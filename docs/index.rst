@@ -13,11 +13,11 @@ Wasabi2d is
     * :doc:`Particles <particles>`
     * :doc:`Full-screen post-processing effects <effects>`
 
-* Written in pure Python
+* Written in "pure" Python (but relies on native extensions like Numpy)
 * Fast due to heavy use of numpy, ModernGL and GPU acceleration
 * Convenient, with an innovative (but optional) :doc:`coroutine <coros>`
   programming model.
-* Cross platform.
+* Works on Windows, Linux and Mac.
 * Fully featured; wasabi2d does not just support graphics but screenshots,
   sound, music, tones, storage and more.
 
