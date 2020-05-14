@@ -169,17 +169,37 @@ class TileMap:
     _tiles: List[str]
     layer: 'wasabi2d.layers.Layer'
     _tilemgr: TileManager
+
+    # A texture holding texture coordinates for tiles in the map,
+    # and its backing store in memory.
     _tile_tex: moderngl.Texture = None
+    _texdata: np.ndarray
+    _tile_tex_dirty: bool = False
+
     vao: moderngl.VertexArray = None
 
-    def __init__(self, layer, tiles: List[str]):
+    size: Optional[Tuple[int, int]] = None
+    tex: Optional = None
+    block_size: Optional[Tuple[int, int]]
+
+    def __init__(self, layer):
         super().__init__()
         self.layer = layer
-        self._tiles = list(tiles)
+        self.atlas = self.layer.group.atlas
+        self._tiles = [None]
+
+        self._texdata = np.zeros((256, 4, 2), dtype=np.float32)
+        self._names = {}
+        self._tile_tex = self.layer.ctx.texture(
+            (4, 256),
+            2,
+            dtype='f4'
+        )
+        self._tile_tex.filter = moderngl.NEAREST, moderngl.NEAREST
 
         self._tilemgr = TileManager(self.layer.ctx)
 
-        self._build_tiledata_texture()
+        #self._build_tiledata_texture()
 
         shadermgr = layer.group.shadermgr
 
@@ -204,61 +224,57 @@ class TileMap:
 
     def _build_tiledata_texture(self):
         """Build a texture of UV coordinates for our tile map."""
-        if self._tile_tex:
-            self._tile_tex.release()
 
-        num = len(self._tiles)
-        assert num > 0, \
-            "No tiles provided."
-        assert num <= 255, \
-            "A maximum of 255 tiles are supported in one tile map."
+    def _map_name(self, name: str) -> int:
+        """Given an image name, return an integer mapping for it.
 
-        texdata = np.zeros((num, 4, 2), dtype=np.uint16)
+        If the image is not already in the tile list, assign it a new ID.
+        """
+        if name is None:
+            return 0
+        try:
+            return self._names[name]
+        except KeyError:
+            pass
 
-        atlas = self.layer.group.atlas
-        size = tex = None
-        self._names = {}
-        for i, t in enumerate(self._tiles):
-            region = atlas.get(t)
-            rsize = region.width, region.height
-            if i > 0:
-                if rsize != size:
-                    raise ValueError(
-                        f"Size of {t} rsize does not match "
-                        f"previous tiles {size}"
-                    )
-                if region.tex is not tex:
-                    raise ValueError(
-                        f"Tile size is too large {rsize}"
-                    )
-            else:
-                size = rsize
-                tex = region.tex
-            texdata[i, ...] = region.texcoords
-            self._names[t] = i + 1
-        self.tex = tex
-        self.block_size = tuple(c * 64 for c in size)
-        self._tile_tex = self.layer.ctx.texture(
-            (4, num),
-            2,
-            data=texdata.astype(np.float32),
-            dtype='f4'
-        )
-        self._tile_tex.filter = moderngl.NEAREST, moderngl.NEAREST
+        id = len(self._tiles)
+
+        region = self.atlas.get(name)
+        rsize = region.width, region.height
+        if id >= 256:
+            raise ValueError(
+                f"Cannot insert {name} to {self!r}; "
+                "{len(self._tiles)} tile slots are already in use."
+            )
+        if id > 1:
+            if rsize != self.size:
+                raise ValueError(
+                    f"Size of {name} ({rsize}) does not match "
+                    f"previous tiles {self.size}"
+                )
+            if region.tex is not self.tex:
+                raise ValueError(
+                    f"Tile size is too large {rsize}"
+                )
+        else:
+            self.size = rsize
+            self.tex = region.tex
+            self.block_size = region.width * 64, region.height * 64
+
+        self._texdata[id, ...] = region.texcoords
+        self._tile_tex_dirty = True
+        self._tiles.append(name)
+        self._names[name] = id
+        return id
 
     def _value_gen(self, value):
         """Return a generator for tile values."""
         if isinstance(value, str):
-            value = self._names[value]
-
-        if isinstance(value, int):
+            id = self._map_name(value)
             while True:
-                yield value
+                yield id
 
-        choices = [
-            self._names[v] if isinstance(v, str) else int(v)
-            for v in value
-        ]
+        choices = [self._map_name(v) for v in value]
         while True:
             yield random.choice(choices)
 
@@ -269,7 +285,7 @@ class TileMap:
         """
         cells = product(range(left, right), range(top, bottom))
         for pos, v in zip(cells, self._value_gen(value)):
-            self[pos] = v
+            self._set(pos, v)
 
     def line(self, value, start, stop):
         """Fill a line from coordinates start to stop.
@@ -280,7 +296,7 @@ class TileMap:
         """
         cells = bresenham.bresenham(*start, *stop)
         for pos, v in zip(cells, self._value_gen(value)):
-            self[pos] = v
+            self._set(pos, v)
 
     def flood_fill(self, value, start, *, limit=10_000):
         """Flood fill from the given position.
@@ -291,7 +307,7 @@ class TileMap:
 
         """
         values = self._value_gen(value)
-        match_value = self.get(start)
+        match_value = self._get(start)
         queue = deque([start])
         seen = {start, }
         fill = []
@@ -299,7 +315,7 @@ class TileMap:
             if not queue:
                 break
             pos = queue.popleft()
-            if self[pos] != match_value:
+            if self._get(pos) != match_value:
                 continue
             fill.append(pos)
 
@@ -315,47 +331,56 @@ class TileMap:
         else:
             raise ValueError(f"Hit flood-fill limit of {limit} tiles")
         for pos, v in zip(fill, values):
-            self[pos] = v
+            self._set(pos, v)
 
     def __getitem__(self, pos: Tuple[int, int]) -> int:
         """Get the tile id at the given position."""
         v = self.get(pos)
-        if v == 0:
+        if not v:
             raise KeyError(f"No tile at position {pos}")
         return v
 
-    def get(self, pos: Tuple[int, int], default: T = 0) -> Union[int, T]:
+    def get(self, pos: Tuple[int, int], default: T = None) -> Union[str, T]:
+        """Get the tile at the given position.
+
+        If there is no tile at that position, None is returned.
+        """
+        id = self._get()
+        if id == 0:
+            return default
+        return self._tiles[id]
+
+    def _get(self, pos: Tuple[int, int]) -> Union[int, T]:
         """Get the tile id at the given position.
 
         If there is no tile at that position, 0 is returned.
         """
         cell, pos = np.divmod(pos, 64)
         block = self._tilemgr.get_block(tuple(cell))
-        return block is not None and block[tuple(pos)] or default
+        return block is not None and block[tuple(pos)] or 0
 
     def __setitem__(self, pos, value):
         """Set the tile at the given position."""
-        if isinstance(value, str):
-            value = self._names[value]
-        assert isinstance(value, int) and 0 <= value < 255
+        id = self._map_name(value)
+        self._set(pos, id)
+
+    def _set(self, pos, id: int):
+        """Set a tile id at a given location."""
         cell, pos = np.divmod(pos, 64)
         block = self._tilemgr.get_or_create_block(tuple(cell))
-        block[tuple(pos)] = value
+        block[tuple(pos)] = id
 
     def setdefault(self, pos, value):
         """Set a tile in the tile map if it is not set."""
-        if isinstance(value, str):
-            value = self._names[value]
-        assert isinstance(value, int) and 0 <= value < 255
         cell, pos = np.divmod(pos, 64)
         block = self._tilemgr.get_or_create_block(tuple(cell))
         pos = tuple(pos)
-        v = block[pos] = block[pos] or value
+        v = block[pos] = block[pos] or self._map_name(value)
         return v
 
     def __delitem__(self, pos: Tuple[int, int]):
         """Clear the tile at the given position."""
-        self[pos] = 0
+        self._set(pos, 0)
 
     @property
     def bounds(self):
@@ -372,6 +397,10 @@ class TileMap:
     def render(self, camera: wasabi2d.scene.Camera):
         self._tilemgr.bind_texture(0)
         self.prog['tiles'] = 0
+
+        if self._tile_tex_dirty:
+            self._tile_tex.write(self._texdata)
+            self._tile_tex_dirty = False
 
         self._tile_tex.use(1)
         self.prog['tilemap_coords'] = 1

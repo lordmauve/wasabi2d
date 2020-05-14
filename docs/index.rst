@@ -33,6 +33,7 @@ Table of Contents
     intro
     scene
     primitives
+    tile_maps
     particles
     effects
     events

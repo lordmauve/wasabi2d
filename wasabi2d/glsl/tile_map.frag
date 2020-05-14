@@ -26,7 +26,6 @@ void main() {
     if (tilenum == 0U) {
         discard;
     }
-    tilenum--;
 
     /* Fetch UV coordinates of the tile in the texture. */
     vec2 tl = texelFetch(tilemap_coords, ivec2(0, tilenum), 0).xy;

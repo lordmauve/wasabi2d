@@ -13,10 +13,11 @@ History
 * Fix: `stroke_width` wasn't passed through in `add_rect`
 * Fix: Use NFC not NFKC for Unicode normalisation
 
-**Still planned**
+**Planned**
 
 Features:
 
+* Nine-patch primitive
 * Textured Line primitive
 * Trail primitive
 

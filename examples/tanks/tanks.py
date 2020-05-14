@@ -13,18 +13,7 @@ scene = w2d.Scene(
     background="#ccaa88",
 )
 
-tilemap = scene.layers[0].add_tile_map([
-    'sand_base_1',
-    'sand_base_2',
-    'sand_road_dr',
-    'sand_road_lr',
-    'sand_road_ud',
-    'sand_road_ur',
-    'sand_road_ld',
-    'sand_road_udr',
-    'grass_base_1',
-    'grass_base_2',
-])
+tilemap = scene.layers[0].add_tile_map()
 tilemap.fill_rect(
     'sand_base_1',
     left=0,

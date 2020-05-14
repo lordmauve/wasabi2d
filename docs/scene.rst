@@ -62,9 +62,14 @@ Pixel Art
 
 Setting ``pixel_art=True`` in the scene constructor turns off bilinear
 interpolation of textures. This means that pixel edges will be clearly
-visible and pixels will appear square, but may be rotated. This is
-slightly different to :ref:`scene-scaling`, which applies filtering at
-a higher level. The two options can be used together or not.
+visible and pixels will appear square, but may be rotated.
+
+This is slightly different to :ref:`scene-scaling`, which applies filtering at
+a higher level. In particular, scene scaling affects :doc:`effects` while
+`pixel_art` mode does not. The two options can be used together or not.
+
+Here are some examples of how sprites appear when zoomed. These differences
+will be less visible without magnification.
 
 +---------------------+----------------------------------------------+-----------------------------------------------------+
 |                     | ``scaler=None``                              | ``scaler='nearest'``                                |
