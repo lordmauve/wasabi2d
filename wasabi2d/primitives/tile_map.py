@@ -180,7 +180,7 @@ class TileMap:
 
     size: Optional[Tuple[int, int]] = None
     tex: Optional = None
-    block_size: Optional[Tuple[int, int]]
+    block_size: Optional[Tuple[int, int]] = None
 
     def __init__(self, layer):
         super().__init__()
@@ -395,6 +395,8 @@ class TileMap:
         self.release()
 
     def render(self, camera: wasabi2d.scene.Camera):
+        if not self.block_size:
+            return
         self._tilemgr.bind_texture(0)
         self.prog['tiles'] = 0
 
