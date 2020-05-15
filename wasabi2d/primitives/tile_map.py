@@ -278,7 +278,14 @@ class TileMap:
         while True:
             yield random.choice(choices)
 
-    def fill_rect(self, value, left, right, top, bottom):
+    def fill_rect(
+        self,
+        value: Union[str, List[str]],
+        left: int,
+        right: int,
+        top: int,
+        bottom: int,
+    ):
         """Fill a rectangle of the tile map.
 
         Note that right/bottom are exclusive.
@@ -287,7 +294,12 @@ class TileMap:
         for pos, v in zip(cells, self._value_gen(value)):
             self._set(pos, v)
 
-    def line(self, value, start, stop):
+    def line(
+        self,
+        value: Union[str, List[str]],
+        start: Tuple[int, int],
+        stop: Tuple[int, int],
+    ):
         """Fill a line from coordinates start to stop.
 
         Value may be an individual tile value or a list in order to choose
@@ -298,7 +310,13 @@ class TileMap:
         for pos, v in zip(cells, self._value_gen(value)):
             self._set(pos, v)
 
-    def flood_fill(self, value, start, *, limit=10_000):
+    def flood_fill(
+        self,
+        value: Union[str, List[str]],
+        start: Tuple[int, int],
+        *,
+        limit: int = 10_000
+    ):
         """Flood fill from the given position.
 
         Because the tile map is unbounded, `limit` caps the number of
@@ -359,7 +377,7 @@ class TileMap:
         block = self._tilemgr.get_block(tuple(cell))
         return block is not None and block[tuple(pos)] or 0
 
-    def __setitem__(self, pos, value):
+    def __setitem__(self, pos: Tuple[int, int], value: str):
         """Set the tile at the given position."""
         id = self._map_name(value)
         self._set(pos, id)
@@ -370,13 +388,16 @@ class TileMap:
         block = self._tilemgr.get_or_create_block(tuple(cell))
         block[tuple(pos)] = id
 
-    def setdefault(self, pos, value):
-        """Set a tile in the tile map if it is not set."""
+    def setdefault(self, pos: Tuple[int, int], value: str) -> str:
+        """Set a tile in the tile map if it is not set.
+
+        Return the tile that is set in this cell after the call.
+        """
         cell, pos = np.divmod(pos, 64)
         block = self._tilemgr.get_or_create_block(tuple(cell))
         pos = tuple(pos)
         v = block[pos] = block[pos] or self._map_name(value)
-        return v
+        return self._tiles[v]
 
     def __delitem__(self, pos: Tuple[int, int]):
         """Clear the tile at the given position."""

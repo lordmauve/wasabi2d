@@ -49,6 +49,7 @@ tilemap.flood_fill(
     (2, 6)
 )
 
+
 scene.layers[1].set_effect('dropshadow', offset=(2, 2))
 tank = scene.layers[1].add_sprite('tank_green', pos=(50, 50))
 tank.speed = 0
