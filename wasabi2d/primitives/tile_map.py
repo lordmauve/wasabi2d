@@ -147,7 +147,7 @@ class TileManager:
         if id is None:
             return self.create_block(pos)
         self.dirty_blocks.add(id)
-        return self.texture_blocks[id].T
+        return self.texture_blocks[id]
 
     def get_block(self, pos: Tuple[int, int]) -> Optional[np.ndarray]:
         """Retrieve the block with the given coordinates if it exists.
@@ -157,7 +157,7 @@ class TileManager:
         id = self.block_map[pos]
         if id is None:
             return None
-        return self.texture_blocks[id].T
+        return self.texture_blocks[id]
 
     def touch_block(self, pos: Tuple[int, int]):
         """Mark a block as dirty."""
@@ -290,8 +290,8 @@ class TileMap:
         self,
         value: Union[str, List[str], None],
         left: int,
-        right: int,
         top: int,
+        right: int,
         bottom: int,
     ):
         """Fill a rectangle of the tile map.
@@ -390,30 +390,30 @@ class TileMap:
 
         If there is no tile at that position, 0 is returned.
         """
-        cell, pos = np.divmod(pos, 64)
+        cell, (x, y) = np.divmod(pos, 64)
         block = self._tilemgr.get_block(tuple(cell))
-        return block is not None and block[tuple(pos)] or 0
+        return block is not None and block[y, x] or 0
 
     def __setitem__(self, pos: Tuple[int, int], value: str):
         """Set the tile at the given position."""
         id = self._map_name(value)
         self._set(pos, id)
 
-    def _set(self, pos, id: int):
+    def _set(self, pos, tid: int):
         """Set a tile id at a given location."""
-        cell, pos = np.divmod(pos, 64)
+        cell, (x, y) = np.divmod(pos, 64)
         block = self._tilemgr.get_or_create_block(tuple(cell))
-        block[tuple(pos)] = id
+        block[y, x] = tid
 
     def setdefault(self, pos: Tuple[int, int], value: str) -> str:
         """Set a tile in the tile map if it is not set.
 
         Return the tile that is set in this cell after the call.
         """
-        cell, pos = np.divmod(pos, 64)
+        cell, (x, y) = np.divmod(pos, 64)
         block = self._tilemgr.get_or_create_block(tuple(cell))
-        pos = tuple(pos)
-        v = block[pos] = block[pos] or self._map_name(value)
+        idx = y, x
+        v = block[idx] = block[idx] or self._map_name(value)
         return self._tiles[v]
 
     def __delitem__(self, pos: Tuple[int, int]):
