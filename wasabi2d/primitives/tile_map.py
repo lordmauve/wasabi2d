@@ -32,6 +32,8 @@ class TileManager:
     and the location in the texture where the texture data is found. This
     latter location is stored as an integer index.
 
+    Each texture block will be a 64x64 region of uint8 tile values.
+
     """
     ctx: moderngl.Context
 
@@ -56,6 +58,9 @@ class TileManager:
 
     def __init__(self, ctx: moderngl.Context):
         self.ctx = ctx
+
+        # TODO: this allocator is overkill given that we cannot actually
+        # free tile blocks individually; replace with a simple counter
         self.alloc = FreeListAllocator()
         self.block_map = {}
         self.dirty_blocks = set()
@@ -120,6 +125,13 @@ class TileManager:
             offset=stride * vert_id
         )
         return tile
+
+    def clear(self):
+        """Clear all allocations."""
+        self.alloc = FreeListAllocator(self.alloc.capacity)
+        self.block_map.clear()
+        self.texture_blocks.clear()
+        self.dirty_blocks.clear()
 
     def __len__(self):
         return len(self.block_map)
@@ -199,8 +211,6 @@ class TileMap:
 
         self._tilemgr = TileManager(self.layer.ctx)
 
-        #self._build_tiledata_texture()
-
         shadermgr = layer.group.shadermgr
 
         self.prog = shadermgr.load('tile_map')
@@ -211,6 +221,7 @@ class TileMap:
         layer.arrays[id(self)] = self
 
     def release(self):
+        """Release OpenGL resources associated with this TileMap."""
         if self.vao:
             self.vao.release()
         if self._tile_tex:
@@ -221,9 +232,6 @@ class TileMap:
 
     def __del__(self):
         self.release()
-
-    def _build_tiledata_texture(self):
-        """Build a texture of UV coordinates for our tile map."""
 
     def _map_name(self, name: str) -> int:
         """Given an image name, return an integer mapping for it.
@@ -269,7 +277,7 @@ class TileMap:
 
     def _value_gen(self, value):
         """Return a generator for tile values."""
-        if isinstance(value, str):
+        if value is None or isinstance(value, str):
             id = self._map_name(value)
             while True:
                 yield id
@@ -280,13 +288,17 @@ class TileMap:
 
     def fill_rect(
         self,
-        value: Union[str, List[str]],
+        value: Union[str, List[str], None],
         left: int,
         right: int,
         top: int,
         bottom: int,
     ):
         """Fill a rectangle of the tile map.
+
+        `value` can be a string to fill with just one tile value or a list of
+        strings in order to fill with one of a range of choices. You can also
+        pass ``None`` in order to clear tiles instead of setting them.
 
         Note that right/bottom are exclusive.
         """
@@ -296,14 +308,15 @@ class TileMap:
 
     def line(
         self,
-        value: Union[str, List[str]],
+        value: Union[str, List[str], None],
         start: Tuple[int, int],
         stop: Tuple[int, int],
     ):
         """Fill a line from coordinates start to stop.
 
-        Value may be an individual tile value or a list in order to choose
-        at random.
+        `value` can be a string to fill with just one tile value or a list of
+        strings in order to fill with one of a range of choices. You can also
+        pass ``None`` in order to clear tiles instead of setting them.
 
         """
         cells = bresenham.bresenham(*start, *stop)
@@ -312,12 +325,16 @@ class TileMap:
 
     def flood_fill(
         self,
-        value: Union[str, List[str]],
+        value: Union[str, List[str], None],
         start: Tuple[int, int],
         *,
         limit: int = 10_000
     ):
         """Flood fill from the given position.
+
+        `value` can be a string to fill with just one tile value or a list of
+        strings in order to fill with one of a range of choices. You can also
+        pass ``None`` in order to clear tiles instead of setting them.
 
         Because the tile map is unbounded, `limit` caps the number of
         tiles that can be considered for filling. If this limit is hit
@@ -351,8 +368,8 @@ class TileMap:
         for pos, v in zip(fill, values):
             self._set(pos, v)
 
-    def __getitem__(self, pos: Tuple[int, int]) -> int:
-        """Get the tile id at the given position."""
+    def __getitem__(self, pos: Tuple[int, int]) -> str:
+        """Get the tile at the given position."""
         v = self.get(pos)
         if not v:
             raise KeyError(f"No tile at position {pos}")
@@ -368,7 +385,7 @@ class TileMap:
             return default
         return self._tiles[id]
 
-    def _get(self, pos: Tuple[int, int]) -> Union[int, T]:
+    def _get(self, pos: Tuple[int, int]) -> int:
         """Get the tile id at the given position.
 
         If there is no tile at that position, 0 is returned.

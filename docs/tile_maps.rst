@@ -61,6 +61,8 @@ drawn randomly picks from the list::
         end=(20, 0),
     )
 
+You can also pass ``value=None`` in order to clear affected tiles.
+
 
 .. automethod:: wasabi2d.primitives.tile_map.TileMap.fill_rect
 
