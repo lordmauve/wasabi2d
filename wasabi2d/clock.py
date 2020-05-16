@@ -104,6 +104,31 @@ class Future:
             warnings.warn(ResourceWarning("wasabi2d future was not awaited"))
 
 
+class WaitEvent:
+    """Await some condition that will arise in future."""
+    def __init__(self):
+        self.done = False
+        self._result = None
+        self._on_ready = None
+
+    def when_ready(self, callback):
+        self._on_ready = callback
+        if self.done:
+            callback()
+
+    def set(self, result):
+        """Set the result for the event."""
+        self.done = True
+        self._result = result
+        self._on_ready()
+
+    def get_result(self):
+        """Get the result."""
+        if not self.done:
+            raise ValueError("Event is not complete.")
+        return self._result
+
+
 class Coroutines:
     """Namespace for coroutine operations on a clock."""
 
@@ -112,6 +137,7 @@ class Coroutines:
 
     def __init__(self, clock):
         self.clock = clock
+        self._ready_events = set()
 
     def _delay(self, seconds):
         """Get a future for a delay."""
@@ -120,6 +146,9 @@ class Coroutines:
     def _frame(self):
         """Get a future for the next frame."""
         return Future(WaitTick)
+
+    def _event(self):
+        return Future(WaitEvent())
 
     async def sleep(self, seconds):
         """Sleep for the given time in seconds."""
@@ -206,7 +235,13 @@ class Task:
         self.result = None
         self._step()
 
-    def _step(self, dt=None):
+    def _step(self, await_value=None):
+        """Step this task, passing the given value that was awaited.
+
+        For time events, await_value will be a time delta in seconds; for
+        condition events, it will be some other value.
+
+        """
         clock = self.clock
         clock.unschedule(self._step)
 
@@ -214,7 +249,7 @@ class Task:
             return
 
         try:
-            res = self.coro.send(dt)
+            res = self.coro.send(await_value)
         except StopIteration as stop:
             if stop.args:
                 self.result = stop.args[0]
@@ -232,6 +267,13 @@ class Task:
             clock.schedule(self._step, val.seconds, strong=True)
         elif val is WaitTick:
             clock.call_soon(self._step)
+        elif isinstance(val, WaitEvent):
+            # Bit ugly
+            val.when_ready(
+                lambda: clock.call_soon(
+                    lambda dt: self._step(val._result)
+                )
+            )
         else:
             raise TypeError("Unexpected value")
 

@@ -13,25 +13,39 @@ Some of the properties of this tile map:
 * You do not need to declare the bounds of the map. Maps do not have to
   have rectangular bounds or be contiguous.
 * You can update tiles at any coordinate at any time.
-* However the map can use at most 255 tile images. (To use more tiles, consider using multiple maps.)
+* However the map can use at most 255 tile images. (To use more tiles, consider
+  using multiple maps.)
 
 
-Create a tile map in a layer by calling ``add_tile_map()``:
-
-.. method:: Layer.add_tile_map() -> TileMap
-
-    Create a tile map, initially blank.
-
-
-This tile map will be blank - and lacking even dimensions - until you set tiles
-into it.
-
-Setting tiles into the map is done by assignment to coordinate pair:
+Create a tile map in a layer by calling ``add_tile_map()``. The easiest form of
+this requires no arguments. Setting tiles into the map is done by assigning the
+name of an image (from the ``images/`` directory) to a coordinate pair:
 
 .. code-block:: python
 
     tiles = scene.layers[3].add_tile_map()
     tiles[3, 5] = 'tile_sand'
+
+
+.. method:: Layer.add_tile_map(*, tile_size: Tuple[int, int] = None, any_size_tile: bool = False) -> TileMap
+
+    Create a tile map, initially blank.
+
+    :param tile_size: The dimensions of each tile. If omitted this will be
+                      inferred from the first tile you insert into the map.
+    :param any_size_tile: If True, allow setting images of any size into the
+                          map; otherwise, all tiles must match `tile_size`.
+                          If this is given then `tile_size` is a required
+                          parameter.
+
+
+As well as setting tiles, there are a range of operations to treat the map as a
+mapping of coordinate to image name. For example, you can retrieve the tile
+values you have already set:
+
+.. code-block:: python
+
+    print(tiles[3, 5])  # prints tile_sand
 
 There are also a number of :ref:`tile-drawing` operations to update the map
 in bulk.
@@ -40,8 +54,17 @@ in bulk.
 Tile Get/Set Operations
 -----------------------
 
-.. autoclass:: wasabi2d.primitives.tile_map.TileMap
-    :members: __setitem__, __getitem__, get, setdefault, __delitem__
+.. currentmodule:: wasabi2d.primitives.tile_map
+
+.. automethod:: TileMap.__setitem__
+
+.. automethod:: TileMap.__getitem__
+
+.. automethod:: TileMap.get
+
+.. automethod:: TileMap.setdefault
+
+.. automethod:: TileMap.__delitem__
 
 
 .. _tile-drawing:

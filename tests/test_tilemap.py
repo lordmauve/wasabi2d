@@ -1,6 +1,4 @@
 """Regression tests for tile maps."""
-from pytest import fixture
-
 from drawing_utils import drawing_test
 
 
@@ -26,7 +24,7 @@ def test_tilemap_get(tilemap):
 
 def test_tilemap_get_none(tilemap):
     """We can get tiles that are not be set."""
-    assert tilemap.get((3, 3)) == None
+    assert tilemap.get((3, 3)) is None
 
 
 @drawing_test
@@ -44,3 +42,14 @@ def test_tilemap_del(scene):
 
     del tilemap[4, 7]
     del tilemap[5, 7]
+
+
+@drawing_test
+def test_tile_resize(scene):
+    """We can create a tile map that lets us set any size tiles."""
+    tilemap = scene.layers[0].add_tile_map(
+        tile_size=(64, 64),
+        any_size_tile=True
+    )
+    tilemap[1, 1] = 'tile'
+    tilemap[2, 2] = 'ship'

@@ -194,11 +194,20 @@ class TileMap:
     tex: Optional = None
     block_size: Optional[Tuple[int, int]] = None
 
-    def __init__(self, layer):
+    def __init__(self, layer, *, tile_size=None, any_size_tile=False):
         super().__init__()
         self.layer = layer
         self.atlas = self.layer.group.atlas
         self._tiles = [None]
+
+        if tile_size:
+            w, h = self.size = tile_size
+            self.block_size = w * 64, h * 64
+        if any_size_tile and not tile_size:
+            raise ValueError(
+                "tile_size must be given to use any_size_tile"
+            )
+        self.any_size_tile = any_size_tile
 
         self._texdata = np.zeros((256, 4, 2), dtype=np.float32)
         self._names = {}
@@ -255,7 +264,7 @@ class TileMap:
                 "{len(self._tiles)} tile slots are already in use."
             )
         if id > 1:
-            if rsize != self.size:
+            if rsize != self.size and not self.any_size_tile:
                 raise ValueError(
                     f"Size of {name} ({rsize}) does not match "
                     f"previous tiles {self.size}"
@@ -265,9 +274,10 @@ class TileMap:
                     f"Tile size is too large {rsize}"
                 )
         else:
-            self.size = rsize
             self.tex = region.tex
-            self.block_size = region.width * 64, region.height * 64
+            if not self.size:
+                self.size = rsize
+                self.block_size = region.width * 64, region.height * 64
 
         self._texdata[id, ...] = region.texcoords
         self._tile_tex_dirty = True
@@ -378,7 +388,7 @@ class TileMap:
     def get(self, pos: Tuple[int, int], default: T = None) -> Union[str, T]:
         """Get the tile at the given position.
 
-        If there is no tile at that position, None is returned.
+        If there is no tile at that position, `default` is returned.
         """
         id = self._get(pos)
         if id == 0:
@@ -433,7 +443,8 @@ class TileMap:
         self.release()
 
     def render(self, camera: wasabi2d.scene.Camera):
-        if not self.block_size:
+        blocks = len(self._tilemgr.block_map)
+        if not blocks:
             return
         self._tilemgr.bind_texture(0)
         self.prog['tiles'] = 0
@@ -452,5 +463,5 @@ class TileMap:
 
         self.vao.render(
             mode=moderngl.POINTS,
-            vertices=len(self._tilemgr.block_map)
+            vertices=blocks
         )
