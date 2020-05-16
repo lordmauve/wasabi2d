@@ -154,7 +154,7 @@ class TileManager:
 
         This method does not mark the block as dirty.
         """
-        id = self.block_map[pos]
+        id = self.block_map.get(pos)
         if id is None:
             return None
         return self.texture_blocks[id]
@@ -380,7 +380,7 @@ class TileMap:
 
         If there is no tile at that position, None is returned.
         """
-        id = self._get()
+        id = self._get(pos)
         if id == 0:
             return default
         return self._tiles[id]
@@ -452,5 +452,5 @@ class TileMap:
 
         self.vao.render(
             mode=moderngl.POINTS,
-            vertices=len(self._tilemgr)
+            vertices=len(self._tilemgr.block_map)
         )

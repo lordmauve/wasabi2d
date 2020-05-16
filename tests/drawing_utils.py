@@ -5,23 +5,13 @@ from typing import Tuple, Iterable
 from itertools import product
 from pathlib import Path
 
-from pytest import fixture
 import numpy as np
 import pygame.image
 import pygame.surfarray
 
 from wasabi2d.scene import HeadlessScene, capture_screen
 
-
 ROOT = Path(__file__).parent
-
-
-@fixture()
-def scene():
-    """Fixture to create a new Scene object for use in a test."""
-    scene = HeadlessScene(rootdir=ROOT)
-    yield scene
-    scene.release()
 
 
 def assert_screen_match(scene, name):
