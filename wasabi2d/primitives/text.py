@@ -9,7 +9,7 @@ import pygame.font
 from ..allocators.vertlists import VAO
 from ..loaders import fonts
 from ..atlas import Atlas
-from .sprites import TEXTURED_QUADS_PROGRAM, QUAD
+from .sprites import QUAD
 from .base import Bounds, Transformable, Colorable
 
 
@@ -35,25 +35,6 @@ class TextureVAO(VAO):
         super().render(camera)
 
 
-# Slight modification to the textured quads: we only use the texture's alpha
-# channel because pygame pre-multiplies alpha in text rendering.
-TEXT_PROGRAM = {
-    **TEXTURED_QUADS_PROGRAM,
-    'fragment_shader': '''
-        #version 330
-
-        out vec4 f_color;
-        in vec2 uv;
-        in vec4 color;
-        uniform sampler2D tex;
-
-        void main() {
-            f_color = vec4(color.rgb, color.a * texture(tex, uv).a);
-        }
-    ''',
-}
-
-
 def text_vao(
         ctx: moderngl.Context,
         shadermgr: 'wasabi2d.layers.ShaderManager') -> VAO:
@@ -61,7 +42,7 @@ def text_vao(
     return TextureVAO(
         mode=moderngl.TRIANGLES,
         ctx=ctx,
-        prog=shadermgr.get(**TEXT_PROGRAM),
+        prog=shadermgr.load('texquads', 'text'),
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),

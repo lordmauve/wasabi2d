@@ -5,20 +5,6 @@ import moderngl
 from ..shaders import shadermgr
 
 
-POSTPROCESS_VERT_PROGRAM = '''
-    #version 330
-
-    in vec2 in_vert;
-    in vec2 in_uv;
-    out vec2 uv;
-
-    void main() {
-        gl_Position = vec4(in_vert.xy, 0.0, 1.0);
-        uv = in_uv;
-    }
-'''
-
-
 class PostprocessPass:
     """A full-screen postprocessing effect pass.
 
@@ -39,15 +25,23 @@ class PostprocessPass:
     def __init__(
             self,
             ctx: moderngl.Context,
-            fragment_shader: str,
+            shader_name: str=None,
+            text: str=None,
             send_uvs: bool = True):
         self.ctx = ctx
-        self.prog = shadermgr(ctx).get(
-            vertex_shader=POSTPROCESS_VERT_PROGRAM,
-            fragment_shader=fragment_shader,
-        )
+        if shader_name:
+            self.prog = shadermgr(ctx).load(
+                'postprocess/postprocess',
+                shader_name
+            )
+        else:
+            sm = shadermgr(ctx)
+            self.prog = sm.get(
+                sm._read('postprocess/postprocess.vert'),
+                text
+            )
 
-        indices = ctx.buffer(self.QUAD_INDICES)
+        self.indices = ctx.buffer(self.QUAD_INDICES)
         self.vs_uvs = ctx.buffer(self.QUAD_VERTS_UVS)
 
         if send_uvs:
@@ -57,8 +51,13 @@ class PostprocessPass:
         self.vao = ctx.vertex_array(
             self.prog,
             [attribs],
-            index_buffer=indices
+            index_buffer=self.indices
         )
+
+    def __del__(self):
+        self.vao.release()
+        self.indices.release()
+        self.vs_uvs.release()
 
     def set_region(self, xfrac=1, yfrac=1):
         """Set the pass to write to a subregion of the viewport."""

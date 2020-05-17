@@ -8,39 +8,6 @@ from ..shaders import bind_framebuffer, blend_func
 from .base import PostprocessPass
 
 
-FADE_PROG = """ \
-#version 330 core
-
-out vec4 f_color;
-
-uniform float fade;
-
-void main()
-{
-    f_color = vec4(0, 0, 0, fade);
-}
-
-"""
-
-
-COMPOSITE_PROG = """ \
-#version 330 core
-
-in vec2 uv;
-out vec4 f_color;
-
-uniform float alpha;
-uniform sampler2D fb;
-
-void main()
-{
-    vec4 frag = texture(fb, uv);
-    f_color = vec4(frag.rgb, frag.a * alpha);
-}
-
-"""
-
-
 @dataclass
 class Trails:
     """A trails effect."""
@@ -58,12 +25,12 @@ class Trails:
         self._trails_buf = camera._make_fb('f4')
         self._fade_pass = PostprocessPass(
             self.ctx,
-            FADE_PROG,
+            'postprocess/trails_fade',
             send_uvs=False
         )
         self._composite_pass = PostprocessPass(
             self.ctx,
-            COMPOSITE_PROG,
+            'postprocess/trails_composite',
         )
         self.t = self.clock.t
 

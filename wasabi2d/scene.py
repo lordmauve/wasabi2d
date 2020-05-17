@@ -487,7 +487,7 @@ class Camera:
         shader_pass = self._shader_passes.get(fragment_shader)
         if shader_pass is None:
             from .effects.base import PostprocessPass
-            shader_pass = PostprocessPass(self.ctx, fragment_shader)
+            shader_pass = PostprocessPass(self.ctx, text=fragment_shader)
             self._shader_passes[fragment_shader] = shader_pass
         shader_pass.render(**uniforms)
 

@@ -11,7 +11,7 @@ from .primitives.sprites import Sprite
 from .primitives.circles import Circle, line_vao, shape_vao
 from .primitives.polygons import Polygon, Rect, PolyLine
 from .primitives.text import Label, FontAtlas, text_vao
-from .primitives.particles import ParticleGroup, ParticleVAO, PARTICLE_PROGRAM
+from .primitives.particles import ParticleGroup, ParticleVAO
 from .loaders import images
 from .shaders import ShaderManager
 
@@ -307,7 +307,7 @@ class Layer:
             c,
             mode=moderngl.POINTS,
             ctx=self.ctx,
-            prog=self.group.shadermgr.get(**PARTICLE_PROGRAM),
+            prog=self.group.shadermgr.load('primitives/particle')
         )
         if texture is None:
             tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)

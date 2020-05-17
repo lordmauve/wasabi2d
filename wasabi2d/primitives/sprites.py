@@ -8,38 +8,6 @@ from .base import Colorable, Transformable, Bounds
 from ..allocators.packed import PackedBuffer
 
 
-TEXTURED_QUADS_PROGRAM = dict(
-    vertex_shader='''
-        #version 330
-
-        uniform mat4 proj;
-
-        in vec2 in_vert;
-        in vec4 in_color;
-        in ivec2 in_uv;
-        out vec2 uv;
-        out vec4 color;
-        uniform sampler2D tex;
-
-        void main() {
-            gl_Position = proj * vec4(in_vert.xy, 0.0, 1.0);
-            uv = vec2(in_uv) / textureSize(tex, 0);
-            color = in_color;
-        }
-    ''',
-    fragment_shader='''
-        #version 330
-
-        out vec4 f_color;
-        in vec2 uv;
-        in vec4 color;
-        uniform sampler2D tex;
-
-        void main() {
-            f_color = color * texture(tex, uv);
-        }
-    ''',
-)
 QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='u4')
 
 
@@ -118,7 +86,7 @@ class Sprite(Colorable, Transformable):
         k = ('sprite', id(tex))
         array = self.layer.arrays.get(k)
         if not array:
-            prog = self.layer.group.shadermgr.get(**TEXTURED_QUADS_PROGRAM)
+            prog = self.layer.group.shadermgr.load('texquads')
             array = PackedBuffer(
                 moderngl.TRIANGLES,
                 self.layer.ctx,

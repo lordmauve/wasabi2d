@@ -12,177 +12,16 @@ from ..descriptors import CallbackProp
 from ..effects.base import PostprocessPass
 from ..shaders import bind_framebuffer, blend_func
 
-#: Shader for a plain color fill
-PLAIN_COLOR = dict(
-    vertex_shader='''
-        #version 330
-
-        uniform mat4 proj;
-
-        in vec2 in_vert;
-        in vec4 in_color;
-        out vec4 color;
-
-        void main() {
-            gl_Position = proj * vec4(in_vert, 0.0, 1.0);
-            color = in_color;
-        }
-    ''',
-    fragment_shader='''
-        #version 330
-
-        out vec4 f_color;
-        in vec4 color;
-
-        void main() {
-            f_color = color;
-        }
-    ''',
-)
-
-
-WIDE_LINE = dict(
-    vertex_shader='''
-        #version 330
-
-        in vec2 in_vert;
-        in vec4 in_color;
-        in float in_linewidth;
-        out vec4 g_color;
-        out float widths;
-
-        void main() {
-            gl_Position = vec4(in_vert, 0.0, 1.0);
-            g_color = in_color;
-            widths = in_linewidth;
-        }
-    ''',
-    geometry_shader="""
-#version 330 core
-layout (lines_adjacency) in;
-//layout (triangle_strip, max_vertices = 2) out;
-layout (triangle_strip, max_vertices = 4) out;
-
-in vec4 g_color[];
-in float widths[];
-out vec4 color;
-
-const float MITRE_LIMIT = 6.0;
-
-vec2 rot90(vec2 v) {
-    return vec2(-v.y, v.x);
-}
-
-bool is_nonzero(vec2 v) {
-    return dot(v, v) > 1e-4;
-}
-
-uniform mat4 proj;
-
-
-void mitre(vec2 a, vec2 b, vec2 c, float width) {
-    vec2 ab = normalize(b - a);
-    vec2 bc = normalize(c - b);
-
-    if (!is_nonzero(ab)) {
-        ab = bc;
-    }
-    if (!is_nonzero(bc)) {
-        bc = ab;
-    }
-
-    // across bc
-    vec2 xbc = rot90(bc);
-
-    vec2 along = normalize(ab + bc);
-    vec2 across_mitre = rot90(along);
-
-    float scale = 1.0 / dot(xbc, across_mitre);
-
-    //This kind of works Ok although it does cause the width to change
-    // scale = min(scale, MITRE_LIMIT);  // limit extension of the mitre
-    vec2 across = width * across_mitre * scale;
-
-    gl_Position = proj * vec4(b + across, 0.0, 1.0);
-    EmitVertex();
-
-    gl_Position = proj * vec4(b - across, 0.0, 1.0);
-    EmitVertex();
-}
-
-
-void main() {
-    color = g_color[1];
-
-    vec2 a = gl_in[0].gl_Position.xy;
-    vec2 b = gl_in[1].gl_Position.xy;
-    vec2 c = gl_in[2].gl_Position.xy;
-    vec2 d = gl_in[3].gl_Position.xy;
-
-    vec2 along = c - b;
-
-    if (is_nonzero(b - a)) {
-        mitre(a, b, c, widths[1]);
-    } else {
-        mitre(b - along, b, c, widths[1]);
-    }
-    if (is_nonzero(d - c)) {
-        mitre(b, c, d, widths[2]);
-    } else {
-        mitre(b, c, c + along, widths[2]);
-    }
-
-    EndPrimitive();
-}
-""",
-    fragment_shader='''
-        #version 330
-
-        out vec4 f_color;
-        in vec4 color;
-
-        void main() {
-            f_color = color;
-        }
-    ''',
-)
-
 
 class PolyVAO(VAO):
     """VAO object that renders with multisampling."""
 
-    #: Fragment program to copy from multisample texture
-    BLEND_PROGRAM = """
-    #version 330 core
-
-    in vec2 uv;
-    out vec4 f_color;
-    uniform sampler2DMS image;
-
-    uniform int samples = 4;
-
-    void main()
-    {
-        vec4 color = vec4(0, 0, 0, 0);
-
-        ivec2 pos = ivec2(uv * textureSize(image));
-
-        for (int i = 0; i < samples; i++) {
-            color += texelFetch(image, pos, i);
-        }
-        if (color.a == 0.0) {
-            discard;
-        }
-        f_color = vec4(
-            color.rgb / color.a,
-            color.a / samples
-        );
-    }
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.composite_prog = PostprocessPass(self.ctx, self.BLEND_PROGRAM)
+        self.composite_prog = PostprocessPass(
+            self.ctx,
+            'postprocess/multisample_blend'
+        )
 
     def render(self, camera):
         samples = min(self.ctx.max_samples, 4)
@@ -200,7 +39,7 @@ def color_vao(
     return PolyVAO(
         mode=mode,
         ctx=ctx,
-        prog=shadermgr.get(**PLAIN_COLOR),
+        prog=shadermgr.load('primitives/flat_color'),
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
@@ -215,7 +54,11 @@ def line_vao(
     return PolyVAO(
         mode=moderngl.LINE_STRIP_ADJACENCY,
         ctx=ctx,
-        prog=shadermgr.get(**WIDE_LINE),
+        prog=shadermgr.load(
+            'primitives/wide_line',
+            'primitives/wide_line',
+            'primitives/flat_color',
+        ),
         dtype=np.dtype([
             ('in_vert', '2f4'),
             ('in_color', '4f4'),
