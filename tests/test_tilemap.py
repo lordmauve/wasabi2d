@@ -1,4 +1,5 @@
 """Regression tests for tile maps."""
+import pytest
 from drawing_utils import drawing_test
 
 
@@ -39,6 +40,35 @@ def test_tilemap_draw_line(scene):
     """We can fill a whole rectangle of tiles."""
     tilemap = scene.layers[0].add_tile_map()
     tilemap.line('tile', (0, 0), (20, 6))
+
+
+@drawing_test
+def test_tilemap_flood_fill(scene):
+    """We can flood-fill a region of any shape."""
+    tilemap = scene.layers[0].add_tile_map()
+
+    # Construct a bounded irregular region
+    verts = [
+        (0, 0),
+        (2, 10),
+        (10, 10),
+        (6, 5),
+        (10, 1),
+    ]
+    for i, start in enumerate(verts):
+        end = verts[(i + 1) % len(verts)]
+        tilemap.line('tile', start, end)
+
+    tilemap.flood_fill('bomb', (1, 1))
+
+
+@drawing_test
+def test_tilemap_flood_fill_unbounded(scene):
+    """Filling an unbounded area raises an exception and nothing is drawn."""
+    tilemap = scene.layers[0].add_tile_map()
+
+    with pytest.raises(ValueError):
+        tilemap.flood_fill('bomb', (0, 0))
 
 
 @drawing_test
