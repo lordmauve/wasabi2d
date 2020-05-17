@@ -430,6 +430,12 @@ class TileMap:
         """Clear the tile at the given position."""
         self._set(pos, 0)
 
+    def clear(self):
+        """Clear the tile map."""
+        self._tilemgr.clear()
+        self._tiles.clear()
+        self._names.clear()
+
     @property
     def bounds(self):
         """todo"""
