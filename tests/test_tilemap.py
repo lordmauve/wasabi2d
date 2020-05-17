@@ -35,6 +35,13 @@ def test_tilemap_fill_rect(scene):
 
 
 @drawing_test
+def test_tilemap_draw_line(scene):
+    """We can fill a whole rectangle of tiles."""
+    tilemap = scene.layers[0].add_tile_map()
+    tilemap.line('tile', (0, 0), (20, 6))
+
+
+@drawing_test
 def test_tilemap_del(scene):
     """We can delete tiles."""
     tilemap = scene.layers[0].add_tile_map()
