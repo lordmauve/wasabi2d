@@ -4,7 +4,7 @@ History
 1.4.0 - unreleased
 ------------------
 
-* New: Tile maps
+* New: :doc:`Tile maps <tile_maps>`
 * New: scene-wide :ref:`pixel_art mode <pixel-art>`
 * New: vertices of a line can now be updated
 * New: `background=` can be set in Scene constructor
