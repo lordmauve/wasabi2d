@@ -29,18 +29,15 @@ void main() {
 
     /* Fetch UV coordinates of the tile in the texture. */
     vec2 tl = texelFetch(tilemap_coords, ivec2(0, tilenum), 0).xy;
-    vec2 tr = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
-    vec2 bl = texelFetch(tilemap_coords, ivec2(3, tilenum), 0).xy;
-
-    vec2 across = tr - tl;
-    vec2 up = bl - tl;
+    vec2 across = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
+    vec2 down = texelFetch(tilemap_coords, ivec2(2, tilenum), 0).xy;
 
     // Clamp at edges of this tile
     vec2 mapped_uv = clamp(tileuv, clamp_min, vec2(1.0) - clamp_min);
 
     // Texture map
     vec2 lookup_uv = to_frac_coords(
-        tl + across * mapped_uv.x + up * mapped_uv.y
+        tl + across * mapped_uv.x + down * mapped_uv.y
     );
 
     f_color = textureLod(tex, lookup_uv, lod);

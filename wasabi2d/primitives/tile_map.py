@@ -209,10 +209,10 @@ class TileMap:
             )
         self.any_size_tile = any_size_tile
 
-        self._texdata = np.zeros((256, 4, 2), dtype=np.float32)
+        self._texdata = np.zeros((256, 3, 2), dtype=np.float32)
         self._names = {}
         self._tile_tex = self.layer.ctx.texture(
-            (4, 256),
+            (3, 256),
             2,
             dtype='f4'
         )
@@ -279,7 +279,9 @@ class TileMap:
                 self.size = rsize
                 self.block_size = region.width * 64, region.height * 64
 
-        self._texdata[id, ...] = region.texcoords
+        tl, tr, br, bl = region.texcoords.astype(np.float32)
+
+        self._texdata[id, :] = [tl, tr - tl, bl - tl]
         self._tile_tex_dirty = True
         self._tiles.append(name)
         self._names[name] = id
