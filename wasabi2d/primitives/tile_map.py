@@ -222,7 +222,7 @@ class TileMap:
 
         shadermgr = layer.group.shadermgr
 
-        self.prog = shadermgr.load('tile_map')
+        self.prog = shadermgr.load('primitives/tile_map')
         self.vao = self.layer.ctx.vertex_array(
             self.prog,
             [(self._tilemgr.verts, *TileManager.MGL_DTYPE)]
