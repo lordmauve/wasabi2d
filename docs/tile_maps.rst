@@ -11,9 +11,9 @@ more:
     `tile pack from Craftpix <https://craftpix.net/freebies/free-swamp-game-tileset-pixel-art/>`_.
 
 You could use sprite primitives to do this, but because large, scrolling levels
-can consist of *millions* of tiles, this is relatively expensive both in terms
-of memory usage and rendering. Instead Wasabi2D provides a GPU accelerated tile
-map that is fast to render even over vast tile maps.
+can consist of tens of thousands of tiles, this is relatively expensive
+both in terms of memory usage and rendering. Instead Wasabi2D provides a GPU
+accelerated tile map that is fast to render even over vast tile maps.
 
 Some of the properties of this tile map:
 
@@ -44,7 +44,8 @@ name of an image (from the ``images/`` directory) to a coordinate pair:
     :param tile_size: The dimensions of each tile. If omitted this will be
                       inferred from the first tile you insert into the map.
     :param any_size_tile: If True, allow setting images of any size into the
-                          map; otherwise, all tiles must match `tile_size`.
+                          map and resize them; otherwise, all tiles must
+                          match `tile_size`.
                           If this is given then `tile_size` is a required
                           parameter.
 
