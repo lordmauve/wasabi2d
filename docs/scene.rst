@@ -5,6 +5,10 @@ The Scene
 
 .. autoclass:: wasabi2d.Scene
 
+    .. versionadded:: 1.4.0
+
+        Added the `background` and `pixel_art` parameters.
+
 The `Scene` object represents the whole graphics subsystem in wasabi2d. Scenes
 manage a collection of graphical **primitives** within a number of **layers**.
 
@@ -59,6 +63,8 @@ and screenshotting:
 
 Pixel Art
 ---------
+
+.. versionadded:: 1.4.0
 
 Setting ``pixel_art=True`` in the scene constructor turns off bilinear
 interpolation of textures. This means that pixel edges will be clearly

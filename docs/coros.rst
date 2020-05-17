@@ -1,6 +1,8 @@
 Coroutines
 ==========
 
+.. versionadded:: 1.3.0
+
 ``wasabi2d`` supports Python coroutines for writing asynchronous game logic
 in a synchronous way.
 

@@ -21,10 +21,14 @@ Available effects
 The effects are described here as separate calls:
 
 
-.. method:: Layer.set_effect('bloom', radius: float=10)
+.. method:: Layer.set_effect('bloom', radius: float=10, gamma: float = 1.0, intensity: float = 0.5)
 
     Create a light bloom effect, where very bright pixels glow, making them
     look exceptionally bright. The radius controls how far the effect reaches.
+
+    .. versionadded:: 1.3.0
+
+        Added the `gamma` and `intensity` parameters.
 
     .. image:: _static/effects/bloom.png
         :alt: Example of the light bloom effect

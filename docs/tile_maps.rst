@@ -1,6 +1,8 @@
 Tile Maps
 =========
 
+.. versionadded:: 1.4.0
+
 Many games use a rectangular grid of tile images to represent static parts of a
 level, such as floors, platforms, obstacles, background scenery, traps and
 more:
