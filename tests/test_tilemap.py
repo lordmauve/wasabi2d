@@ -90,3 +90,15 @@ def test_tile_resize(scene):
     )
     tilemap[1, 1] = 'tile'
     tilemap[2, 2] = 'ship'
+
+
+@drawing_test
+def test_tilemap_clear(scene):
+    """We can clear the tile map."""
+    tm = scene.layers[0].add_tile_map()
+    tilemap = scene.layers[0].add_tile_map()
+    tilemap.fill_rect('tile', 3, 6, 6, 9)
+
+    tilemap.clear()
+
+    tm[4, 5] = 'bomb'

@@ -66,6 +66,8 @@ Tile Get/Set Operations
 
 .. automethod:: TileMap.__delitem__
 
+.. automethod:: TileMap.clear
+
 
 .. _tile-drawing:
 
