@@ -28,9 +28,10 @@ void main() {
     }
 
     /* Fetch UV coordinates of the tile in the texture. */
-    vec2 tl = texelFetch(tilemap_coords, ivec2(0, tilenum), 0).xy;
-    vec2 across = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
-    vec2 down = texelFetch(tilemap_coords, ivec2(2, tilenum), 0).xy;
+    vec4 coords0 = texelFetch(tilemap_coords, ivec2(0, tilenum), 0);
+    vec2 tl = coords0.xy;
+    vec2 across = coords0.zw;
+    vec2 down = texelFetch(tilemap_coords, ivec2(1, tilenum), 0).xy;
 
     // Clamp at edges of this tile
     vec2 mapped_uv = clamp(tileuv, clamp_min, vec2(1.0) - clamp_min);
