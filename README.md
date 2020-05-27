@@ -14,9 +14,9 @@ Current features include:
 * [Particle systems](https://wasabi2d.readthedocs.io/en/latest/particles.html)
 * [Built-in post-processing effects](https://wasabi2d.readthedocs.io/en/latest/effects.html) using GLSL shaders.
 * [Sound, music and tone generation](https://wasabi2d.readthedocs.io/en/latest/sound.html).
-* [Event driven input handling for keyboard and mouse](https://wasabi2d.readthedocs.io/en/latest/events.html).
+* [Event driven input handling](https://wasabi2d.readthedocs.io/en/latest/events.html) for keyboard and mouse.
 * [Animation/tweening](https://wasabi2d.readthedocs.io/en/latest/animation.html).
-* ["Local storage" to easily save state](https://wasabi2d.readthedocs.io/en/latest/storage.html).
+* ["Local storage"](https://wasabi2d.readthedocs.io/en/latest/storage.html) to easily save state.
 
 Wasabi2D is based on [moderngl], with [pygame 2.0] for some supporting functions, and supporting APIs ported from [Pygame Zero](https://github.com/lordmauve/pgzero).
 
