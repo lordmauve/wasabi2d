@@ -10,13 +10,13 @@ Current features include:
 
 * Sprites, text, and stroked and filled polygons - all rotatable, scalable, and
   colorizeable
-* A [coroutine programming model]() for easy animated effects.
-* [Particle systems](https://wasabi2d.readthedocs.io/en/latest/coros.html)
+* A [coroutine programming model](https://wasabi2d.readthedocs.io/en/latest/coros.html) for easy animated effects.
+* [Particle systems](https://wasabi2d.readthedocs.io/en/latest/particles.html)
 * [Built-in post-processing effects](https://wasabi2d.readthedocs.io/en/latest/effects.html) using GLSL shaders.
-* Sound, music and tone generation.
-* Event driven input handling for keyboard and mouse.
-* Animation/tweening.
-* "Local storage" to easily save state.
+* [Sound, music and tone generation](https://wasabi2d.readthedocs.io/en/latest/sound.html).
+* [Event driven input handling for keyboard and mouse](https://wasabi2d.readthedocs.io/en/latest/events.html).
+* [Animation/tweening](https://wasabi2d.readthedocs.io/en/latest/animation.html).
+* ["Local storage" to easily save state](https://wasabi2d.readthedocs.io/en/latest/storage.html).
 
 Wasabi2D is based on [moderngl], with [pygame 2.0] for some supporting functions, and supporting APIs ported from [Pygame Zero](https://github.com/lordmauve/pgzero).
 
