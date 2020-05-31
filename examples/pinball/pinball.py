@@ -10,6 +10,15 @@ from spatial_hash import SpatialHash
 
 
 scene = w2d.Scene(1280, 720)
+scene.chain = [
+    w2d.chain.LayerRange(stop=0),
+    w2d.chain.DisplacementMap(
+        displacement=w2d.chain.Layers([1]),
+        paint=w2d.chain.LayerRange(stop=0),
+        scale=-100
+    )
+]
+
 scene.layers[0].set_effect('dropshadow', offset=(3, 3))
 
 cursor = scene.layers[0].add_sprite(
@@ -35,6 +44,11 @@ class Ball:
             'steel',
             scale=radius / 32,
         )
+        self.refl = scene.layers[1].add_sprite(
+            'lens_fresnel',
+            scale=radius / 100,
+            color=(1, 1, 1, 0.5)
+        )
         self.velocity = v2(0, 0)
         self.radius = radius
         self.mass = radius * radius
@@ -49,7 +63,7 @@ class Ball:
 
     @pos.setter
     def pos(self, pos):
-        self._pos = self.sprite.pos = self.rect.center = pos
+        self._pos = self.sprite.pos = self.refl.pos = self.rect.center = pos
 
     def update(self):
         self.pos += self.velocity
@@ -190,4 +204,5 @@ def on_mouse_down():
     w2d.clock.unschedule(update)
     w2d.clock.each_tick(update)
 
+update(0)
 w2d.run()
