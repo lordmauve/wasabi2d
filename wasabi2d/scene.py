@@ -2,6 +2,7 @@
 import sys
 import math
 import gc
+import os
 from typing import Tuple, Optional, Union
 from contextlib import contextmanager
 
@@ -55,6 +56,7 @@ class Scene:
             height: int = 600,
             title: int = "wasabi2d",
             *,
+            fullscreen: bool = False,
             rootdir: Optional[str] = None,
             scaler: Union[str, bool, None] = False,
             background: Union[str, Tuple[float, float, float]] = 'black',
@@ -74,6 +76,7 @@ class Scene:
         self.drawer = Drawer()
         self.width = width
         self.height = height
+        self.fullscreen = fullscreen
 
         ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
@@ -128,11 +131,25 @@ class Scene:
             k = getattr(pygame, k)
             pygame.display.gl_set_attribute(k, v)
 
+        dims = width, height
         flags = pygame.OPENGL | pygame.DOUBLEBUF
-        if self._scaler:
+
+        if self.fullscreen:
+            # SDL's detection for "legacy" fullscreen seems to fail on
+            # Ubuntu 16.04 at least. Set an environment variable so that it 
+            # asks the Window Manager for full screen mode instead.
+            # https://github.com/spurious/SDL-mirror/blob/c8b01e282dfd49ea8bbf1faec7fd65d869ea547f/src/video/x11/SDL_x11window.c#L1468
+            os.environ['SDL_VIDEO_X11_LEGACY_FULLSCREEN'] = "0"
+
+            flags |= pygame.FULLSCREEN
+            if not self._scaler:
+                self._scaler = 'linear'
+            dims = 0, 0
+        elif self._scaler:
             flags |= pygame.SCALED
+
         pygame.display.set_mode(
-            (width, height),
+            dims,
             flags=flags,
             depth=24
         )
