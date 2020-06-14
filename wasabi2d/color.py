@@ -16,7 +16,7 @@ def convert_color(c: Union[str, tuple]) -> Tuple[float, float, float, float]:
         return np.array(memoryview(col), dtype='u1').astype('f4') / 255.0
     else:
         assert 3 <= len(c) <= 4, "Invalid color length"
-        return np.array(c + (1,) * (4 - len(c)), dtype='f4')
+        return np.array(tuple(c) + (1,) * (4 - len(c)), dtype='f4')
 
 
 def convert_color_rgb(c: Union[str, tuple]) -> Tuple[float, float, float]:
@@ -26,7 +26,7 @@ def convert_color_rgb(c: Union[str, tuple]) -> Tuple[float, float, float]:
     exception if the alpha value is not 1.
 
     """
-    c = convert_color(c)
-    if abs(c[3] - 1.0) > 1e-4:
+    cc = convert_color(c)
+    if abs(cc[3] - 1.0) > 1e-4:
         raise ValueError("Color may not have an alpha component.")
-    return c[:3]
+    return cc[:3]
