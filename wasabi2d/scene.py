@@ -155,8 +155,8 @@ class Scene:
         )
         ctx = moderngl.create_context(require=410)
 
-        real_size = pygame.display.get_window_size()
-        if real_size != (width, height):
+        self._real_size = pygame.display.get_window_size()
+        if self._real_size != (width, height):
             self.drawer = self._make_scaler(ctx, (width, height))
         return ctx
 
@@ -229,12 +229,13 @@ class Scene:
             now = datetime.datetime.now()
             filename = f'video_{now:%Y-%m-%d_%H:%M:%S.%f}.mp4'
         self._recording = filename
+        w, h = self._real_size
         command = [
             'ffmpeg',
             '-y',  # (optional) overwrite output file if it exists
             '-f', 'rawvideo',
             '-vcodec', 'rawvideo',
-            '-s', f'{self.width}x{self.height}',  # size of one frame
+            '-s', f'{w}x{h}',  # size of one frame
             '-pix_fmt', 'rgb24',
             '-r', '60',  # frames per second
             '-i', '-',  # The imput comes from a pipe
