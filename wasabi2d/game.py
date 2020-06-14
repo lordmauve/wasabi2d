@@ -169,7 +169,7 @@ class EventMapper:
         """Run the main loop."""
         pgzclock = wasabi2d.clock.clock
 
-        timefunc = time.monotonic
+        timefunc = time.perf_counter
         sleepfunc = time.sleep
         MIN_FRAMETIME = 1 / 60  # 60fps
 
