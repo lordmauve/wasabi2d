@@ -71,7 +71,9 @@ class EventMapper:
         'buttons': map_buttons,
         'button': constants.mouse,
         'key': constants.keys,
-        'joy': int,
+    }
+
+    EVENT_PARAM_MAPPERS_JOYSTICK = {
     }
 
     def __call__(self, handler):
@@ -83,10 +85,14 @@ class EventMapper:
             raise KeyError(
                 f"Unknown handler type {name}"
             )
-        self.handlers[type] = self.prepare_handler(handler)
+        if 'joy' in name:
+            mappers = self.EVENT_PARAM_MAPPERS_JOYSTICK
+        else:
+            mappers = self.EVENT_PARAM_MAPPERS
+        self.handlers[type] = self.prepare_handler(handler, mappers)
         return handler
 
-    def prepare_handler(self, handler):
+    def prepare_handler(self, handler: callable, param_mappers: dict):
         """Adapt a wasabi2d game's raw handler function to take a Pygame Event.
 
         Returns a one-argument function of the form ``handler(event)``.
@@ -116,7 +122,7 @@ class EventMapper:
         param_handlers = []
         for name in param_names:
             getter = operator.attrgetter(name)
-            mapper = self.EVENT_PARAM_MAPPERS.get(name)
+            mapper = param_mappers.get(name)
             param_handlers.append((name, make_getter(mapper, getter)))
 
         def prep_args(event):
