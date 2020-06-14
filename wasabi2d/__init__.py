@@ -31,3 +31,28 @@ __all__ = [
     'clock', 'animate',
     'Scene', 'Storage', 'LayerRange',
 ]
+
+
+LAZY_OBJECTS = {
+    'NinePatch': 'wasabi2d.primitives.ninepatch',
+}
+
+
+def __getattr__(k):
+    """Expose some objects under this module, but load them lazily
+
+    This will help to reduce start-up time as the package gets larger.
+
+    This method is only used under Python 3.7 but we'll live with that
+    for the simplicity of the implementation.
+
+    """
+    modname = LAZY_OBJECTS.get(k)
+    if not modname:
+        raise AttributeError(k)
+
+    import importlib
+    mod = importlib.import_module(modname)
+    obj = getattr(mod, k)
+    globals()[k] = obj
+    return obj

@@ -328,6 +328,13 @@ class Layer:
         self.objects.add(tiles)
         return tiles
 
+    def add_ninepatch(self, *args, **kwargs):
+        """Add a nine-patch primitive in the layer."""
+        from .primitives.ninepatch import NinePatchPrimitive
+        patch = NinePatchPrimitive(self, *args, **kwargs)
+        self.objects.add(patch)
+        return patch
+
 
 class LayerGroup(dict):
     def __new__(cls, ctx, camera):
