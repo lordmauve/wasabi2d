@@ -136,7 +136,7 @@ class Scene:
 
         if self.fullscreen:
             # SDL's detection for "legacy" fullscreen seems to fail on
-            # Ubuntu 16.04 at least. Set an environment variable so that it 
+            # Ubuntu 16.04 at least. Set an environment variable so that it
             # asks the Window Manager for full screen mode instead.
             # https://github.com/spurious/SDL-mirror/blob/c8b01e282dfd49ea8bbf1faec7fd65d869ea547f/src/video/x11/SDL_x11window.c#L1468
             os.environ['SDL_VIDEO_X11_LEGACY_FULLSCREEN'] = "0"

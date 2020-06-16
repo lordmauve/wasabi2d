@@ -5,7 +5,6 @@
 from math import sin, pow, pi
 
 from .clock import clock as default_clock
-from .clock import Future, WaitDelay
 
 
 TWEEN_FUNCTIONS = {}

@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import Mock
 from wasabi2d.game import EventMapper
 from wasabi2d.constants import mouse
 
