@@ -92,7 +92,9 @@ class EventMapper:
         self.handlers[type] = self.prepare_handler(handler, mappers)
         return handler
 
-    def prepare_handler(self, handler: callable, param_mappers: dict):
+    def prepare_handler(self,
+            handler: callable,
+            param_mappers: dict = EVENT_PARAM_MAPPERS):
         """Adapt a wasabi2d game's raw handler function to take a Pygame Event.
 
         Returns a one-argument function of the form ``handler(event)``.
