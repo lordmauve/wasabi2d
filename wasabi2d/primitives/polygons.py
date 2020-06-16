@@ -1,6 +1,11 @@
 import numpy as np
 
-import mapbox_earcut as earcut
+mapbox_earcut = None
+
+try:
+    import mapbox_earcut
+except ModuleNotFoundError:
+    from ..vendor.earcut import earcut
 
 from ..color import convert_color
 from .base import AbstractShape
@@ -50,12 +55,34 @@ class Polygon(AbstractShape):
         winding = idxs[[-1, *idxs, 0, 1, 2]]
         return winding
 
-    def _fill_indices(self):
-        """Indexes for drawing the fill as TRIANGLES."""
+    def _fill_indices_mapbox_earcut(self):
+        """Indexes for drawing the fill as TRIANGLES.
+        
+        This version uses the mapbox_earcut library, which is C++, but
+        currently doesn't have a Python 3.8 release. See
+
+        https://github.com/skogler/mapbox_earcut_python/issues/2
+
+        """
         verts = self.orig_verts[:, :2]
         rings = np.array([len(verts)], dtype=np.uint32)
-        idxs = earcut.triangulate_float32(verts, rings)
+        idxs = mapbox_earcut.triangulate_float32(verts, rings)
         return idxs.reshape(-1)
+
+    def _fill_indices_earcut(self):
+        """Indexes for drawing the fill as TRIANGLES.
+        
+        This version uses a pure-Python library, which is vendored into this
+        repo.
+        """
+        verts = self.orig_verts[:, :2].reshape((-1)).astype(np.int64)
+        idxs = earcut(verts)
+        return np.array(idxs, dtype='i4')
+
+    if mapbox_earcut:
+        _fill_indices = _fill_indices_mapbox_earcut
+    else:
+        _fill_indices = _fill_indices_earcut
 
 
 class Rect(Polygon):
