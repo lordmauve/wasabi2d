@@ -17,7 +17,7 @@ from pyrr import Matrix44
 
 from . import clock
 from .layers import LayerGroup
-from .loaders import set_root
+from .loaders import set_root, images
 from .color import convert_color_rgb
 from .chain import LayerRange
 from .shaders import bind_framebuffer, blend_func
@@ -44,6 +44,7 @@ class Scene:
                     for example, and corresponding directories for sounds,
                     fonts, and music.
     :param title: The initial window title.
+    :param icon: The icon for the window, as an image name without extension.
     :param scaler: If True or a string, activate scene scaling using the named
                    scaler, or 'nearest' if ``True`` is given.
     :param background: An initial setting for the :py:attr:`.background`.
@@ -57,6 +58,7 @@ class Scene:
             title: int = "wasabi2d",
             *,
             fullscreen: bool = False,
+            icon: str = None,
             rootdir: Optional[str] = None,
             scaler: Union[str, bool, None] = False,
             background: Union[str, Tuple[float, float, float]] = 'black',
@@ -77,6 +79,15 @@ class Scene:
         self.width = width
         self.height = height
         self.fullscreen = fullscreen
+
+        if icon:
+            icon_img = images.load(icon)
+        else:
+            import io
+            import pkgutil
+            icon_data = pkgutil.get_data(__name__, 'data/icon.png')
+            icon_img = pygame.image.load(io.BytesIO(icon_data))
+        pygame.display.set_icon(icon_img)
 
         ctx = self.ctx = self._make_context(width, height)
         ctx.extra = {}
