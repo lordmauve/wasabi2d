@@ -313,8 +313,9 @@ class Atlas:
         w, h = size = img.get_size()
         tex = self.ctx.texture(size, 4)
         tex.write(pygame.image.tostring(img, "RGBA", 1))
-        tex.build_mipmaps(max_level=2)
+        tex.build_mipmaps()
         tex.filter = self.ctx.extra['texture_filter']
+        tex.repeat_x = tex.repeat_y = False
         texcoords = np.array([
             (0, h),
             (w, h),
@@ -322,7 +323,7 @@ class Atlas:
             (0, 0),
         ], dtype=np.uint16)
 
-        texregion = TextureRegion(tex, w, h, texcoords)
+        texregion = TextureRegion(TexSurface(self.ctx, tex), w, h, texcoords)
         res = self.tex_for_name[sprite_name] = texregion
         return res
 
