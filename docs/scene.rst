@@ -90,6 +90,9 @@ will be less visible without magnification.
 Scene scaling
 -------------
 
+.. caution:: 
+    This will currently mess up things like mouse events due to the mouse pointer not matching the position of your cursor. See `this <https://github.com/pygame/pygame/issues/1365>`_.
+
 Scene scaling allows the wasabi2d scene to be scaled independently of the
 final window size. Two uses of this are:
 
