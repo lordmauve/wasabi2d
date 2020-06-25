@@ -164,8 +164,23 @@ def update():
 
 @event
 def on_key_down():
+    flap()
+
+
+def flap():
     if not bird.dead:
         bird.vy = -FLAP_STRENGTH
+
+
+import pygame.joystick
+pygame.joystick.init()
+stick = pygame.joystick.Joystick(0)
+stick.init()
+
+
+@event
+def on_joybutton_down():
+    flap()
 
 
 run()
