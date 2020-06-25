@@ -40,7 +40,7 @@ def make_player(pos, angle=0):
 
 mode_720p = 1280, 720
 mode_1080p = 1920, 1080
-scene = w2d.Scene(*mode_720p, fullscreen=False)
+scene = w2d.Scene(*mode_720p, fullscreen=True)
 scene.chain = [
     w2d.LayerRange()
     .wrap_effect('trails', alpha=0.4, fade=0.08)
