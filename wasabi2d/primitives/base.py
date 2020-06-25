@@ -1,13 +1,9 @@
 import numpy as np
-from pyrr import vector3, matrix33
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
 from ..rect import ZRect
 from ..descriptors import CallbackProp
-
-
-Z = vector3.create_unit_length_z()
 
 
 def identity():
