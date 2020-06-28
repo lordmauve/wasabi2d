@@ -16,6 +16,7 @@ from .scene import Scene
 from .animation import animate
 from .storage import Storage
 from .chain import LayerRange
+from .primitives.group import Group
 
 event = EventMapper()
 del EventMapper

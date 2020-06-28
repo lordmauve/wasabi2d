@@ -1,4 +1,5 @@
 import math
+import itertools
 import wasabi2d as w2d
 from wasabi2d import Vector2, Group
 
@@ -6,10 +7,17 @@ from wasabi2d import Vector2, Group
 scene = w2d.Scene()
 scene.background = (0, 0.03, 0.1)
 
+
+orbiter_positions = itertools.cycle([
+    (-10, -50),
+    (-10, 50)
+])
+
+
 ship = Group([
     scene.layers[2].add_sprite(
         'orbiter',
-        pos=(50, 0)
+        pos=(-10, 50)
     ),
     scene.layers[2].add_sprite(
         'ship',
@@ -122,6 +130,25 @@ def on_key_down(key, mod):
         bullets.append(bullet)
         w2d.sounds.laser.play()
 
+        w2d.animate(ship[0], 'accel_decel', 0.5, pos=next(orbiter_positions))
+    elif key == key.Z:
+        pos = ship.local_to_world((-10, 0))
+        w2d.clock.coro.run(bomb(pos))
+
+
+async def bomb(pos):
+    sprite = scene.layers[2].add_sprite('bomb', pos=pos)
+    await w2d.clock.coro.sleep(2)
+    sprite.delete()
+    particles.emit(
+        20,
+        vel=(0, 0),
+        vel_spread=30,
+        pos=pos,
+        size=10,
+        spin_spread=3,
+    )
+
 
 def update_circ():
     circ.radius += 1
@@ -194,6 +221,12 @@ def update(t, dt, keyboard):
         if b.power < 0.01:
             b.delete()
             bullets.remove(b)
+
+
+@w2d.event
+def on_mouse_down(pos):
+    orbiter_pos = ship.world_to_local(pos)
+    w2d.animate(ship[0], pos=orbiter_pos)
 
 
 w2d.run()

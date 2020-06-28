@@ -59,11 +59,11 @@ class Group(Transformable):
     def local_to_world(self, point: Point) -> Point:
         """Get the world position for the given local point."""
         x, y = point
-        return self._result_mat[:2, :] @ np.array([x, y, 1])
+        return np.array([x, y, 1]) @ self._result_mat[:, :2]
 
     def world_to_local(self, point: Point) -> Point:
         """Get the world position for the given local point."""
         x, y = point
         if self._inv_mat is None:
-            self._inv_mat = np.linalg.inv(self._result_mat)[:2, :]
-        return self._inv_mat @ np.array([x, y, 1])
+            self._inv_mat = np.linalg.inv(self._result_mat)[:, :2]
+        return np.array([x, y, 1]) @ self._inv_mat
