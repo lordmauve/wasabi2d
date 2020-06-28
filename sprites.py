@@ -1,15 +1,21 @@
 import math
 import wasabi2d as w2d
-from wasabi2d import Vector2
+from wasabi2d import Vector2, Group
 
 
 scene = w2d.Scene()
 scene.background = (0, 0.03, 0.1)
 
-ship = scene.layers[2].add_sprite(
-    'ship',
+ship = Group([
+    scene.layers[2].add_sprite(
+        'orbiter',
+        pos=(50, 0)
+    ),
+    scene.layers[2].add_sprite(
+        'ship',
+        anchor_x=0,
+    )],
     pos=(scene.width / 2, scene.height / 2),
-    anchor_x=0
 )
 circ = scene.layers[0].add_circle(
     radius=30,
