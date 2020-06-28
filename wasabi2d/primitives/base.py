@@ -1,14 +1,14 @@
 import numpy as np
 
+from functools import partial
+
 from ..color import convert_color
 from ..allocators.vertlists import VAO
 from ..rect import ZRect
 from ..descriptors import CallbackProp
 
-
-def identity():
-    """Return an identity transformation matrix."""
-    return np.identity(3, dtype='f4')
+#: Return an identity transformation matrix
+identity = partial(np.identity, dtype=np.float32)
 
 
 def bounds_from_verts(vertices: np.ndarray) -> ZRect:
@@ -39,39 +39,46 @@ class Bounds:
 
 class Transformable:
     _angle = 0
+    _group_xform = None
 
     def __init__(self):
         super().__init__()
-        self._scale = identity()
-        self._rot = identity()
-        self._xlate = identity()
+        self._scale = identity(2)
+        self._rot = identity(2)
+        self.__xfmat = identity(3)
+        self.__build_mat = partial(
+            np.matmul,
+            self._scale,
+            self._rot,
+            out=self.__xfmat[:2, :2]
+        )
 
     @property
     def pos(self):
-        return self._xlate[2][:2]
+        return self.__xfmat[2][:2]
 
     @pos.setter
     def pos(self, v):
         assert len(v) == 2
-        self._xlate[2][:2] = v
+        self.__xfmat[2][:2] = v
         self._set_dirty()
 
     @property
     def x(self):
-        return self._xlate[2, 0]
+        return self.__xfmat[2, 0]
 
     @x.setter
     def x(self, v):
-        self._xlate[2, 0] = v
+        self.__xfmat[2, 0] = v
         self._set_dirty()
 
     @property
     def y(self):
-        return self._xlate[2, 1]
+        return self.__xfmat[2, 1]
 
     @y.setter
     def y(self, v):
-        self._xlate[2, 1] = v
+        self.__xfmat[2, 1] = v
         self._set_dirty()
 
     @property
@@ -109,21 +116,20 @@ class Transformable:
     @angle.setter
     def angle(self, theta):
         assert isinstance(theta, (int, float))
-        self._rot = None
+        s = np.sin(theta)
+        c = np.cos(theta)
+        self._rot[:] = [
+            [c, s],
+            [-s, c],
+        ]
         self._angle = theta
         self._set_dirty()
 
     def _xform(self):
-        if self._rot is None:
-            theta = self._angle
-            s = np.sin(theta)
-            c = np.cos(theta)
-            self._rot = np.array([
-                [c, s, 0],
-                [-s, c, 0],
-                (0, 0, 1)
-            ], dtype=np.float32)
-        return self._scale @ self._rot @ self._xlate
+        self.__build_mat()
+        if self._group_xform is not None:
+            return self.__xfmat @ self._group_xform
+        return self.__xfmat
 
 
 class Colorable:
