@@ -24,10 +24,10 @@ class NinePatch(NamedTuple):
 
 
 NINE_PATCH_DTYPE = np.dtype([
-    ('xform', '(2,3)f4'),
+    ('xform', '(3,2)f4'),
     ('dims', '2f4'),
-    ('in_color', '4f4'),
-    ('uvmap', '(2,3)f4'),
+    ('color', '4f4'),
+    ('uvmap', '(3,2)f4'),
     ('cuts', '4u2'),
 ])
 
@@ -53,25 +53,20 @@ class NinePatchPrimitive(Colorable, Transformable):
         angle: float = 0,
         color: Tuple[float, float, float, float] = (1, 1, 1, 1),
     ):
+        self._color = np.ones(4, dtype=np.float32)
+        self._dims = (width, height)
         super().__init__()
         self.layer = layer
         self.patch = patch
-        self._data['dims'] = (
-            width or self._region.width,
-            height or self._region.height,
-        )
         self.pos = pos
         self.angle = angle
         self.color = color
 
-    def _init_data(self):
-        self._data['in_color'] = 1.0
-        self._color = self._data['in_color']
-        self._data['xform'] = (
-            (1.0, 0.0),
-            (0.0, 1.0),
-            (0.0, 0.0)
-        )
+    def _copy_data(self, data):
+        """Copy data into the contiguous buffer."""
+        data['xform'] = self._xform()[:, :2]
+        data['color'] = self._color
+        data['dims'] = self._dims
 
     @property
     def patch(self) -> NinePatch:
@@ -96,25 +91,31 @@ class NinePatchPrimitive(Colorable, Transformable):
             self._array.remove(self._array_id)
             self._array = self._get_array(tex)
 
-        self._array_id, (newdata,) = self._array.alloc(1, [0])
-        if self._data is None:
-            self._data = newdata
-            self._init_data()
-        else:
-            # Copy existing data into new storage
-            newdata[:] = self._data
-            self._data = newdata
+        indices = np.array([0], dtype=np.uint32)
+        self._array_id, (data,) = self._array.alloc(1, indices)
+        # if self._data is None:
+        #     self._data = newdata
+        #     self._init_data()
+        # else:
+        #     # Copy existing data into new storage
+        #     newdata[:] = self._data
+        #     self._data = newdata
+
+        dw, dh = self._dims
+        self._dims = (
+            dw if dw is not None else self._region.width,
+            dh if dh is not None else self._region.height,
+        )
 
         # TODO: move this operation into TextureRegion
         tl, tr, br, bl = self._region.texcoords.astype(np.float32)
-        self._data['uvmap'] = [
+        data['uvmap'] = [
             tr - tl,
             bl - tl,
             tl
         ]
-        self._data['cuts'] = patch.hcuts + patch.vcuts
-
-        self._dirty = True
+        data['cuts'] = patch.hcuts + patch.vcuts
+        self._copy_data(data)
 
     def _get_array(self, tex):
         k = ('9patch', id(tex))
@@ -123,7 +124,7 @@ class NinePatchPrimitive(Colorable, Transformable):
             prog = self.layer.group.shadermgr.load(
                 'ninepatch',
                 'ninepatch',
-                'texquads'
+                'ninepatch', #'texquads'
             )
             array = PackedBuffer(
                 moderngl.POINTS,
@@ -134,3 +135,11 @@ class NinePatchPrimitive(Colorable, Transformable):
             )
             self.layer.arrays[k] = array
         return array
+
+    def _set_dirty(self):
+        if self.layer:
+            self.layer._dirty.add(self)
+
+    def _update(self):
+        data, = self._array.get_verts(self._array_id)
+        self._copy_data(data)

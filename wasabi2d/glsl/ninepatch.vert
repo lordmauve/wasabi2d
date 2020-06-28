@@ -19,8 +19,6 @@ void main() {
     g_xform = xform;
     g_dims = dims;
     g_color = color;
-    g_uv_topleft = uv_topleft;
-    g_uv_across = uv_across;
-    g_uv_down = uv_down;
+    g_uvmap = uvmap;
     g_cuts = cuts;
 }

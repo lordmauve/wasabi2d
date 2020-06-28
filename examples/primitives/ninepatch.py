@@ -1,6 +1,6 @@
 import wasabi2d as w2d
 
-scene = w2d.Scene()
+scene = w2d.Scene(background='#ddaa44')
 
 PATCH = w2d.NinePatch('patch', (4, 28), (4, 28))
 

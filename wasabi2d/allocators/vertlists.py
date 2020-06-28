@@ -38,12 +38,14 @@ def dtype_to_moderngl(dtype: np.dtype) -> tuple:
         byte_pos = offset + dtype.itemsize
 
         type_name = TYPE_MAP[dtype.base.name]
-        assert len(dtype.shape) <= 1, \
-            "Multi-dimensional dtypes are not supported."
+
+        # assert len(dtype.shape) <= 1, \
+        #     "Multi-dimensional dtypes are not supported."
         if dtype.shape == ():
             out.append(type_name)
         else:
-            out.append(f'{dtype.shape[0]}{type_name}')
+            count = np.prod(dtype.shape)
+            out.append(f'{count}{type_name}')
     return (' '.join(out), *names)
 
 
