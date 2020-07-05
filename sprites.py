@@ -148,6 +148,7 @@ async def bomb(pos):
         size=10,
         spin_spread=3,
     )
+    scene.camera.screen_shake()
 
 
 def update_circ():

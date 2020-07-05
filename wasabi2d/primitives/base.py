@@ -115,7 +115,7 @@ class Transformable:
 
     @angle.setter
     def angle(self, theta):
-        assert isinstance(theta, (int, float))
+        assert np.isscalar(theta)
         s = np.sin(theta)
         c = np.cos(theta)
         self._rot[:] = [
