@@ -11,6 +11,7 @@ from .base import Transformable
 
 
 Point = Tuple[float, float]
+Vector = Tuple[float, float]
 
 
 class Group(Transformable):
@@ -36,6 +37,10 @@ class Group(Transformable):
         for o in transformables:
             self._prepare(o)
             self._objects.append(o)
+
+    def append(self, transformable: Transformable):
+        """Add one transformable to the group."""
+        self.extend([transformable])
 
     def _prepare(self, o):
         """Set up an object for membership of the group."""
@@ -81,6 +86,16 @@ class Group(Transformable):
         x, y = point
         return np.array([x, y, 1]) @ self._inv[:, :2]
 
+    def localvec_to_worldvec(self, vec: Vector) -> Vector:
+        """Get the world vector for the given local vector."""
+        x, y = vec
+        return np.array([x, y, 0]) @ self._result_mat[:, :2]
+
+    def worldvec_to_localvec(self, vec: Vector) -> Vector:
+        """Get the world vector for the given local vector."""
+        x, y = vec
+        return np.array([x, y, 0]) @ self._inv[:, :2]
+
     @property
     def _inv(self):
         """Get the inverse transformation matrix, memoized."""
@@ -98,7 +113,11 @@ class Group(Transformable):
     clear = delete
 
     def pop(self, index: int) -> Transformable:
-        """Extract a primitive from the group, leaving it in the scene."""
+        """Extract a primitive from the group, leaving it in the scene.
+
+        The primitive will have (approximately) the same world transformation
+        it had within the group.
+        """
         obj = self._objects.pop(index)
         mat = obj._xform()
         obj._group_xform = None
@@ -111,7 +130,13 @@ class Group(Transformable):
         return obj
 
     def explode(self) -> List[Transformable]:
-        """Extract all primitives from the group."""
+        """Extract and return primitives from the group.
+
+        This preserves the transformation for the primitives and leaves them
+        in the scene.
+
+        This group becomes empty after this operation.
+        """
         # We can repeatedly call pop(), but we do it in reverse order because
         # otherwise it's quadratic
         num = len(self._objects)
@@ -130,10 +155,26 @@ class Group(Transformable):
         obj.scale_y = np.sqrt(np.sum(y * y))
 
     def capture(self, *objects: Tuple[Transformable]):
-        """Capture the given objects into the group."""
+        """Capture the given objects into the group.
+
+        The objects will have the same transformation they had outside of the
+        group.
+
+        """
         inv = self._inv
         for o in objects:
             mat = o._xform() @ inv
             self._prepare(o)
             self._objects.append(o)
             self._factorise(o, mat)
+
+    @classmethod
+    def from_objects(cls, objects: List[Transformable], **kwargs) -> 'Group':
+        """Build a group by capturing the given objects.
+
+        Keyword arguments can be used to set the initial transform for the
+        group prior to capturing the objects.
+        """
+        group = cls([], **kwargs)
+        group.capture(*objects)
+        return group
