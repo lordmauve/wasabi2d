@@ -1,9 +1,11 @@
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
+from dataclasses import dataclass
 
 import numpy as np
 import numpy.random
 from sortedcontainers import SortedList
 
+from .base import Transformable
 from ..clock import default_clock
 from ..color import convert_color
 from ..allocators.vertlists import VAO
@@ -62,6 +64,7 @@ class ParticleGroup:
         self.color_tex = layer.ctx.texture((512, 1), 4, dtype='f2')
         self.color_vals = np.ones((512, 4), dtype='f2')
         self.color_tex.write(self.color_vals)
+        self.emitters = set()
         self._clock = clock
         clock.each_tick(self._update)
 
@@ -98,8 +101,7 @@ class ParticleGroup:
             spin: float = 0.0,
             spin_spread: float = 0.0,
             angle: float = 0.0,
-            angle_spread: float = 0.0,
-            ):
+            angle_spread: float = 0.0):
         """Emit num particles."""
         num = round(num)
         if num == 0:
@@ -164,6 +166,9 @@ class ParticleGroup:
         self.lst.vertbuf['in_angle'] += self.spins * dt
         self.lst.dirty = True
 
+        for e in self.emitters:
+            e._emit(dt)
+
     def _migrate(self, vao: VAO):
         """Migrate the particles into the given VAO."""
         self.vao = vao
@@ -181,7 +186,107 @@ class ParticleGroup:
         # Realloc to how much we actually want
         self.lst.realloc(self.num, self.num)
 
+    def add_emitter(self, **kwargs):
+        """Add a particle emitter object."""
+        e = Emitter(self, **kwargs)
+        self.emitters.add(e)
+        return e
+
     def delete(self):
         self.layer.objects.discard(self)
         self._clock.unschedule(self._update)
         self.lst.free()
+
+
+@dataclass
+class EmitterDesc:
+    """Descriptor for an emitter property."""
+    default: Any = 0.0
+    name: Optional[str] = None
+
+    def __set_name__(self, cls, name):
+        if self.name is None:
+            self.name = name
+
+    def __get__(self, inst, cls):
+        return inst._params.get(self.name, self.default)
+
+    def __set__(self, inst, value):
+        inst._params[self.name] = value
+
+
+class Emitter(Transformable):
+    """A transformable emitter object."""
+
+    group: ParticleGroup
+    pos_spread: float = EmitterDesc(0)
+    vel: Tuple[float, float] = (0, 0)
+    vel_spread: float = EmitterDesc(0)
+    color: Any = EmitterDesc((1, 1, 1, 1))
+    size: float = EmitterDesc(1.0)
+    size_spread: float = EmitterDesc(0.0)
+    spin: float = EmitterDesc(0.0)
+    spin_spread: float = EmitterDesc(0.0)
+    emit_angle: float = 0.0
+    emit_angle_spread: float = EmitterDesc(0.0, 'angle_spread')
+
+    def __init__(
+        self,
+        group: ParticleGroup,
+        *,
+        rate: float = 100.0,
+        pos: Tuple[float, float] = (0, 0),
+        angle: float = 0.0,
+        scale: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__()
+        self._group = group
+        self._params = {}
+        self.rate = rate
+
+        self.pos = pos
+        self.angle = angle
+        self.scale = scale
+
+        self._vecs = np.array([
+            [0, 0, 1],
+            [*self.vel, 0],
+            [1, 0, 0],
+        ], dtype=np.float32)
+
+        for k, v in kwargs.items():
+            if k not in type(self).__dict__:
+                raise TypeError(
+                    f"{type(self).__name__}.__init__() does not accept a "
+                    f"keyword argument {k}!r"
+                )
+            setattr(self, k, v)
+
+    def delete(self):
+        """Delete the emitter."""
+        self._group.emitters.discard(self)
+
+    def _set_dirty(self):
+        """We don't need to track dirtyiness."""
+
+    def _emit(self, dt):
+        """Emit particles in the group."""
+        num = np.random.poisson(self.rate * dt)
+
+        if num == 0:
+            return
+
+        xform = self._xform()[:, :2]
+
+        self._vecs[1, :2] = self.vel
+        pos, vel, (rotx, roty) = self._vecs @ xform
+        angle = np.arctan2(roty, rotx) + self.emit_angle
+
+        self._group.emit(
+            num,
+            pos=pos,
+            vel=vel,
+            angle=angle,
+            **self._params
+        )

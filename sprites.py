@@ -14,17 +14,6 @@ orbiter_positions = itertools.cycle([
 ])
 
 
-ship = Group([
-    scene.layers[2].add_sprite(
-        'orbiter',
-        pos=(-10, 50)
-    ),
-    scene.layers[2].add_sprite(
-        'ship',
-        anchor_x=0,
-    )],
-    pos=(scene.width / 2, scene.height / 2),
-)
 circ = scene.layers[0].add_circle(
     radius=30,
     pos=(100, 100),
@@ -96,6 +85,28 @@ particles.add_color_stop(0, (1, 0, 0, 1))
 particles.add_color_stop(1.0, 'gray')
 particles.add_color_stop(2, (0.3, 0.3, 0.3, 0))
 
+plume = particles.add_emitter(
+    pos=(3, 0),
+    rate=0,
+    vel=(-200, 0),
+    vel_spread=20,
+    size=8,
+    spin_spread=3,
+)
+ship = Group(
+    [
+        scene.layers[2].add_sprite(
+            'orbiter',
+            pos=(-10, 50)
+        ),
+        scene.layers[2].add_sprite(
+            'ship',
+            anchor_x=0,
+        ),
+        plume
+    ],
+    pos=(scene.width / 2, scene.height / 2),
+)
 
 ship.vel = Vector2()
 
@@ -204,14 +215,9 @@ def update(t, dt, keyboard):
         ship.angle = math.atan2(vy, vx)
 
     if thrust:
-        particles.emit(
-            dt * 200,
-            vel=-200 * ship.vel.normalize(),
-            vel_spread=20,
-            pos=ship.pos,
-            size=8,
-            spin_spread=3,
-        )
+        plume.rate = min(200, plume.rate + 200 * dt)
+    else:
+        plume.rate = 0
 
     for b in bullets.copy():
         b.pos += b.vel * dt
