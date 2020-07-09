@@ -98,7 +98,7 @@ Emitting particles
 ------------------
 
 Particle groups don't contain any particles when created. To actually create
-particles, call ``.emit()``.
+particles, call ``.emit()`` or create an :ref:`emitter object <emitters>`.
 
 
 .. automethod:: wasabi2d.primitives.particles.ParticleGroup.emit
@@ -111,7 +111,7 @@ particles, call ``.emit()``.
     :param vel: The velocity with with particles will move, in pixels per
                 second.
     :param color: A per-emission color for the particles. This will be
-                  multiplies with the color ramp configured for the whole
+                  multiplied with the color ramp configured for the whole
                   particle group.
     :param size: The diameter of the particles to emit, in pixels.
     :param angle: The rotation of the emitted particles, in radians.
@@ -132,3 +132,72 @@ particles, call ``.emit()``.
                          radians.
     :param spin_spread: The standard deviation for the rate of rotation of
                         particles, in radians per second.
+
+
+.. _emitters:
+
+Emitters
+--------
+
+:meth:`emit()` is useful for single emissions of particles, such as explosions
+or impacts, but often you want a jet of particles. Rather than calling
+``emit()`` every frame you can create a persistent object that emits particles.
+
+This works well with :doc:`groups <groups>`, which let you attach the emitter to
+other graphics.
+
+
+.. method:: ParticleGroup.add_emitter(**kargs) -> Emitter
+
+    .. versionadded:: 1.4
+
+    Create a persistent emitter object that emits particles at a certain `rate`
+    in particles per second. The Emitter object is Transformable and can be
+    :doc:`grouped <groups>`.
+
+    Every attribute below may be given in the constructor or set on the emitter
+    object after construction.
+
+    The key property is `rate`:
+
+    :param float rate: The number of particles emitted by this emitter per
+                       second. The flow of particles is randomly distributed
+                       (using a Poisson distribution) to meet this rate, ie. the
+                       interval between particles varies but averages out to
+                       `rate.`
+
+    To stop emitting particles from an emitter temporarily, set ``rate`` to
+    ``0``.
+
+    Angle parameters are very slightly different to :meth:`emit()` because of
+    the overlap with the standard Transformable `angle` property:
+
+    :param float angle: The rotation of the emitter object, in radians (ie.
+        the rotation of the `vel` vector).
+    :param float emit_angle: The rotation of the emitted particles, in radians.
+    :param float emit_angle_spread: The standard deviation for the angle of
+        particles, in radians.
+
+    The other properties are shared with emit:
+
+    :param vel: The velocity with with particles will move, in pixels per
+                second.
+    :param color: A per-emission color for the particles. This will be
+                  multiplied with the color ramp configured for the whole
+                  particle group.
+    :param size: The diameter of the particles to emit, in pixels.
+    :param angle: The rotation of the emitted particles, in radians.
+    :param spin: The rate of rotation (angular velocity) of particles, in
+                 radians per second.
+    :param pos_spread: The standard deviation for particle positions, in
+                       pixels.
+    :param vel_spread: The standard deviation for particle velocities, in
+                       pixels per second.
+    :param size_spread: The standard deviation for particle sizes, in pixels.
+    :param spin_spread: The standard deviation for the rate of rotation of
+                        particles, in radians per second.
+
+
+    .. method:: Emitter.delete()
+
+        Remove the emitter object.

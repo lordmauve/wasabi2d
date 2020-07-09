@@ -6,6 +6,7 @@ History
 
 * New: :doc:`Tile maps <tile_maps>`
 * New: :doc:`Groups <groups>`
+* New: :ref:`Emitter objects <emitters>`
 * New: scene-wide :ref:`pixel_art mode <pixel-art>`
 * New: vertices of a line can now be updated
 * New: `background=` can be set in Scene constructor

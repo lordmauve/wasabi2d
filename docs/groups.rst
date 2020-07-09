@@ -1,6 +1,8 @@
 Groups
 ======
 
+.. versionadded:: 1.4
+
 .. currentmodule:: wasabi2d
 
 Groups make it easy to transform a collection of primitives, possibly in
