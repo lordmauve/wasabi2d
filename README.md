@@ -25,6 +25,13 @@ Wasabi2D is based on [moderngl], with [pygame 2.0] for some supporting functions
 [moderngl]: https://github.com/moderngl/moderngl
 [pygame 2.0]: https://www.pygame.org/news
 
+## Docs and Help
+
+Documentation is available at https://wasabi2d.readthedocs.io/
+
+Join us on [Discord for help and announcements!](https://discord.gg/jBWaWHU)
+
+
 ## Quick example
 
 Draw a drop-shadowed circle that follows the mouse:
@@ -63,11 +70,6 @@ pip install wasabi2d
 
 Please make sure your `requirements.txt` pins a major version, as Wasabi2D may
 continue to make breaking API and graphical changes in major versions.
-
-
-## Documentation
-
-Documentation is available at https://wasabi2d.readthedocs.io/
 
 
 ## Screenshots
