@@ -23,6 +23,7 @@ del EventMapper
 
 run = event.run
 
+__version__ = (1, 4, 0)
 __all__ = [
     'Vector2',
     'event',
@@ -31,4 +32,5 @@ __all__ = [
     'sounds', 'music', 'tone',
     'clock', 'animate',
     'Scene', 'Storage', 'LayerRange',
+    'Group'
 ]

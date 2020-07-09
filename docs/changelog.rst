@@ -1,7 +1,7 @@
 History
 =======
 
-1.4.0 - unreleased
+1.4.0 - 2020-07-09
 ------------------
 
 * New: :doc:`Tile maps <tile_maps>`
@@ -14,22 +14,6 @@ History
 * Fix: bug with drawing end segments of lines and lines at right angles
 * Fix: `stroke_width` wasn't passed through in `add_rect`
 * Fix: Use NFC not NFKC for Unicode normalisation
-
-**Planned**
-
-Features:
-
-* Nine-patch primitive
-* Textured Line primitive
-* Trail primitive
-
-Refactors:
-
-* Abandon indirect rendering (not available on Mac) in favour of managing
-  contiguous index buffers (with primitive restarts).
-  * *Some work on this; currently only sprites use the new storage.*
-* Unified primitive attribute/factory parameter model
-  * *Branch abandoned because it seemed the abstraction was slow*
 
 
 1.3.0 - 2019-12-10
