@@ -7,8 +7,10 @@ from collections import Counter
 from contextlib import contextmanager
 
 import numpy as np
+import moderngl
 
 from .color import convert_color
+from .shaders import blend_func
 
 
 class ChainNode:
@@ -235,15 +237,10 @@ vec4 unpremultiply(vec4 val) {
     return vec4(val.rgb / val.a, val.a);
 }
 
-vec4 sample_unmul(sampler2D sampler) {
-    //return unpremultiply(texture(sampler, uv));
-    return texture(sampler, uv);
-}
-
 void main()
 {
-    vec4 diffuse_frag = sample_unmul(diffuse);
-    vec4 light_frag = sample_unmul(light);
+    vec4 diffuse_frag = unpremultiply(texture(diffuse, uv));
+    vec4 light_frag = texture(light, uv);
 
     f_color = (light_frag + ambient) * diffuse_frag;
 }
@@ -265,8 +262,19 @@ class Light(ChainNode):
 
     def draw(self, scene):
         """Draw the effect."""
+        camera = scene.camera
         with rendered_node(scene, self.diffuse) as diffuse, \
-                rendered_node(scene, self.light) as light:
+                camera.temporary_fb(dtype='f4') as light:
+            with camera.bind_framebuffer(light):
+                with blend_func(
+                    scene.ctx,
+                    src=moderngl.SRC_ALPHA,
+                    dest=moderngl.ONE,
+                    src_a=moderngl.ONE,
+                    dest_a=moderngl.ONE,
+                ):
+                    self.light.draw(scene)
+
             scene.camera.run_shader(
                 LIGHT_PROG,
                 diffuse=diffuse,

@@ -10,8 +10,6 @@ scene = w2d.Scene(
     *mode_1080p,
     fullscreen=True,
 )
-scene.layers[0].set_effect('dropshadow', opacity=0.5)
-scene.layers[99].set_effect('additive')
 scene.chain = [
     chain.Light(
         light=[
@@ -21,7 +19,7 @@ scene.chain = [
             chain.Fill('#444455'),
             chain.LayerRange(stop=10),
         ],
-        ambient='#444444'
+        ambient='#222222'
     )
 ]
 
