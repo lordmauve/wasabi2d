@@ -160,8 +160,8 @@ class Label(Colorable, Transformable):
                 continue
             # (min_x, max_x, min_y, max_y, horizontal_advance_x)
             metrics = np.array(font.metrics(line), dtype='f4')
-            cx = np.cumsum(metrics[:, 4]).reshape(-1, 1)
-            xpos = metrics[:, 0:2] + cx
+            cx = np.cumsum(metrics[:, 4])
+            xpos = metrics[:, 0:2] + cx[::, np.newaxis]
 
             layout_width = cx[-1] + metrics[-1, 1]
             align_offset = ALIGNMENTS[self._align] * layout_width
