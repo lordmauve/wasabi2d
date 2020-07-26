@@ -219,6 +219,62 @@ class Mask(ChainNode):
             )
 
 
+LIGHT_PROG = """ \
+#version 330 core
+
+in vec2 uv;
+out vec4 f_color;
+uniform sampler2D diffuse;
+uniform sampler2D light;
+uniform vec4 ambient;
+
+vec4 unpremultiply(vec4 val) {
+    if (val.a < 1e-6) {
+        return vec4(0.0, 0.0, 0.0, 0.0);
+    }
+    return vec4(val.rgb / val.a, val.a);
+}
+
+vec4 sample_unmul(sampler2D sampler) {
+    //return unpremultiply(texture(sampler, uv));
+    return texture(sampler, uv);
+}
+
+void main()
+{
+    vec4 diffuse_frag = sample_unmul(diffuse);
+    vec4 light_frag = sample_unmul(light);
+
+    f_color = (light_frag + ambient) * diffuse_frag;
+}
+"""
+
+
+@dataclass
+class Light(ChainNode):
+    """Light one 'diffuse' layer using the 'light' layer."""
+
+    light: ChainNode
+    diffuse: ChainNode
+    ambient: Tuple[float, float, float, float]
+
+    def __post_init__(self):
+        self.light = to_node(self.light)
+        self.diffuse = to_node(self.diffuse)
+        self.ambient = convert_color(self.ambient)
+
+    def draw(self, scene):
+        """Draw the effect."""
+        with rendered_node(scene, self.diffuse) as diffuse, \
+                rendered_node(scene, self.light) as light:
+            scene.camera.run_shader(
+                LIGHT_PROG,
+                diffuse=diffuse,
+                light=light,
+                ambient=self.ambient,
+            )
+
+
 class Fill(ChainNode):
     """Fill the screen with a single colour.
 

@@ -2,15 +2,30 @@ import wasabi2d as w2d
 import random
 from pygame.math import Vector2
 from wasabi2d.keyboard import keys
+from wasabi2d import chain
 
 
 mode_1080p = 1920, 1080
 scene = w2d.Scene(
     *mode_1080p,
     fullscreen=True,
-    background='#444455'
 )
 scene.layers[0].set_effect('dropshadow', opacity=0.5)
+scene.layers[99].set_effect('additive')
+scene.chain = [
+    chain.Light(
+        light=[
+            chain.Layers([99]),
+        ],
+        diffuse=[
+            chain.Fill('#444455'),
+            chain.LayerRange(stop=10),
+        ],
+        ambient='#444444'
+    )
+]
+
+
 center = Vector2(scene.width, scene.height) / 2
 
 red_score = scene.layers[-1].add_label(
@@ -31,27 +46,36 @@ blue_score = scene.layers[-1].add_label(
     color='cyan'
 )
 
-red = scene.layers[0].add_sprite(
-    'bat_red',
-    pos=(50, center.y)
-)
+red = w2d.Group(
+    [
+        scene.layers[0].add_sprite('bat_red'),
+        scene.layers[99].add_sprite('bat_light', color=(1, 0, 0, 0.5)),
+    ],
+    pos=(50, center.y))
+
 red.up_key = keys.Q
 red.down_key = keys.A
 
-blue = scene.layers[0].add_sprite(
-    'bat_blue',
+blue = w2d.Group(
+    [
+        scene.layers[0].add_sprite('bat_blue'),
+        scene.layers[99].add_sprite('bat_light', color=(0, 1, 1, 0.5)),
+    ],
     pos=(scene.width - 50, center.y)
 )
 blue.up_key = keys.I
 blue.down_key = keys.K
 
-ball = scene.layers[0].add_sprite(
-    'ball',
+ball = w2d.Group(
+    [
+        scene.layers[0].add_sprite('ball'),
+        scene.layers[99].add_sprite('point_light', scale=5, color=(1, 1, 1, 0.3)),
+    ],
     pos=center
 )
 
 SPEED = 1000
-BALL_RADIUS = ball.width / 2
+BALL_RADIUS = ball[0].width / 2
 
 
 def start():
@@ -63,7 +87,7 @@ def start():
 
 
 def collide_bat(bat):
-    bounds = bat.bounds.inflate(BALL_RADIUS, BALL_RADIUS)
+    bounds = bat[0].bounds.inflate(BALL_RADIUS, BALL_RADIUS)
     if bounds.collidepoint(ball.pos):
         x, y = ball.pos
         vx, vy = ball.vel

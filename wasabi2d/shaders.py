@@ -167,11 +167,9 @@ def blend_func(
     src_a = blend_aliases.get(src_a, src_a)
     dest_a = blend_aliases.get(dest_a, dest_a)
 
-    ctx.blend_func = src, dest, src_a, dest_a
+    prev_blend = ctx.extra['blend_func']
+    ctx.extra['blend_func'] = ctx.blend_func = src, dest, src_a, dest_a
     try:
         yield
     finally:
-        ctx.blend_func = (
-            moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
-            moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA
-        )
+        ctx.blend_func = prev_blend
