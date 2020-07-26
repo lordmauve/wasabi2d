@@ -121,7 +121,7 @@ class Sprite(Colorable, Transformable):
             self.layer._dirty.add(self)
         self.verts = None
 
-    bounds = Bounds('self.orig_verts[:, :2]')
+    bounds = Bounds('self.orig_verts[:] @ self._xform()')
 
     def _update(self):
         if self.orig_verts is None:
