@@ -264,7 +264,7 @@ class Light(ChainNode):
         """Draw the effect."""
         camera = scene.camera
         with rendered_node(scene, self.diffuse) as diffuse, \
-                camera.temporary_fb(dtype='f4') as light:
+                camera.temporary_fb(dtype='f2') as light:
             with camera.bind_framebuffer(light):
                 with blend_func(
                     scene.ctx,
