@@ -97,6 +97,23 @@ for bat in (red, blue):
     bat.last_y = bat.y
 
 
+THUDS = [
+    w2d.sounds.thud1,
+    w2d.sounds.thud2,
+    w2d.sounds.thud3,
+]
+last_thud = 0
+
+
+def play_thud():
+    """Play a thud sound."""
+    global last_thud
+    t = w2d.clock.default_clock.t
+    if t - last_thud > 0.1:
+        random.choice(THUDS).play()
+        last_thud = t
+
+
 async def start(x_dir=None):
     ball.emitter.rate = 0
     ball.pos = center
@@ -119,10 +136,12 @@ def collide_bat(bat):
         bat_vy = bat.y - bat.last_y
         x, y = ball.pos
         vx, vy = ball.vel
-        if x < bat.x:
+        if bat.x > center.x:
             ball.vel = Vector2(-abs(vx), vy + bat_vy * SPIN)
         else:
             ball.vel = Vector2(abs(vx), vy + bat_vy * SPIN)
+
+        play_thud()
 
 
 @w2d.event
@@ -131,17 +150,21 @@ def update(dt, keyboard):
     x, y = ball.pos
     if y < BALL_RADIUS:
         ball.vel.y = abs(ball.vel.y)
+        play_thud()
     elif y > scene.height - BALL_RADIUS:
         ball.vel.y = -abs(ball.vel.y)
+        play_thud()
 
     if x < -BALL_RADIUS:
         scene.camera.screen_shake()
         blue_score.text += 1
         w2d.clock.coro.run(start(1))
+        w2d.sounds.airhorn.play()
     elif x > scene.width + BALL_RADIUS:
         w2d.clock.coro.run(start(-1))
         scene.camera.screen_shake()
         red_score.text += 1
+        w2d.sounds.airhorn.play()
 
     for stick, bat in zip(sticks, (red, blue)):
         sy = stick.get_axis(1)
@@ -163,12 +186,22 @@ for s in sticks:
     s.init()
 
 
+def reset():
+    red_score.text = blue_score.text = 0
+    w2d.clock.coro.run(start())
+
+
 @w2d.event
 def on_joybutton_down(joy, button):
     #print(joy, button)
     if button == 6:
-        red_score.text = blue_score.text = 0
-        w2d.clock.coro.run(start())
+        reset()
+
+
+@w2d.event
+def on_key_down(key):
+    if key == keys.ESCAPE:
+        reset()
 
 
 w2d.run()
