@@ -107,7 +107,7 @@ class Group(Transformable):
         """Remove all primitives in the group."""
         for o in self._objects:
             o.delete()
-        del self.objects[:]
+        del self._objects[:]
 
     #: Alias for delete to match interface of a list
     clear = delete
