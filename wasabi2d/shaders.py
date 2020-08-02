@@ -172,4 +172,4 @@ def blend_func(
     try:
         yield
     finally:
-        ctx.blend_func = prev_blend
+        ctx.extra['blend_func'] = ctx.blend_func = prev_blend
