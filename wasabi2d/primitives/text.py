@@ -226,6 +226,7 @@ class Label(Colorable, Transformable):
     def delete(self):
         self.layer.objects.remove(self)
         self.lst.free()
+        self.lst = None
         self.layer = None
         self.vao = None
 
