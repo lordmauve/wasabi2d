@@ -72,9 +72,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4636558"
-     inkscape:cx="358.52804"
-     inkscape:cy="528.68104"
+     inkscape:zoom="0.70032922"
+     inkscape:cx="372.04724"
+     inkscape:cy="526.1811"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -118,7 +118,8 @@
        id="g7415"
        inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/pong/images/bat_light.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90">
+       inkscape:export-ydpi="90"
+       transform="matrix(1.5,0,0,1.5,-128.16813,-145.61805)">
       <path
          sodipodi:nodetypes="csscccc"
          inkscape:connector-curvature="0"

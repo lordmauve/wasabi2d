@@ -13,23 +13,25 @@ RED = (1, 0.2, 0.2)
 mode_1080p = 1920, 1080
 scene = w2d.Scene(
     *mode_1080p,
-    fullscreen=True,
+    #fullscreen=True,
 )
 scene.chain = [
     chain.Light(
         light=[
             chain.Layers([99]),
         ],
-        diffuse=[
-            chain.Fill('#444455'),
-            chain.LayerRange(stop=10),
-        ],
-        ambient='#222222'
+        diffuse=chain.LayerRange(stop=10),
+        ambient='#333333'
     )
 ]
 
 
 center = Vector2(scene.width, scene.height) / 2
+
+scene.layers[-2].add_sprite(
+    'background',
+    pos=center
+)
 
 red_score = scene.layers[-1].add_label(
     0,
@@ -202,6 +204,11 @@ def on_joybutton_down(joy, button):
 def on_key_down(key):
     if key == keys.ESCAPE:
         reset()
+
+
+#from pygame._sdl2 import controller
+#import pkgutil
+#mapping = pkgutil.get_data('wasabi2d', 'data/gamecontrollerdb.txt').decode()
 
 
 w2d.run()
