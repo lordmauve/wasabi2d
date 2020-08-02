@@ -30,3 +30,12 @@ def convert_color_rgb(c: Union[str, tuple]) -> Tuple[float, float, float]:
     if abs(cc[3] - 1.0) > 1e-4:
         raise ValueError("Color may not have an alpha component.")
     return cc[:3]
+
+
+def darker(
+    color: Union[str, tuple],
+    amount: float = 2.0,
+) -> Tuple[float, float, float, float]:
+    """Get a darker version of the given colour."""
+    *rgb, a = convert_color(color)
+    return (*(c / amount for c in rgb), a)
