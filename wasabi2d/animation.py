@@ -55,7 +55,7 @@ def out_elastic(n):
     p = .3
     s = p / 4.0
     q = n
-    if q == 1:
+    if q >= 1:
         return 1.0
     return pow(2, -10 * q) * sin((q - s) * (2 * pi) / p) + 1.0
 

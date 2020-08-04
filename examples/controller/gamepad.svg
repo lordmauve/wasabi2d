@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="77.724281mm"
+   height="40.663456mm"
+   viewBox="0 0 275.401 144.08311"
+   id="svg8085"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="gamepad.svg"
+   inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/gamepad_base.png"
+   inkscape:export-xdpi="88.561768"
+   inkscape:export-ydpi="88.561768">
+  <defs
+     id="defs8087" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="216.92467"
+     inkscape:cy="7.6442973"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1535"
+     inkscape:window-height="876"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     showguides="false" />
+  <metadata
+     id="metadata8090">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-157.95725,87.642341)">
+    <g
+       inkscape:label="Calque 1"
+       id="g8722"
+       transform="matrix(0.73599427,0,0,0.73599427,-189.96907,-26.87019)">
+      <g
+         id="g8724"
+         transform="translate(428.42338,184.2561)" />
+    </g>
+    <path
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#aab1bd;fill-opacity:1;fill-rule:evenodd;stroke:#545c68;stroke-width:3.02463555;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       d="m 223.69417,-86.087339 c -4.79967,-0.06352 -9.38541,0.664467 -13.48238,2.407299 -14.56698,6.196745 -77.48805,110.393277 -37.80794,134.596279 21.34341,13.829723 54.70131,-10.100408 89.98291,-40.07642 l 33.27099,0 33.27099,0 c 35.28159,29.976012 68.63949,53.906143 89.9829,40.07642 39.68011,-24.203002 -23.24096,-128.399534 -37.80794,-134.596279 -14.56699,-6.196744 -35.30754,0.443737 -49.90649,9.830066 l -35.53946,0 -35.53947,0 c -10.49299,-6.746427 -24.15831,-12.074965 -36.42411,-12.237365 z"
+       id="rect4871"
+       inkscape:connector-curvature="0" />
+    <g
+       id="g5073"
+       transform="matrix(0.75615887,0,0,0.75615887,172.57806,43.157426)">
+      <rect
+         ry="3.6122448"
+         rx="3"
+         y="-154.63867"
+         x="55.0625"
+         height="59"
+         width="23"
+         id="rect5067"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      <rect
+         transform="matrix(0,1,-1,0,0,0)"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         id="rect5071"
+         width="23"
+         height="59"
+         x="-136.63867"
+         y="-96.0625"
+         rx="3"
+         ry="3.6122448" />
+    </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#657182;stroke-width:12.09854221;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 262.38676,-99.445387 c -16.16107,-11.823333 -28.8323,-12.320023 -49.15033,-12.854703"
+       id="path5098"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/l1.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <g
+       id="g5147"
+       transform="matrix(0.75615887,0,0,0.75615887,45.328637,-34.995415)"
+       style="opacity:0.25">
+      <g
+         transform="translate(0,-3.5355339)"
+         id="g5106">
+        <circle
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           id="path5085"
+           cx="429.5625"
+           cy="-36.906456"
+           r="12.732233" />
+        <circle
+           r="12.732233"
+           cy="6.2270575"
+           cx="429.5625"
+           id="circle5104"
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      </g>
+      <g
+         transform="matrix(0,1,-1,0,414.2228,-448.43773)"
+         id="g5116">
+        <circle
+           r="12.732233"
+           cy="-36.906456"
+           cx="429.5625"
+           id="circle5118"
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+        <circle
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           id="circle5120"
+           cx="429.5625"
+           cy="6.2270575"
+           r="12.732233" />
+      </g>
+    </g>
+    <path
+       sodipodi:nodetypes="cc"
+       inkscape:connector-curvature="0"
+       id="path5124"
+       d="m 328.93295,-102.11881 c 16.16106,-11.82334 28.83229,-12.32002 49.15033,-12.85471"
+       style="fill:none;fill-rule:evenodd;stroke:#657182;stroke-width:12.09854221;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <circle
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="circle5104-1"
+       cx="263.92941"
+       cy="104.27839"
+       r="14.974442"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/stick.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <circle
+       r="21.390661"
+       cy="-17.629818"
+       cx="263.92941"
+       id="circle5141"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#657182;stroke-width:1.51231778;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    <circle
+       r="14.974442"
+       cy="167.90591"
+       cx="326.48758"
+       id="circle5143"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#657182;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    <circle
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#657182;stroke-width:1.51231778;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="circle5145"
+       cx="326.48758"
+       cy="-17.629818"
+       r="21.390661" />
+    <circle
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#0088aa;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="circle5187"
+       cx="367.07675"
+       cy="98.176384"
+       r="9.6275921"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/button.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <circle
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/button.png"
+       r="9.6275921"
+       cy="135.06966"
+       cx="366.54208"
+       id="circle5204"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#aa0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    <circle
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#d4aa00;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="circle5206"
+       cx="346.75873"
+       cy="116.89036"
+       r="9.6275921"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/button.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <circle
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/mauve/dev/wasabi2d/examples/controller/images/button.png"
+       r="9.6275921"
+       cy="115.82099"
+       cx="386.86011"
+       id="circle5208"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#88aa00;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:4;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+  </g>
+</svg>
