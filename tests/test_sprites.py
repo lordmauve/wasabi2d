@@ -16,6 +16,21 @@ def test_draw_sprite(scene):
     """We can draw a sprite to the scene."""
     scene.layers[0].add_sprite('ship', pos=(400, 300))
 
+@drawing_test
+def test_draw_dirty_sprite(scene):
+    """We can draw a sprite to the scene, and it'll be updated when we change 
+    its image."""
+    # When we first create a 
+    sprite = scene.layers[0].add_sprite('tile', pos=(400, 300))
+    assert sprite in sprite.layer._dirty
+    
+    # After we draw the sprite, it should be clean
+    scene.draw(0, 0, True)
+    assert sprite not in sprite.layer._dirty
+    
+    # If we change the sprite's image, then it should be dirty again
+    sprite.image = 'ship'
+    assert sprite in sprite.layer._dirty
 
 @drawing_test
 def test_draw_many_sprites(scene):
