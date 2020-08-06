@@ -68,7 +68,7 @@ class Sprite(Colorable, Transformable):
         self.width = np.fabs(np.min(xs) - np.max(xs))
         self.height = np.fabs(np.min(ys) - np.max(ys))
 
-        self._dirty = True
+        self._set_dirty()
 
         tex = self.texregion.tex
 
