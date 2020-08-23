@@ -162,7 +162,8 @@ class Scene:
         pygame.display.set_mode(
             dims,
             flags=flags,
-            depth=24
+            depth=24,
+            vsync=True
         )
         ctx = moderngl.create_context(require=410)
 
