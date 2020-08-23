@@ -1,6 +1,14 @@
 History
 =======
 
+1.5.0 - unreleased
+------------------
+
+* New: :class:`wasabi2d.chain.Light`
+* Fix: sprites do not update when only the image is changed.
+* Fix: crash when deleting a text label
+* Fix: crash when deleting a group
+
 1.4.0 - 2020-07-09
 ------------------
 

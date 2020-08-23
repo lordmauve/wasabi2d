@@ -362,3 +362,57 @@ via the chain.
     .. attribute:: color
 
         The colour that will be used to fill the buffer.
+
+.. class:: wasabi2d.chain.Light
+
+    .. versionadded:: 1.5.0
+
+    Use one input as a light map to light the other input.
+
+    .. attribute:: light
+
+        A chain node that contains the light map. Primitives in these layers
+        will be drawn with additive blending.
+
+    .. attribute:: diffuse
+
+        A chain node that is the base image to be lit.
+
+    .. attribute:: ambient
+
+        A colour which gives the ambient light level, ie. the amount of the
+        diffuse input which is visible even if there are no lights.
+
+        This defaults to black, ie. pitch black.
+
+    As a worked example, we might set up a chain effect that defines a single
+    light layer (layer 99), that lights all layers up to and including layer 1:
+
+    .. code-block:: python
+
+        scene.chain = [
+            chain.Light(
+                light=99,
+                diffuse=chain.LayerRange(stop=1),
+                ambient='#333333'
+            ),
+        ]
+
+    The lights can be sprites. We need some special sprites for this. Here are
+    some examples. These work as is (black means no light), or
+    you can use images with an alpha channel.
+
+    .. figure:: _static/effects/point-light.png
+
+        A sprite that is suitable as a point light.
+
+    .. figure:: _static/effects/bat_light.png
+
+        This sprite represents the light pool cast by a bat in the Pong example.
+
+    The Pong example, which can be found in ``examples/pong`` in
+    `the repository <https://github.com/lordmauve/wasabi2d/>`__, illustrates
+    this lighting effect, with shaped lights on the bat and a point light that
+    tracks the ball.
+
+    .. image:: _static/effects/pong.png

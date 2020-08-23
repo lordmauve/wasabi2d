@@ -11,7 +11,8 @@ Wasabi2d is
 * Pretty, thanks to fast, built-in effects such as
 
     * :doc:`Particles <particles>`
-    * :doc:`Full-screen post-processing effects <effects>`
+    * :doc:`Full-screen post-processing effects <effects>`, including
+      :class:`lighting <wasabi2d.chain.Light>`.
 
 * Written in "pure" Python (but relies on native extensions like Numpy)
 * Fast due to heavy use of numpy, ModernGL and GPU acceleration

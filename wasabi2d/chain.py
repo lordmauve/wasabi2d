@@ -253,7 +253,7 @@ class Light(ChainNode):
 
     light: ChainNode
     diffuse: ChainNode
-    ambient: Tuple[float, float, float, float]
+    ambient: Tuple[float, float, float, float] = (0, 0, 0, 0)
 
     def __post_init__(self):
         self.light = to_node(self.light)
