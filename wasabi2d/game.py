@@ -60,13 +60,16 @@ class EventMapper:
         'on_joybutton_up': pygame.JOYBUTTONUP,
         'on_joyaxis_motion': pygame.JOYAXISMOTION,
         'on_joyhat_motion': pygame.JOYHATMOTION,
-        'on_joystick_attached': pygame.JOYDEVICEADDED,
-        'on_joystick_detached': pygame.JOYDEVICEREMOVED,
         'on_music_end': constants.MUSIC_END,
         'draw': DrawEvent,
         'update': UpdateEvent,
         'on_screenshot_requested': ScreenShotEvent,
     }
+    if hasattr(pygame, 'JOYDEVICEADDED'):
+        EVENT_HANDLERS.update({
+            'on_joystick_attached': pygame.JOYDEVICEADDED,
+            'on_joystick_detached': pygame.JOYDEVICEREMOVED,
+        })
 
     def map_buttons(val):
         return {c for c, pressed in zip(constants.mouse, val) if pressed}
