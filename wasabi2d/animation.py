@@ -178,6 +178,9 @@ class Animation:
                 raise ValueError(
                     'object %r has no attribute %s to animate' % (object, k)
                 ) from None
+            if hasattr(a, '__len__'):
+                # Convert initial value to tuple to make it immutable
+                a = tuple(a)
             self.initial[k] = a
             key = id(object), k
             previous_animation = self._animation_dict.get(key)
