@@ -119,8 +119,6 @@ def tween(n, start, end):
 def tween_attr(n, start, end):
     if isinstance(start, tuple):
         return tuple(tween(n, a, b) for a, b in zip(start, end))
-    elif isinstance(start, list):
-        return [tween(n, a, b) for a, b in zip(start, end)]
     else:
         return tween(n, start, end)
 
