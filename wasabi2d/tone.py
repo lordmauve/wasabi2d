@@ -110,7 +110,7 @@ def square_array_onecycle(hz):
 
 def triangle_array_onecycle(hz):
     """Returns a single square wave for a given frequency."""
-    length = round(SAMPLE_RATE // hz)
+    length = round(SAMPLE_RATE / hz)
     vals = np.ones(length, dtype=np.int16)
     split = length // 2
     min, max = INT16_RANGE
@@ -121,7 +121,7 @@ def triangle_array_onecycle(hz):
 
 def saw_array_onecycle(hz):
     """Returns a single square wave for a given frequency."""
-    length = round(SAMPLE_RATE // hz)
+    length = round(SAMPLE_RATE / hz)
     return np.linspace(*INT16_RANGE, length).astype(np.int16)
 
 
