@@ -41,28 +41,55 @@ class AnimationTest(TestCase):
     def test_tuple_animation(self):
         """Test that you can animate a tuple"""
         obj = SimpleNamespace()
-        obj.attribute = 0, 2
-        animate(obj, attribute=(2, 0), duration=2)
-        self.assertEqual(obj.attribute, (0, 2))
+        obj.attribute = 0, 3
+        animate(obj, attribute=(3, 0), duration=3)
+        self.assertEqual(obj.attribute, (0, 3))
         clock.tick(1)
-        self.assertEqual(obj.attribute, (1, 1))
+        self.assertEqual(obj.attribute, (1, 2))
         clock.tick(1)
-        self.assertEqual(obj.attribute, (2, 0))
+        self.assertEqual(obj.attribute, (2, 1))
         clock.tick(1)
-        self.assertEqual(obj.attribute, (2, 0))
+        self.assertEqual(obj.attribute, (3, 0))
+        clock.tick(1)
+        self.assertEqual(obj.attribute, (3, 0))
 
     def test_list_animation(self):
         """Test that you can animate a list"""
         obj = SimpleNamespace()
-        obj.attribute = [0, 2]
-        animate(obj, attribute=[2, 0], duration=2)
-        self.assertEqual(obj.attribute, [0, 2])
+        obj.attribute = [0, 3]
+        animate(obj, attribute=[3, 0], duration=3)
+        self.assertEqual(obj.attribute, [0, 3])
         clock.tick(1)
-        self.assertEqual(obj.attribute, [1, 1])
+        self.assertEqual(obj.attribute, (1, 2))
         clock.tick(1)
-        self.assertEqual(obj.attribute, [2, 0])
+        self.assertEqual(obj.attribute, (2, 1))
         clock.tick(1)
-        self.assertEqual(obj.attribute, [2, 0])
+        self.assertEqual(obj.attribute, (3, 0))
+        clock.tick(1)
+        self.assertEqual(obj.attribute, [3, 0])
+
+    def test_property_animation(self):
+        """Test that you can animate a property with shared mutable storage"""
+        class Positioned:
+            @property
+            def attribute(self):
+                return self._attr
+            @attribute.setter
+            def attribute(self, new_attribute):
+                print(self._attr, new_attribute)
+                self._attr[0], self._attr[1] = new_attribute
+        obj = Positioned()
+        obj._attr = [0, 3]
+        animate(obj, attribute=[3, 0], duration=3)
+        self.assertEqual(obj.attribute, [0, 3])
+        clock.tick(1)
+        self.assertEqual(obj.attribute, [1, 2])
+        clock.tick(1)
+        self.assertEqual(obj.attribute, [2, 1])
+        clock.tick(1)
+        self.assertEqual(obj.attribute, [3, 0])
+        clock.tick(1)
+        self.assertEqual(obj.attribute, [3, 0])
 
     def test_on_finished(self):
         """Test the on_finished callback works"""
@@ -276,6 +303,7 @@ class AnimationTest(TestCase):
         self.assertFalse(anim.running)
         self.assertEqual(test_obj.attr, expected_attr_val)
 
+
     def test_stop_with_complete_true_after_running(self):
         """Stop, with complete True, an animation after it has run a bit."""
         attr_start_val = 0
@@ -292,4 +320,3 @@ class AnimationTest(TestCase):
         # Ensure animation stopped and attr as expected.
         self.assertFalse(anim.running)
         self.assertEqual(test_obj.attr, expected_attr_val)
-

@@ -119,8 +119,6 @@ def tween(n, start, end):
 def tween_attr(n, start, end):
     if isinstance(start, tuple):
         return tuple(tween(n, a, b) for a, b in zip(start, end))
-    elif isinstance(start, list):
-        return [tween(n, a, b) for a, b in zip(start, end)]
     else:
         return tween(n, start, end)
 
@@ -178,6 +176,9 @@ class Animation:
                 raise ValueError(
                     'object %r has no attribute %s to animate' % (object, k)
                 ) from None
+            if hasattr(a, '__len__'):
+                # Convert initial value to tuple to make it immutable
+                a = tuple(a)
             self.initial[k] = a
             key = id(object), k
             previous_animation = self._animation_dict.get(key)
