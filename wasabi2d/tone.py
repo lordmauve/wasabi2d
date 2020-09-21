@@ -93,7 +93,7 @@ INT16_RANGE = -1 * 2 ** 15, 2 ** 15 - 1
 
 def sine_array_onecycle(hz):
     """Returns a single sin wave for a given frequency."""
-    length = SAMPLE_RATE / hz
+    length = round(SAMPLE_RATE / hz)
     xvalues = np.linspace(0, np.pi * 2, length)
     return (np.sin(xvalues) * (2 ** 15)).astype(np.int16)
 
@@ -110,7 +110,7 @@ def square_array_onecycle(hz):
 
 def triangle_array_onecycle(hz):
     """Returns a single square wave for a given frequency."""
-    length = SAMPLE_RATE // hz
+    length = round(SAMPLE_RATE // hz)
     vals = np.ones(length, dtype=np.int16)
     split = length // 2
     min, max = INT16_RANGE
@@ -121,7 +121,7 @@ def triangle_array_onecycle(hz):
 
 def saw_array_onecycle(hz):
     """Returns a single square wave for a given frequency."""
-    length = SAMPLE_RATE // hz
+    length = round(SAMPLE_RATE // hz)
     return np.linspace(*INT16_RANGE, length).astype(np.int16)
 
 
