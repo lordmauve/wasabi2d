@@ -1,6 +1,7 @@
-import numpy as np
-
 from functools import partial
+
+import numpy as np
+from wasabigeom import vec2
 
 from ..color import convert_color
 from ..allocators.vertlists import VAO
@@ -55,7 +56,7 @@ class Transformable:
 
     @property
     def pos(self):
-        return self.__xfmat[2][:2]
+        return vec2(*self.__xfmat[2][:2])
 
     @pos.setter
     def pos(self, v):

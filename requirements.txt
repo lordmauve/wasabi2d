@@ -1,8 +1,8 @@
-pygame==2.0.0.dev10
+pygame==2.0.0.dev12
 moderngl==5.6.*
 numpy
 pyrr
 sortedcontainers
 dataclasses; python_version < '3.7'
 mapbox-earcut==0.12.10
-bresenham==0.2.*
+wasabi-geom>=2.0.1

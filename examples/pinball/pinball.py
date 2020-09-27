@@ -1,9 +1,7 @@
-"""Pinball collision demo.
-
-"""
+"""Pinball collision demo."""
 import wasabi2d as w2d
 import random
-from pygame.math import Vector2 as v2
+from wasabi2d import vec2
 from pygame import Rect
 
 from spatial_hash import SpatialHash
@@ -29,7 +27,7 @@ cursor = scene.layers[0].add_sprite(
 
 scene.layers[-1].add_sprite('wood', anchor_x='left', anchor_y='top')
 
-GRAVITY = v2(0, 1)
+GRAVITY = vec2(0, 1)
 BALL_RADIUS = 15
 BALL_COLOR = (34, 128, 75)
 ELASTICITY = 0.3
@@ -49,17 +47,17 @@ class Ball:
             scale=radius / 100,
             color=(1, 1, 1, 0.5)
         )
-        self.velocity = v2(0, 0)
+        self.velocity = vec2(0, 0)
         self.radius = radius
         self.mass = radius * radius
-        dr = v2(radius, radius)
+        dr = vec2(radius, radius)
         self.rect = Rect(0, 0, *(dr * 2))
 
-        self.pos = v2(x, y)
+        self.pos = vec2(x, y)
 
     @property
     def pos(self):
-        return self._pos
+        return vec2(self._pos)
 
     @pos.setter
     def pos(self, pos):
@@ -71,8 +69,7 @@ class Ball:
 
     def collides(self, ano):
         minsep = ano.radius + self.radius
-        return self.pos.distance_squared_to(ano.pos) < minsep * minsep
-
+        return self.pos.distance_to(ano.pos) < minsep
 
 
 sh = SpatialHash()
@@ -92,11 +89,7 @@ def apply_impact(a, b):
     Calculate their closing momentum and apply a fraction of it back as impulse
     to both objects.
     """
-    ab = b.pos - a.pos
-    try:
-        ab.normalize_ip()
-    except ValueError:
-        ab = v2(1, 0)
+    ab = (b.pos - a.pos).safe_normalized()
     rel_momentum = ab.dot(a.velocity) * a.mass - ab.dot(b.velocity) * b.mass
 
     if rel_momentum < 0:
@@ -120,7 +113,7 @@ def separate(a, b, frac=0.5):
         return
 
     if sep == 0.0:
-        ab = v2(1, 0)
+        ab = vec2(1, 0)
     else:
         ab /= sep
     masses = a.mass + b.mass
@@ -138,10 +131,11 @@ def collide_plane(ball, norm, dist, bounce=True):
         if bounce:
             ball.velocity -= norm * norm.dot(ball.velocity) * (1.0 + ELASTICITY)
 
+
 BOUNDS = [
-    (v2(0, -1), -scene.height),
-    (v2(1, 0), 0),
-    (v2(-1, 0), -scene.width),
+    (vec2(0, -1), -scene.height),
+    (vec2(1, 0), 0),
+    (vec2(-1, 0), -scene.width),
 ]
 
 collisions = set()
@@ -183,9 +177,9 @@ def update(dt):
                 collisions.add(pair)
 
     # Apply several iterations to separate the collisions
-    moved = set(b for pair in collisions for b in pair)
     for frac in SEPARATION_STEPS:
         collisions = {pair for pair in collisions if separate(*pair, frac)}
+
 
 @w2d.event
 def on_mouse_move(pos):
@@ -194,8 +188,7 @@ def on_mouse_move(pos):
     r.center = pos
     possible_collisions = sh.query(r)
     for b in possible_collisions:
-        sep = b.pos - pos
-        sep.scale_to_length(2)
+        sep = (b.pos - pos).scaled_to(2)
         b.velocity += sep
 
 
@@ -203,6 +196,7 @@ def on_mouse_move(pos):
 def on_mouse_down():
     w2d.clock.unschedule(update)
     w2d.clock.each_tick(update)
+
 
 update(0)
 w2d.run()

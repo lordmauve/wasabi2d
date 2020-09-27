@@ -5,7 +5,7 @@ import os
 # I don't appreciate libraries I use communicating with my users.
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
-from pygame.math import Vector2
+from wasabigeom import vec2
 from .game import EventMapper
 from .constants import keys, mouse, keymods
 from .loaders import sounds
@@ -17,6 +17,12 @@ from .animation import animate
 from .storage import Storage
 from .chain import LayerRange
 from .primitives.group import Group
+
+# Vector2 was pygame.math.Vector2, which was mutable, so we replaced it with
+# something immutable and faster. Maybe this will work in some cases because
+# they're not crazy dissimilar, and anyway this was never documented in the
+# first place.
+Vector2 = vec2
 
 event = EventMapper()
 del EventMapper
