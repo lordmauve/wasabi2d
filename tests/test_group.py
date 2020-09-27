@@ -70,7 +70,7 @@ def test_group_pop():
     mat_before = group[0]._xform().copy()
     obj = group.pop(0)
     mat_after = obj._xform()
-    assert mat_after == approx(mat_before)
+    assert mat_after == approx(mat_before, abs=1e-6)
 
 
 def test_group_pop_props():

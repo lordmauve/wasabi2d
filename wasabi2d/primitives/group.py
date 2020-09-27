@@ -149,10 +149,13 @@ class Group(Transformable):
         """Assign an object's transformation properties from mat."""
         x = mat[:2, 0]
         y = mat[:2, 1]
-        obj._Transformable__xfmat = mat  # sets position
-        obj.angle = np.arctan2(y[0], x[0])
-        obj.scale_x = np.sqrt(np.sum(x * x))
-        obj.scale_y = np.sqrt(np.sum(y * y))
+        angle = np.arctan2(y[0], x[0])
+        scale_x = np.sqrt(np.sum(x * x))
+        scale_y = np.sqrt(np.sum(y * y))
+        obj.pos = mat[2][:2]
+        obj.angle = angle
+        obj.scale_x = scale_x
+        obj.scale_y = scale_y
 
     def capture(self, *objects: Tuple[Transformable]):
         """Capture the given objects into the group.
