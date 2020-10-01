@@ -1,7 +1,7 @@
 import math
 import itertools
 import wasabi2d as w2d
-from wasabi2d import Vector2, Group
+from wasabi2d import vec2, Group
 
 
 scene = w2d.Scene()
@@ -108,7 +108,7 @@ ship = Group(
     pos=(scene.width / 2, scene.height / 2),
 )
 
-ship.vel = Vector2()
+ship.vel = vec2(0, 0)
 
 
 bullets = []
@@ -136,7 +136,7 @@ def on_key_down(key, mod):
             pos=ship.pos
         )
         bullet.color = (1, 0, 0, 1)
-        bullet.vel = Vector2(600, 0).rotate_rad(ship.angle)
+        bullet.vel = vec2(600, 0).rotated(ship.angle)
         bullet.power = 1.0
         bullets.append(bullet)
         w2d.sounds.laser.play()
@@ -189,7 +189,7 @@ w2d.clock.schedule_interval(rotate_star, 2.0)
 def update(t, dt, keyboard):
     ship.vel *= 0.3 ** dt
 
-    speed = ship.vel.magnitude()
+    speed = ship.vel.length()
     lbl.text = f"Speed: {speed / 10:0.1f}m/s"
     lbl.scale = (speed / 100) ** 2 + 1
 
@@ -197,22 +197,21 @@ def update(t, dt, keyboard):
     thrust = False
     if keyboard.right:
         thrust = True
-        ship.vel[0] += accel
+        ship.vel += (accel, 0)
     elif keyboard.left:
         thrust = True
-        ship.vel[0] -= accel
+        ship.vel -= (accel, 0)
     if keyboard.up:
         thrust = True
-        ship.vel[1] -= accel
+        ship.vel -= (0, accel)
     elif keyboard.down:
         thrust = True
-        ship.vel[1] += accel
+        ship.vel += (0, accel)
 
     ship.pos += ship.vel * dt
 
-    if not (-1e-6 < ship.vel.magnitude_squared() < 1e-6):
-        vx, vy = ship.vel
-        ship.angle = math.atan2(vy, vx)
+    if not (-1e-6 < ship.vel.length_squared() < 1e-6):
+        ship.angle = ship.vel.angle()
 
     if thrust:
         plume.rate = min(200, plume.rate + 200 * dt)
