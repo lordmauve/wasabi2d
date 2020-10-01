@@ -180,8 +180,6 @@ class EventMapper:
         pgzclock = wasabi2d.clock.clock
 
         timefunc = time.perf_counter
-        sleepfunc = time.sleep
-        MIN_FRAMETIME = 1 / 60  # 60fps
 
         t = timefunc()
         dt = 0.0
@@ -201,12 +199,6 @@ class EventMapper:
             # renderer can deal with this.
             self.dispatch_event(DrawEvent(DrawEvent, t, dt, updated))
 
-            # Pygame has a clock class that can do constant framerate, but it
-            # only calculates time in milliseconds, which is not precise enough
-            # when each frame is about 16.7ms.
-            frametime = timefunc() - t
-            delay = max(0, MIN_FRAMETIME - frametime)
-            sleepfunc(delay)
             dt = timefunc() - t
             if self.lock_fps:
                 dt = 1.0 / 60.0
