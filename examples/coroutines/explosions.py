@@ -1,10 +1,6 @@
 import random
 import wasabi2d as w2d
-from wasabi2d import clock, Vector2, animate
-
-
-scene = w2d.Scene()
-scene.background = '#ccddff'
+from wasabi2d import clock, animate, do, gather
 
 
 async def explode(pos):
@@ -13,13 +9,12 @@ async def explode(pos):
     sprite = scene.layers[1].add_sprite('explosion', pos=pos)
     sprite.color = (1, 1, 1, 0)
 
+    # Explode phase
     animate(
         sprite,
         duration=0.9,
         angle=10,
     )
-
-    # Explode phase
     await animate(
         sprite,
         duration=0.3,
@@ -48,9 +43,11 @@ async def spawn_explosions():
     while True:
         px = random.uniform(50, scene.width - 50)
         py = random.uniform(50, scene.height - 50)
-        clock.coro.run(explode((px, py)))
+        do(explode((px, py)))
         await clock.coro.sleep(random.uniform(0.5, 3))
 
 
-clock.coro.run(spawn_explosions())
-w2d.run()
+if __name__ == '__main__':
+    scene = w2d.Scene()
+    scene.background = '#ccddff'
+    w2d.run(spawn_explosions())

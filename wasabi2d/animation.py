@@ -164,11 +164,13 @@ class Animation:
         except KeyError:
             raise KeyError('No tween called %s found.' % tween) from None
         self.duration = duration
-        self.on_finished = on_finished
         self.t = 0
         self.object = object
         self.initial = {}
         self._running = True
+        self.waiters = set()
+        if on_finished:
+            self.waiters.add(on_finished)
         for k in self.targets:
             try:
                 a = getattr(object, k)
@@ -203,8 +205,6 @@ class Animation:
         if n > 1:
             n = 1
             self.stop(complete=True)
-            if self.on_finished is not None:
-                self.on_finished()
             return
         n = self.function(n)
         for k in self.targets:
@@ -224,6 +224,10 @@ class Animation:
             # Don't do anything if already stopped.
             return
 
+        for w in self.waiters:
+            w()
+        self.waiters.clear()
+
         self._running = False
         if complete:
             for k in self.targets:
@@ -239,8 +243,17 @@ class Animation:
         Currently, lacking concurrency primitives, this just sleeps for the
         remaining duration of the animation.
         """
+        from .loop import resume_callback, Cancelled
+        resume = resume_callback()
+
+        self.waiters.add(resume)
+
         sleep_for = self.duration - self.t
-        yield self.clock.coro._delay(sleep_for)
+        try:
+            yield False
+        except Cancelled:
+            self.waiters.discard(resume)
+            raise
         return sleep_for
 
     def _remove_target(self, target, stop=True):

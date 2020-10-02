@@ -17,6 +17,7 @@ from .animation import animate
 from .storage import Storage
 from .chain import LayerRange
 from .primitives.group import Group
+from .loop import do, run, PygameEvents, gather
 
 # Vector2 was pygame.math.Vector2, which was mutable, so we replaced it with
 # something immutable and faster. Maybe this will work in some cases because
@@ -25,9 +26,12 @@ from .primitives.group import Group
 Vector2 = vec2
 
 event = EventMapper()
+pgevents = PygameEvents(event)
+next_event = pgevents.wait
+do(pgevents.run())
 del EventMapper
-
-run = event.run
+del PygameEvents
+del pgevents
 
 __version__ = (1, 4, 0)
 __all__ = [

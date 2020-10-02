@@ -49,6 +49,10 @@ class EventMapper:
         self.keyboard = wasabi2d.keyboard.keyboard
         self.handlers = {}
         self.lock_fps = False
+        self.EVENT_PARAM_MAPPERS = {
+            **self.EVENT_PARAM_MAPPERS,
+            'keyboard': lambda _: self.keyboard
+        }
 
     EVENT_HANDLERS = {
         'on_mouse_down': pygame.MOUSEBUTTONDOWN,

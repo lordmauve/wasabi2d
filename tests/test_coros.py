@@ -1,6 +1,8 @@
 import pytest
 import asyncio
 
+from wasabi2d import run, do
+from wasabi2d import loop
 from wasabi2d.clock import Clock
 
 
@@ -8,6 +10,16 @@ from wasabi2d.clock import Clock
 def clock():
     """Return a new clock object."""
     return Clock()
+
+
+async def run_clock(clock, *, frames, framerate=60):
+    """A coroutine to step the clock forward a given number of frames."""
+    for _ in range(frames):
+        clock.tick(1 / framerate)
+        await loop.next_tick()
+
+
+teardown_function = setup_function = loop._clear_all
 
 
 def test_schedule(clock):
@@ -19,9 +31,10 @@ def test_schedule(clock):
         await clock.coro.sleep(0.1)
         v = val
 
-    clock.coro.run(set_v(3))
+    do(set_v(3))
+
     assert v is None
-    clock.tick(1)
+    run(run_clock(clock, frames=10))
     assert v == 3
 
 
@@ -35,14 +48,8 @@ def test_next_frame(clock):
 
     clock.coro.run(frame_waiter())
     assert dt is None
-    clock.tick(0.125)
-    assert dt == 0.125
-
-
-def test_await_invalid(clock):
-    """It is a TypeError to await an asyncio Future."""
-    with pytest.raises(TypeError):
-        clock.coro.run(asyncio.sleep(1))
+    run(run_clock(clock, frames=1))
+    assert dt == 1 / 60
 
 
 def test_await_frames(clock):
@@ -53,9 +60,8 @@ def test_await_frames(clock):
         async for t in clock.coro.frames(frames=3):
             ts.append(t)
 
-    clock.coro.run(multi_frame_waiter())
-    for _ in range(10):
-        clock.tick(0.1)
+    do(multi_frame_waiter())
+    run(run_clock(clock, frames=3, framerate=10))
 
     assert ts == pytest.approx([0.1, 0.2, 0.3])
 
@@ -68,10 +74,8 @@ def test_await_seconds(clock):
         async for t in clock.coro.frames(seconds=1.0):
             ts.append(t)
 
-    clock.coro.run(multi_frame_waiter())
-    for _ in range(10):
-        clock.tick(0.2)
-
+    do(multi_frame_waiter())
+    run(run_clock(clock, frames=10, framerate=5))
     assert ts == pytest.approx([0.2, 0.4, 0.6, 0.8, 1.0])
 
 
@@ -83,10 +87,8 @@ def test_interpolate(clock):
         async for v in clock.coro.interpolate(1.0, 2.0, duration=0.5):
             vs.append(v)
 
-    clock.coro.run(interpolator())
-    for _ in range(10):
-        clock.tick(0.2)
-
+    do(interpolator())
+    run(run_clock(clock, frames=10, framerate=5))
     assert vs == pytest.approx([1.4, 1.8, 2.0])
 
 
@@ -96,13 +98,18 @@ def test_cancel(clock):
 
     async def multi_frame_waiter():
         try:
-            async for t in clock.coro.frames(seconds=1.0):
+            async for t in clock.coro.frames():
                 ts.append(t)
         except clock.coro.Cancelled:
             ts.append('cancelled')
 
-    task = clock.coro.run(multi_frame_waiter())
-    clock.tick(0.1)
-    task.cancel()
+    async def start_cancel():
+        task = do(multi_frame_waiter())
+        await loop.next_tick()  # Allow task to start and block on clock
+        clock.tick(0.1)
+        await loop.next_tick()  # Allow task to run one loop
+        task.cancel()
+        await loop.next_tick()  # Allow task to cancel
 
+    run(start_cancel())
     assert ts == [0.1, 'cancelled']

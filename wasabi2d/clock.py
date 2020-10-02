@@ -17,7 +17,8 @@ from itertools import chain, count
 from functools import total_ordering
 from collections import namedtuple
 from types import MethodType
-import types
+
+from . import loop
 
 
 __all__ = [
@@ -132,12 +133,11 @@ class WaitEvent:
 class Coroutines:
     """Namespace for coroutine operations on a clock."""
 
-    class Cancelled(Exception):
-        """Raised inside a coroutine when a task is cancelled."""
+    # Alias for backwards compatibility
+    Cancelled = loop.Cancelled
 
     def __init__(self, clock):
         self.clock = clock
-        self._ready_events = set()
 
     def _delay(self, seconds):
         """Get a future for a delay."""
@@ -150,16 +150,33 @@ class Coroutines:
     def _event(self):
         return Future(WaitEvent())
 
-    async def sleep(self, seconds):
-        """Sleep for the given time in seconds."""
-        await self._delay(seconds)
-        return seconds
+    async def sleep(self, seconds: float) -> float:
+        """Sleep for the given time in seconds.
+
+        Return the exact time slept for.
+        """
+        t = self.clock.t
+        resume = loop.resume_callback()
+        self.clock.schedule(resume, seconds, strong=True)
+
+        try:
+            await loop._block()
+        except loop.Cancelled:
+            self.clock.unschedule(resume)
+            raise
+        return self.clock.t - t
 
     async def next_frame(self):
         """Await the next frame. Return the time elapsed."""
-        start = self.clock.t
-        await self._frame()
-        return self.clock.t - start
+        while True:
+            start = self.clock.t
+
+            # FIXME: should use *clock* ticks not event loop ticks
+            await loop.next_tick()
+
+            dt = self.clock.t - start
+            if dt:
+                return dt
 
     async def frames(self, *, seconds=None, frames=None):
         """Iterate over multiple frames, yielding the total time.
@@ -223,70 +240,13 @@ class Coroutines:
 
     def run(self, coro):
         """Schedule a coroutine."""
-        assert isinstance(coro, types.CoroutineType)
-        task = Task(self.clock, coro)
-        return task
-
-
-class Task:
-    def __init__(self, clock, coro):
-        self.clock = clock
-        self.coro = coro
-        self.result = None
-        self._step()
-
-    def _step(self, await_value=None):
-        """Step this task, passing the given value that was awaited.
-
-        For time events, await_value will be a time delta in seconds; for
-        condition events, it will be some other value.
-
-        """
-        clock = self.clock
-        clock.unschedule(self._step)
-
-        if self.coro is None:
-            return
-
-        try:
-            res = self.coro.send(await_value)
-        except StopIteration as stop:
-            if stop.args:
-                self.result = stop.args[0]
-            return
-
-        if not isinstance(res, Future):
-            raise TypeError(
-                f"Unable to await {res!r} with "
-                "clock.coro.run(). wasabi2d coroutines are not "
-                "compatible with asyncio."
-            )
-
-        val = res.val
-        if isinstance(val, WaitDelay):
-            clock.schedule(self._step, val.seconds, strong=True)
-        elif val is WaitTick:
-            clock.call_soon(self._step)
-        elif isinstance(val, WaitEvent):
-            # Bit ugly
-            val.when_ready(
-                lambda: clock.call_soon(
-                    lambda dt: self._step(val._result)
-                )
-            )
-        else:
-            raise TypeError("Unexpected value")
-
-    def cancel(self):
-        """Cancel the task."""
-        try:
-            self.coro.throw(Coroutines.Cancelled)
-        except (StopIteration, Coroutines.Cancelled):
-            # Coroutine halted successfully. If not it may be awaiting
-            # something during exception handling, and we should not unschedule
-            # it.
-            self.clock.unschedule(self._step)
-            self.coro = None
+        import warnings
+        warnings.warn(
+            "clock.coro.run is deprecated",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return loop.do(coro)
 
 
 class Clock:
