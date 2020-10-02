@@ -81,55 +81,6 @@ class Event:
         return self.cb()
 
 
-WaitDelay = namedtuple('Delay', 'seconds')
-WaitTick = object()
-
-
-class Future:
-    """An object that can be awaited.
-
-    When awaited, yield a value that indicates the event to wait for.
-    """
-    __slots__ = ('val', 'awaited')
-
-    def __init__(self, val):
-        self.val = val
-        self.awaited = False
-
-    def __await__(self):
-        self.awaited = True
-        yield self
-
-    def __del__(self):
-        if not self.awaited:
-            warnings.warn(ResourceWarning("wasabi2d future was not awaited"))
-
-
-class WaitEvent:
-    """Await some condition that will arise in future."""
-    def __init__(self):
-        self.done = False
-        self._result = None
-        self._on_ready = None
-
-    def when_ready(self, callback):
-        self._on_ready = callback
-        if self.done:
-            callback()
-
-    def set(self, result):
-        """Set the result for the event."""
-        self.done = True
-        self._result = result
-        self._on_ready()
-
-    def get_result(self):
-        """Get the result."""
-        if not self.done:
-            raise ValueError("Event is not complete.")
-        return self._result
-
-
 class Coroutines:
     """Namespace for coroutine operations on a clock."""
 
@@ -138,17 +89,6 @@ class Coroutines:
 
     def __init__(self, clock):
         self.clock = clock
-
-    def _delay(self, seconds):
-        """Get a future for a delay."""
-        return Future(WaitDelay(seconds))
-
-    def _frame(self):
-        """Get a future for the next frame."""
-        return Future(WaitTick)
-
-    def _event(self):
-        return Future(WaitEvent())
 
     async def sleep(self, seconds: float) -> float:
         """Sleep for the given time in seconds.
