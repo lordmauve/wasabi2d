@@ -1,18 +1,14 @@
 import random
 import wasabi2d as w2d
 import colorsys
-from wasabi2d import clock, vec2, animate, keyboard, gather
+from wasabi2d import clock, vec2, animate
 
 
 scene = w2d.Scene(title="Run!")
+center = vec2(scene.width, scene.height) / 2
 scene.background = 'white'
 target = vec2(scene.width, scene.height) / 2
 scene.layers[0].set_effect('dropshadow', opacity=1, radius=1)
-
-
-async def spawn_baddies():
-    coros = [enemy() for _ in range(10)]
-    await gather(*coros)
 
 
 async def enemy():
@@ -53,6 +49,23 @@ async def enemy():
 def on_mouse_move(pos):
     global target
     target = vec2(pos)
+
+
+async def spawn_baddies():
+    async with w2d.Nursery() as ns:
+        ns.do(enemy())
+        for _ in range(5):
+            await clock.coro.sleep(2)
+            ns.do(enemy())
+
+    scene.layers[0].add_label(
+        "The End",
+        align="center",
+        fontsize=48,
+        color='#88ccff',
+        pos=center
+    )
+    await clock.coro.sleep(5)
 
 
 w2d.run(spawn_baddies())

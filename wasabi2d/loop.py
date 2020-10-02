@@ -235,6 +235,40 @@ async def gather(*coros):
         await t.join()
 
 
+class Nursery:
+    """A group of coroutines."""
+
+    def __init__(self):
+        self.tasks = set()
+
+    def do(self, coro):
+        task = do(coro)
+        self.tasks.add(task)
+        return task
+
+    def cancel(self):
+        for t in self.tasks:
+            t.cancel()
+        self.tasks.clear()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, cls, inst, tb):
+        if cls:
+            return self.cancel()
+
+        try:
+            while self.tasks:
+                t = self.tasks.pop()
+                await t.join()
+        except Cancelled:
+            t.cancel()
+            for t in self.tasks:
+                t.cancel()
+            self.tasks = None
+
+
 # Override timing calculation when recording video
 lock_fps = False
 
