@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 
-from wasabi2d import run, do
+from wasabi2d import run, do, Event
 from wasabi2d import loop
 from wasabi2d.clock import Clock
 
@@ -113,3 +113,35 @@ def test_cancel(clock):
 
     run(start_cancel())
     assert ts == [0.1, 'cancelled']
+
+
+def test_event():
+    """Multiple tasks can be blocked on an event."""
+    event = Event()
+
+    log = []
+
+    async def event_waiter():
+        log.append("event_waiter started")
+        await event
+        log.append("event_waiter finished")
+
+    do(event_waiter())
+    do(event_waiter())
+
+    async def runtest():
+        await loop.next_tick()
+        log.append(f"Tasks blocked: {len(event)}; setting event")
+        event.set()
+        log.append(f"Tasks blocked: {len(event)}")
+        await loop.next_tick()
+
+    run(runtest())
+    assert log == [
+        "event_waiter started",
+        "event_waiter started",
+        "Tasks blocked: 2; setting event",
+        "Tasks blocked: 0",
+        "event_waiter finished",
+        "event_waiter finished",
+    ]

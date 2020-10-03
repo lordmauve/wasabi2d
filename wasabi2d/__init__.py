@@ -17,7 +17,7 @@ from .animation import animate
 from .storage import Storage
 from .chain import LayerRange
 from .primitives.group import Group
-from .loop import do, run, PygameEvents, gather, Nursery
+from .loop import do, run, PygameEvents, gather, Nursery, Event
 
 # Vector2 was pygame.math.Vector2, which was mutable, so we replaced it with
 # something immutable and faster. Maybe this will work in some cases because

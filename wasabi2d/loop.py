@@ -4,16 +4,15 @@ This is now based on coroutines and tasks but adapted to call synchronous
 functions, for backwards compatibility.
 """
 import time
-from types import coroutine, CoroutineType
+import types
 from typing import Optional
 from functools import total_ordering
 import heapq
 
 import pygame.event
-from . import clock
 
 
-@coroutine
+@types.coroutine
 def _block(reschedule=False):
     """An awaitable that yields obj."""
     return (yield reschedule)
@@ -42,14 +41,21 @@ class Cancelled(Exception):
 
 def do(coro):
     """Schedule a task as runnable."""
-    if isinstance(coro, CoroutineType):
+    if isinstance(coro, types.CoroutineType):
         if coro.cr_running:
             raise RuntimeError(f"{coro!r} is already started")
     else:
         try:
             await_ = coro.__await__
         except AttributeError:
-            raise RuntimeError(f"{coro!r} is not a coroutine or awaitable")
+            if isinstance(coro, types.FunctionType):
+                raise RuntimeError(
+                    f"{coro.__qualname__} is a function object; "
+                    "did you forget to call it?"
+                ) from None
+            raise RuntimeError(
+                f"{coro!r} is not a coroutine or awaitable"
+            ) from None
         coro = await_()
 
     task = Task(coro)
@@ -57,8 +63,70 @@ def do(coro):
     return task
 
 
+class Event(set):
+    """A concurrency primitive where many tasks can wait for one event.
+
+    Events start in an "un-set" state. In this state a task waiting for the
+    event will block. Calling .set() will release all tasks, and subsequent
+    waits will not block.
+
+    """
+    __slots__ = ('_is_set')
+
+    def __init__(self):
+        """Construct an event. Events are initially in the un-set state."""
+        self._is_set = False
+
+    def __bool__(self):
+        """Return True if the event is set."""
+        return self._is_set
+
+    is_set = __bool__
+
+    def set(self):
+        """Set the event.
+
+        This will release all blocked tasks. Subsequent waits will not block.
+        """
+        for waiter in self:
+            waiter()
+        self.clear()
+
+    def reset(self):
+        """Reset the event.
+
+        Subsequent waits will block until the event is set again.
+        """
+        self._is_set = False
+
+    def __await__(self):
+        """Await this event object."""
+        if self._is_set:
+            return
+        resume = resume_callback()
+        try:
+            self.add(resume)
+            yield from _block()
+        except Cancelled:
+            self.discard(resume)
+            raise
+
+    async def wait(self):
+        """Wait for the event to be set."""
+        await self
+
+
 @total_ordering
 class Task:
+    """The individual unit of concurrency.
+
+    Each task has its own call stack of async functions. Tasks run until they
+    complete or block. Tasks will only block at `await` statements (but not
+    all `await` statements will cause the task to block).
+
+    Additionally, each task can be cancelled.
+
+    """
     next_id = 0
     cancellable = True
 
@@ -68,6 +136,7 @@ class Task:
 
         self._scheduled = False
         self.coro = coro
+        self.failed = False
         self.finished = False
         self.result = None
         self.cancelled = False  # Have we been cancelled?
@@ -110,7 +179,8 @@ class Task:
             except StopIteration as e:
                 self.result = e.value
                 self._finish()
-            except Exception:
+            except BaseException:
+                self.failed = True
                 self._finish()
                 raise
             else:
@@ -135,8 +205,8 @@ class Task:
 
     def _finish(self):
         self.finished = True
-        for task in self.joiners:
-            task._resume(self.result)
+        for j in self.joiners:
+            j(self.result)
         self.joiners.clear()
 
     def cancel(self):
@@ -151,11 +221,13 @@ class Task:
         """Wait until this task completes."""
         if self.finished:
             return self.result
+
+        resume = resume_callback()
         try:
-            self.joiners.add(current_task)
+            self.joiners.add(resume)
             return (await _block())
         except Cancelled:
-            self.joiners.discard(current_task)
+            self.joiners.discard(resume)
             raise
 
 
@@ -239,34 +311,50 @@ class Nursery:
     """A group of coroutines."""
 
     def __init__(self):
+        self.task_count = 0
         self.tasks = set()
+        self.entered = False
+        self.waiter = None
 
     def do(self, coro):
         task = do(coro)
         self.tasks.add(task)
+
+        def _result(v):
+            self.tasks.discard(task)
+            if task.failed:
+                self.cancel()
+            if not self.tasks and self.waiter:
+                self.waiter()
+
+        task.joiners.add(_result)
         return task
 
     def cancel(self):
         for t in self.tasks:
             t.cancel()
-        self.tasks.clear()
 
     async def __aenter__(self):
+        if self.entered:
+            raise RuntimeError("Nursery cannot be entered more than once")
+        self.entered = True
         return self
 
     async def __aexit__(self, cls, inst, tb):
         if cls:
             return self.cancel()
 
+        if self.waiter:
+            raise RuntimeError("A coroutine is already waiting on nursery exit")
+        resume = resume_callback()
+        self.waiter = resume
         try:
-            while self.tasks:
-                t = self.tasks.pop()
-                await t.join()
+            await _block()
         except Cancelled:
-            t.cancel()
-            for t in self.tasks:
-                t.cancel()
-            self.tasks = None
+            self.waiter = None
+            self.cancel()
+            self.tasks.clear()
+            raise
 
 
 # Override timing calculation when recording video
