@@ -18,7 +18,7 @@ Current features include:
 * [Animation/tweening](https://wasabi2d.readthedocs.io/en/latest/animation.html).
 * ["Local storage"](https://wasabi2d.readthedocs.io/en/latest/storage.html) to easily save state.
 
-Wasabi2D is based on [moderngl], with [pygame 2.0] for some supporting functions, and supporting APIs ported from [Pygame Zero](https://github.com/lordmauve/pgzero).
+Wasabi2D is based on [moderngl](supports OpenGL 4.1+), with [pygame 2.0] for some supporting functions, and supporting APIs ported from [Pygame Zero](https://github.com/lordmauve/pgzero).
 
 
 
