@@ -254,11 +254,10 @@ class PygameEvents:
                 self.waiters[event_type] = {handler}
 
         try:
-            await _block()
-        except Cancelled:
+            return await _block()
+        finally:
             for event_type in event_types:
-                self._waiter[event_type].discard(handler)
-            raise
+                self.waiters[event_type].discard(handler)
 
     async def run(self):
         from .game import UpdateEvent, DrawEvent

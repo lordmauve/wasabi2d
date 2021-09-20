@@ -42,5 +42,6 @@ __all__ = [
     'sounds', 'music', 'tone',
     'clock', 'animate',
     'Scene', 'Storage', 'LayerRange',
-    'Group'
+    'Group',
+    'gather', 'Nursery', 'Event',
 ]
