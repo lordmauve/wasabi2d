@@ -13,7 +13,7 @@ import pygame.transform
 import pygame.display
 import moderngl
 from pyrr import Matrix44
-
+from wasabigeom import vec2
 
 from . import clock
 from .layers import LayerGroup
@@ -531,7 +531,7 @@ class Camera:
 
     @property
     def pos(self):
-        return -self._xform[-1, :2]
+        return vec2(*-self._xform[-1, :2])
 
     @pos.setter
     def pos(self, v):

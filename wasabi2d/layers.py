@@ -2,6 +2,7 @@ from typing import Tuple, Optional, Any
 import importlib
 import weakref
 
+import numpy as np
 import moderngl
 import pygame.image
 
@@ -43,6 +44,7 @@ class Layer:
         self.objects = set()
         self._dirty = set()
         self.effect = None
+        self.is_hud = False
 
     def clear(self):
         """Remove everything from the layer."""
@@ -68,9 +70,20 @@ class Layer:
         else:
             self._draw_inner()
 
+    identity = np.identity(4, dtype='f4')
+
     def _draw_inner(self):
-        for a in self.arrays.values():
-            a.render(self.group.camera)
+        camera = self.group.camera
+        if self.is_hud:
+            prev_xform, camera._xform = camera._xform, self.identity
+            self.group.shadermgr.set_proj(camera.proj)
+        try:
+            for a in self.arrays.values():
+                a.render(camera)
+        finally:
+            if self.is_hud:
+                camera._xform = prev_xform
+                self.group.shadermgr.set_proj(camera.proj)
 
     def set_effect(self, name: str, **kwargs) -> Any:
         """Set the post processing effect to use for the layer.
