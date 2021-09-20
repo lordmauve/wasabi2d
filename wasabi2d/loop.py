@@ -333,6 +333,15 @@ class Nursery:
         for t in self.tasks:
             t.cancel()
 
+    def __enter__(self):
+        raise TypeError(
+            "Nurseries are async context managers, not sync ones. "
+            "You need 'async with' not 'with'."
+        )
+
+    def __exit__(self, *_):
+        """Needed for __enter__."""
+
     async def __aenter__(self):
         if self.entered:
             raise RuntimeError("Nursery cannot be entered more than once")
