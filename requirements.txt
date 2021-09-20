@@ -1,4 +1,4 @@
-pygame==2.0.0.dev12
+pygame==2.0.1
 moderngl==5.6.*
 numpy
 pyrr
