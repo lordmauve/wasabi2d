@@ -200,3 +200,7 @@ class AbstractShape(Colorable, Transformable):
         self.vao.free(self.lst)
         self.lst = None
         self.layer = None
+
+    def is_alive(self) -> bool:
+        """Return True until the shape has been deleted."""
+        return self.layer is not None

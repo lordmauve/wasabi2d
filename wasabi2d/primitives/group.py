@@ -76,6 +76,10 @@ class Group(Transformable):
         """Get the number of objects in the group."""
         return len(self._objects)
 
+    def __bool__(self) -> bool:
+        """Return True if there are objects in the group."""
+        return bool(self._objects)
+
     def local_to_world(self, point: Point) -> Point:
         """Get the world position for the given local point."""
         x, y = point

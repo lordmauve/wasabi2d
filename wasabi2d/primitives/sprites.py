@@ -116,6 +116,10 @@ class Sprite(Colorable, Transformable):
         self.layer = None
         self._array = self._array_id = None
 
+    def is_alive(self) -> bool:
+        """Return True until the object has been deleted."""
+        return self.layer is not None
+
     def _set_dirty(self):
         if self.layer:
             self.layer._dirty.add(self)
