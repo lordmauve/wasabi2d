@@ -47,7 +47,6 @@ class Polygon(AbstractShape):
         """
         self.orig_verts[:, :2] = v
         self._set_dirty()
-
     def _stroke_indices(self):
         """Indexes for drawing the stroke as a LINE_STRIP_ADJACENCY."""
         verts = len(self.orig_verts)
@@ -57,7 +56,7 @@ class Polygon(AbstractShape):
 
     def _fill_indices_mapbox_earcut(self):
         """Indexes for drawing the fill as TRIANGLES.
-        
+
         This version uses the mapbox_earcut library, which is C++, but
         currently doesn't have a Python 3.8 release. See
 
@@ -71,7 +70,7 @@ class Polygon(AbstractShape):
 
     def _fill_indices_earcut(self):
         """Indexes for drawing the fill as TRIANGLES.
-        
+
         This version uses a pure-Python library, which is vendored into this
         repo.
         """
@@ -132,6 +131,23 @@ class PolyLine(Polygon):
         idxs = np.arange(verts)
         last = verts - 1
         return np.array([0, *idxs, last, last])
+
+    @property
+    def colors(self):
+        """Get the colour per vertex."""
+        if self._color.shape == (4,):
+            return np.array(
+                [self._color] * len(self.orig_verts),
+                dtype=np.float32
+            )
+        else:
+            return self._color
+
+    @colors.setter
+    def colors(self, v):
+        """Set the per-vertex colour."""
+        self._color = v
+        self._set_dirty()
 
     def _fill_indices(self):
         raise NotImplementedError(
