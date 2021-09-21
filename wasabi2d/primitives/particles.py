@@ -101,7 +101,9 @@ class ParticleGroup:
             spin: float = 0.0,
             spin_spread: float = 0.0,
             angle: float = 0.0,
-            angle_spread: float = 0.0):
+            angle_spread: float = 0.0,
+            age_spread: float = 0.0,
+        ):
         """Emit num particles."""
         num = round(num)
         if num == 0:
@@ -123,13 +125,14 @@ class ParticleGroup:
         new_size = np.random.normal(size, size_spread, num)
         new_angles = np.random.normal(angle, angle_spread, num)
         new_spins = np.random.normal(spin, spin_spread, num)
+        new_ages = np.abs(np.random.normal(0, age_spread, num))
 
         verts = self.lst.vertbuf
         self.vels = np.vstack([self.vels[alive], new_vel])
         self.spins = np.hstack([self.spins[alive], new_spins])
         verts[:num_alive] = verts_alive
         new = verts[num_alive:]
-        new['in_age'] = 0
+        new['in_age'] = new_ages
         new['in_color'] = color
         new['in_size'] = new_size
         new['in_vert'] = new_pos
