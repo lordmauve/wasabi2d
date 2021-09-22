@@ -324,6 +324,7 @@ class CancelScope:
     def __enter__(self):
         assert self.task is None or self.task is current_task
         self.task = current_task
+        return self
 
     def cancel(self):
         if self.task:

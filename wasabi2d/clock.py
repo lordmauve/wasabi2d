@@ -17,6 +17,9 @@ from itertools import chain, count
 from functools import total_ordering
 from collections import namedtuple
 from types import MethodType
+from contextlib import contextmanager
+
+from moderngl import context
 
 from . import loop
 
@@ -177,6 +180,15 @@ class Coroutines:
                 return
             frac = func(t / duration)
             yield animation.tween_attr(frac, start, end)
+
+    @contextmanager
+    def move_on_after(self, seconds):
+        from .loop import CancelScope
+        scope = CancelScope()
+        self.clock.schedule(scope.cancel, seconds, strong=True)
+        with scope:
+            yield
+            self.clock.unschedule(scope.cancel)
 
     def run(self, coro):
         """Schedule a coroutine."""
