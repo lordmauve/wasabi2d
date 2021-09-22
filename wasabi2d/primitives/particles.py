@@ -232,6 +232,7 @@ class Emitter(Transformable):
     spin_spread: float = EmitterDesc(0.0)
     emit_angle: float = 0.0
     emit_angle_spread: float = EmitterDesc(0.0, 'angle_spread')
+    age_spread: float = EmitterDesc(0.0)
 
     def __init__(
         self,
