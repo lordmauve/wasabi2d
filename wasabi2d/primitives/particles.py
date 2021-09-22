@@ -196,9 +196,12 @@ class ParticleGroup:
         return e
 
     def delete(self):
+        if self.lst is None:
+            return
         self.layer.objects.discard(self)
         self._clock.unschedule(self._update)
         self.lst.free()
+        self.lst = None
 
 
 @dataclass

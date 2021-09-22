@@ -224,6 +224,8 @@ class Label(Colorable, Transformable):
     bounds = Bounds('self._verts[:, :2]')
 
     def delete(self):
+        if self.layer is None:
+            return
         self.layer.objects.remove(self)
         self.lst.free()
         self.lst = None

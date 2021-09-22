@@ -195,6 +195,8 @@ class AbstractShape(Colorable, Transformable):
 
     def delete(self):
         """Delete this primitive."""
+        if self.layer is None:
+            return
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
         self.vao.free(self.lst)
