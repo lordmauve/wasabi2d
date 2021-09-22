@@ -6,7 +6,7 @@ from collections import deque
 
 import moderngl
 import numpy as np
-import bresenham
+from wasabigeom import bresenham
 
 import wasabi2d
 from ..allocators.abstract import FreeListAllocator, NoCapacity
@@ -331,7 +331,7 @@ class TileMap:
         pass ``None`` in order to clear tiles instead of setting them.
 
         """
-        cells = bresenham.bresenham(*start, *stop)
+        cells = bresenham(*start, *stop)
         for pos, v in zip(cells, self._value_gen(value)):
             self._set(pos, v)
 
@@ -387,6 +387,11 @@ class TileMap:
             raise KeyError(f"No tile at position {pos}")
         return v
 
+    def __contains__(self, pos: Tuple[int, int]) -> bool:
+        """Return True if a tile is set at the given position."""
+        id = self._get(pos)
+        return id != 0
+
     def get(self, pos: Tuple[int, int], default: T = None) -> Union[str, T]:
         """Get the tile at the given position.
 
@@ -429,8 +434,15 @@ class TileMap:
         return self._tiles[v]
 
     def __delitem__(self, pos: Tuple[int, int]):
-        """Clear the tile at the given position."""
-        self._set(pos, 0)
+        """Clear the tile at the given position.
+
+        This is idempotent so does nothing if the cell did not previously
+        contain a tile.
+        """
+        cell, (x, y) = np.divmod(pos, 64)
+        block = self._tilemgr.get_block(tuple(cell))
+        if block is not None:
+            block[y, x] = 0
 
     def clear(self):
         """Clear the tile map."""
