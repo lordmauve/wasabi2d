@@ -37,6 +37,12 @@ async def next_tick() -> float:
 
 class Cancelled(Exception):
     """An exception raised indicating a coroutine has been cancelled."""
+    def __init__(self, scope=None):
+        super().__init__(scope)
+
+    @property
+    def scope(self):
+        return self.args[0]
 
 
 def do(coro):
@@ -130,6 +136,18 @@ class Task:
     next_id = 0
     cancellable = True
 
+    __slots__ = (
+        'id',
+        '_scheduled',
+        'coro',
+        'failed',
+        'finished',
+        'result',
+        'cancelled',
+        'joiners',
+        '_resume_value',
+    )
+
     def __init__(self, coro):
         self.id = Task.next_id
         Task.next_id += 1
@@ -154,40 +172,32 @@ class Task:
         assert not self.finished, \
             f"{self!r} was rescheduled when already finished"
         self._scheduled = False
-        if self.cancelled:
-            try:
-                current_task = self
-                self.coro.throw(Cancelled())
-            except Cancelled:
-                pass
-            except StopIteration as e:
-                self.result = e.value
+        try:
+            current_task = self
+            if self.cancelled:
+                result = self.coro.throw(Cancelled(scope=self.cancelled.scope))
             else:
-                import warnings
-                warnings.warn(
-                    ResourceWarning,
-                    f"Coroutine {self.coro} failed to stop when cancelled"
-                )
-            finally:
-                current_task = None
-                self._finish()
-        else:
-            try:
-                current_task = self
-                v, self._resume_value = self._resume_value, None
+                v = self._resume_value
+                self._resume_value = None
                 result = self.coro.send(v)
-            except StopIteration as e:
-                self.result = e.value
-                self._finish()
-            except BaseException:
-                self.failed = True
-                self._finish()
-                raise
-            else:
-                if result:
-                    self._park()
-            finally:
-                current_task = None
+        except Cancelled as e:
+            assert not e.scope, \
+                f"Task {self.coro} cancelled with uncaught scope {e.scope!r}"
+            self._finish()
+        except StopIteration as e:
+            self.result = e.value
+            self._finish()
+        except BaseException:
+            self.failed = True
+            self._finish()
+            raise
+        else:
+            if self.cancelled:
+                self._resume()
+            elif result:
+                self._park()
+        finally:
+            current_task = None
 
     def _park(self):
         """Block until the next frame."""
@@ -209,13 +219,14 @@ class Task:
             j(self.result)
         self.joiners.clear()
 
-    def cancel(self):
+    def cancel(self, scope=None):
         """Cancel this task."""
         assert self.cancellable
         if self.finished or self.cancelled:
             return
-        self.cancelled = True
-        self._resume()
+        self.cancelled = Cancelled(scope=scope)
+        if current_task is not self:
+            self._resume()
 
     async def join(self):
         """Wait until this task completes."""
@@ -306,16 +317,43 @@ async def gather(*coros):
         await t.join()
 
 
+class CancelScope:
+    def __init__(self):
+        self.task = None
+
+    def __enter__(self):
+        assert self.task is None or self.task is current_task
+        self.task = current_task
+
+    def cancel(self):
+        if self.task:
+            self.task.cancel(scope=self)
+
+    def __exit__(self, cls, inst, tb):
+        self.task = None
+        if inst and isinstance(inst, Cancelled) and inst.scope is self:
+            current_task.cancelled = None
+            return True
+        return False
+
+
 class Nursery:
     """A group of coroutines."""
+    __slots__ = (
+        'tasks',
+        'entered',
+        'waiter',
+        'cancel_scope',
+    )
 
     def __init__(self):
-        self.task_count = 0
         self.tasks = set()
         self.entered = False
         self.waiter = None
+        self.cancel_scope = CancelScope()
 
     def do(self, coro):
+        assert self.entered
         task = do(coro)
         self.tasks.add(task)
 
@@ -330,8 +368,7 @@ class Nursery:
         return task
 
     def cancel(self):
-        for t in self.tasks:
-            t.cancel()
+        self.cancel_scope.cancel()
 
     def __enter__(self):
         raise TypeError(
@@ -345,24 +382,39 @@ class Nursery:
     async def __aenter__(self):
         if self.entered:
             raise RuntimeError("Nursery cannot be entered more than once")
+        self.cancel_scope.__enter__()
         self.entered = True
         return self
 
     async def __aexit__(self, cls, inst, tb):
-        if cls:
-            return self.cancel()
-
         if self.waiter:
             raise RuntimeError("A coroutine is already waiting on nursery exit")
-        resume = resume_callback()
-        self.waiter = resume
+
+        cancelled = inst and isinstance(inst, Cancelled) and inst.scope is self.cancel_scope
+        if cancelled:
+            self.entered = False
+            for t in self.tasks:
+                t.cancel()
+
+        self.waiter = resume_callback()
+        exc = None
         try:
-            await _block()
-        except Cancelled:
+            while True:
+                try:
+                    await _block()
+                    if exc:
+                        raise exc
+                    return cancelled
+                except Cancelled as e:
+                    # If we got cancelled while waiting, cancel tasks
+                    self.entered = False
+                    for t in self.tasks:
+                        t.cancel()
+                    current_task.cancelled = None  # Allow blocking again
+                    if e.scope is not self.cancel_scope:
+                        exc = e
+        finally:
             self.waiter = None
-            self.cancel()
-            self.tasks.clear()
-            raise
 
 
 # Override timing calculation when recording video
