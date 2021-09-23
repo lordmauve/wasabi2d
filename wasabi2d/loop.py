@@ -38,11 +38,23 @@ async def next_tick() -> float:
 class Cancelled(Exception):
     """An exception raised indicating a coroutine has been cancelled."""
     def __init__(self, scope=None):
-        super().__init__(scope)
+        super().__init__(scope or set())
 
     @property
     def scope(self):
         return self.args[0]
+
+    def _handle(self, scope):
+        """Handle the given scope.
+
+        Return True if all scopes in this exception have now been handled,
+        meaning flow should continue.
+        """
+        scopes = self.args[0]
+        if scope in scopes:
+            scopes.discard(scope)
+            return not scopes
+        return False
 
 
 def do(coro):
@@ -182,7 +194,7 @@ class Task:
                 result = self.coro.send(v)
         except Cancelled as e:
             assert not e.scope, \
-                f"Task {self.coro} cancelled with uncaught scope {e.scope!r}"
+                f"Task {self.coro} cancelled with uncaught scopes {e.scope!r}"
             self._finish()
         except StopIteration as e:
             self.result = e.value
@@ -222,9 +234,14 @@ class Task:
     def cancel(self, scope=None):
         """Cancel this task."""
         assert self.cancellable
-        if self.finished or self.cancelled:
+        if self.finished:
             return
-        self.cancelled = Cancelled(scope=scope)
+
+        if not self.cancelled:
+            self.cancelled = Cancelled(set())
+        if scope is not None:
+            self.cancelled.scope.add(scope)
+
         if current_task is not self:
             self._resume()
 
@@ -318,6 +335,8 @@ async def gather(*coros):
 
 
 class CancelScope:
+    __slots__ = ('task',)
+
     def __init__(self):
         self.task = None
 
@@ -331,11 +350,20 @@ class CancelScope:
             self.task.cancel(scope=self)
 
     def __exit__(self, cls, inst, tb):
+        # If we're being cancelled by this scope then we absorb the
+        # cancellation and flow can continue.
+        #
+        # Otherwise we let the cancellation propagate to an outer scope.
         self.task = None
-        if inst and isinstance(inst, Cancelled) and inst.scope is self:
+
+        handled = False
+        if isinstance(inst, Cancelled):
+            handled = inst._handle(self)
+
+        if current_task.cancelled and current_task.cancelled._handle(self):
             current_task.cancelled = None
-            return True
-        return False
+
+        return handled
 
 
 class Nursery:
@@ -387,35 +415,62 @@ class Nursery:
         self.entered = True
         return self
 
+    def _cancel_all(self):
+        for t in self.tasks:
+            t.cancel()
+
     async def __aexit__(self, cls, inst, tb):
         if self.waiter:
             raise RuntimeError("A coroutine is already waiting on nursery exit")
 
-        cancelled = inst and isinstance(inst, Cancelled) and inst.scope is self.cancel_scope
-        if cancelled:
+        abort = cls is not None or current_task.cancelled
+        if abort:
             self.entered = False
-            for t in self.tasks:
-                t.cancel()
+            self._cancel_all()
+
+        # Absorb existing cancellation, but allow new cancellation
+        handled = self.cancel_scope.__exit__(cls, inst, tb)
+        self.cancel_scope.__enter__()
 
         self.waiter = resume_callback()
-        exc = None
+        if not abort or handled:
+            exc = None
+        elif inst:
+            exc = inst
+        else:
+            exc = current_task.cancelled
         try:
             while True:
                 try:
-                    await _block()
-                    if exc:
-                        raise exc
-                    return cancelled
+                    if self.tasks:
+                        # We need to block regardless of cancellation state
+                        # of this task. So we clear that state and restore it
+                        # later from exc.
+                        current_task.cancelled = None
+                        await _block()
                 except Cancelled as e:
                     # If we got cancelled while waiting, cancel tasks
+                    self._cancel_all()
+
+                    # Prohibit creating new tasks now that we're cancelled
                     self.entered = False
-                    for t in self.tasks:
-                        t.cancel()
-                    current_task.cancelled = None  # Allow blocking again
-                    if e.scope is not self.cancel_scope:
+
+                    if e._handle(self.cancel_scope):
+                        continue
+
+                    # Merge this cancellation into exc
+                    if exc is None:
                         exc = e
+                    else:
+                        exc.scope.update(e.scope)
+                else:
+                    if exc:
+                        current_task.cancelled = exc
+                        raise exc
+                    return handled
         finally:
             self.waiter = None
+            self.entered = False
 
 
 # Override timing calculation when recording video
