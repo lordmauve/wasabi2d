@@ -44,7 +44,7 @@ class Layer:
         self.objects = set()
         self._dirty = set()
         self.effect = None
-        self.is_hud = False
+        self.parallax = 1.0
 
     def clear(self):
         """Remove everything from the layer."""
@@ -74,15 +74,17 @@ class Layer:
 
     def _draw_inner(self):
         camera = self.group.camera
-        if self.is_hud:
-            prev_xform, camera._xform = camera._xform, self.identity
+        prev_pos = None
+        if self.parallax != 1.0:
+            prev_pos = camera.pos
+            camera.pos = prev_pos * self.parallax
             self.group.shadermgr.set_proj(camera.proj)
         try:
             for a in self.arrays.values():
                 a.render(camera)
         finally:
-            if self.is_hud:
-                camera._xform = prev_xform
+            if prev_pos is not None:
+                camera.pos = prev_pos
                 self.group.shadermgr.set_proj(camera.proj)
 
     def set_effect(self, name: str, **kwargs) -> Any:
