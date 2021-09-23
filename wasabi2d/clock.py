@@ -413,6 +413,18 @@ class SubClock(Clock):
         """Delete this subclock."""
         self.paused = True
 
+    @contextmanager
+    def slowmo(self, rate):
+        """Slow down this clock within the context.
+
+        This is only useful within a coroutine.
+        """
+        prev_rate = self.rate
+        self.rate = rate
+        try:
+            yield
+        finally:
+            self.rate = prev_rate
 
 
 # One instance of a clock is available by default, to simplify the API
