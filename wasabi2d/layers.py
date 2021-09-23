@@ -56,7 +56,7 @@ class Layer:
         self.objects.clear()
         self._dirty.clear()
 
-    def _draw(self):
+    def _draw(self, camera):
         """Render the layer."""
         if not self.visible:
             return
@@ -66,14 +66,13 @@ class Layer:
         self._dirty.clear()
 
         if self.effect:
-            self.effect.draw(self._draw_inner)
+            self.effect.draw(lambda: self._draw_inner(camera))
         else:
-            self._draw_inner()
+            self._draw_inner(camera)
 
     identity = np.identity(4, dtype='f4')
 
-    def _draw_inner(self):
-        camera = self.group.camera
+    def _draw_inner(self, camera):
         prev_pos = None
         if self.parallax != 1.0:
             prev_pos = camera.pos
@@ -345,12 +344,11 @@ class Layer:
 
 
 class LayerGroup(dict):
-    def __new__(cls, ctx, camera):
+    def __new__(cls, ctx):
         return dict.__new__(cls)
 
-    def __init__(self, ctx, camera):
+    def __init__(self, ctx):
         self.ctx = ctx
-        self.camera = camera
         self.shadermgr = ShaderManager(self.ctx)
         self.fontmgr = FontManager(self.ctx)
         self.atlas = Atlas(ctx)

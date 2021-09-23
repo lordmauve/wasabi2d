@@ -47,13 +47,14 @@ class LayerRange(ChainNode):
     def draw(self, scene):
         """Draw the selected layers."""
         layers = scene.layers
+        camera = scene.camera
 
         start = self.start if self.start is not None else -np.inf
         stop = self.stop if self.stop is not None else np.inf
 
         for k in sorted(layers):
             if start <= k <= stop:
-                layers[k]._draw()
+                layers[k]._draw(camera)
 
 
 @dataclass
@@ -67,9 +68,10 @@ class Layers(ChainNode):
     layers: List[int]
 
     def draw(self, scene):
+        camera = scene.camera
         for layer_num in self.layers:
             if layer_num in scene.layers:
-                scene.layers[layer_num]._draw()
+                scene.layers[layer_num]._draw(camera)
 
 
 def to_node(val):

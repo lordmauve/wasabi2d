@@ -12,7 +12,7 @@ from .loaders import sounds
 from . import music
 from . import clock
 from . import tone
-from .scene import Scene
+from .scene import Scene, Window
 from .animation import animate
 from .storage import Storage
 from .chain import LayerRange

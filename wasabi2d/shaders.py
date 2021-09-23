@@ -141,6 +141,28 @@ def bind_framebuffer(ctx, fb, *, clear=False):
         ctx._screen = orig_screen
 
 
+def run_shader(ctx, fragment_shader: str, **uniforms):
+    """Execute a fragment shader over the viewport.
+
+    The actual program and buffers will be cached and re-used.
+
+    Uniforms may be given as keyword arguments. Be sure to specify all
+    uniforms, as reusing a program will mean that previously set values
+    will be used.
+
+    """
+    try:
+        shader_passes = ctx.extra['shader_passes']
+    except KeyError:
+        shader_passes = ctx.extra.setdefault('shader_passes', {})
+    shader_pass = shader_passes.get(fragment_shader)
+    if shader_pass is None:
+        from .effects.base import PostprocessPass
+        shader_pass = PostprocessPass(ctx, text=fragment_shader)
+        shader_passes[fragment_shader] = shader_pass
+    shader_pass.render(**uniforms)
+
+
 blend_aliases = {
     '1': moderngl.ONE,
     1: moderngl.ONE,

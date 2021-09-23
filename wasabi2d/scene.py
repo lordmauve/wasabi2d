@@ -20,7 +20,7 @@ from .layers import LayerGroup
 from .loaders import set_root, images
 from .color import convert_color_rgb
 from .chain import LayerRange
-from .shaders import bind_framebuffer, blend_func
+from .shaders import bind_framebuffer, blend_func, run_shader
 
 
 def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
@@ -34,7 +34,7 @@ def capture_screen(fb: moderngl.Framebuffer) -> pygame.Surface:
     return pygame.transform.flip(img, False, True)
 
 
-class Scene:
+class Window:
     """Top-level interface for renderable objects.
 
     :param width: The width of the window to create, in pixels.
@@ -61,15 +61,15 @@ class Scene:
             icon: str = None,
             rootdir: Optional[str] = None,
             scaler: Union[str, bool, None] = False,
-            background: Union[str, Tuple[float, float, float]] = 'black',
             pixel_art: bool = False):
         self._recording = False
         self._scaler = scaler
 
         if rootdir is None:
             try:
-                rootdir = sys._getframe(1).f_globals['__file__']
-            except KeyError:
+                import __main__
+                rootdir = __main__.__file__
+            except (KeyError, ImportError):
                 import os
                 rootdir = os.getcwd()
         set_root(rootdir)
@@ -99,12 +99,6 @@ class Scene:
 
         self.title = title
 
-        # Default chain: render all layers
-        self.chain = [LayerRange()]
-
-        self.camera = Camera(ctx, self.width, self.height)
-        self.layers = LayerGroup(ctx, self.camera)
-
         ctx.enable(moderngl.BLEND)
         self.ctx.extra['blend_func'] = self.ctx.blend_func = (
             moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
@@ -114,18 +108,19 @@ class Scene:
         from . import event
         event(self.draw)
         event(self.on_screenshot_requested)
-
-        self.background = background
+        self.viewports = []
+        self._dirty = False
 
     def release(self):
         self.layers.clear()
         if self.ctx:
             self.drawer = None
-            self.camera.release()
-            self.camera = None
             self.ctx.extra.pop('shadermgr').release()
             self.ctx.release()
             self.ctx = None
+            for vp in self.viewports:
+                vp.delete()
+            self.viewports.clear()
         gc.collect()
 
     def __del__(self):
@@ -180,16 +175,6 @@ class Scene:
             'linear': LinearScaler,
         }[self._scaler]
         return cls(ctx, dims)
-
-    @property
-    def background(self) -> Tuple[float, float, float]:
-        """Get the background colour for the whole scene."""
-        return self._background
-
-    @background.setter
-    def background(self, v):
-        """Set the background colour for the whole scene."""
-        self._background = convert_color_rgb(v)
 
     @property
     def title(self):
@@ -314,7 +299,6 @@ class Scene:
         if updated:
             self._fps_query = self.ctx.query(time=True)
             self._fps_query.__enter__()
-            self.layers._update(self.camera.proj)
             self.drawer.draw(self)
             self.unflipped = True
         else:
@@ -323,18 +307,168 @@ class Scene:
 
     _flip = staticmethod(pygame.display.flip)
 
+    def create_viewport(
+            self,
+            width=None,
+            height=None,
+            x=0,
+            y=0,
+            background=None,
+        ) -> 'Viewport':
+        """Create a viewport"""
+        vp = Viewport(self, width or self.width, height or self.height, x, y)
+        self.viewports.append(vp)
+        vp.background = background
+        return vp
+
+
+class Scene(Window):
+    """A shortcut to build a window with a single viewport."""
+
+    def __init__(
+            self,
+            *args,
+            background: Union[str, Tuple[float, float, float]] = 'black',
+            **kwargs
+        ):
+        super().__init__(*args, **kwargs)
+        vp = self.viewport = self.create_viewport()
+        self.background = background
+        self.chain = vp.chain
+        self.camera = vp.camera
+        self.layers = vp.layers
+
+    @property
+    def background(self) -> Tuple[float, float, float]:
+        """Get the background colour for the whole scene."""
+        return self.viewport.background
+
+    @background.setter
+    def background(self, v):
+        """Set the background colour for the whole scene."""
+        self.viewport.background = v
+
+
+class Viewport:
+    def __init__(self, window, width, height, x=0, y=0):
+        self.window = window
+        self._width = width
+        self._height = height
+        self._x = x
+        self._y = y
+
+        # Default chain: render all layers
+        self.chain = [LayerRange()]
+
+        self.camera = Camera(window.ctx, self)
+        self.layers = LayerGroup(window.ctx)
+        self._background = None
+
+    @property
+    def background(self) -> Tuple[float, float, float]:
+        """Get the background colour for the whole scene."""
+        return self._background
+
+    @background.setter
+    def background(self, v):
+        """Set the background colour for the whole scene."""
+        if v is None:
+            self._background = None
+        else:
+            self._background = convert_color_rgb(v)
+
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, v):
+        self.window._dirty = True
+        self._x = v
+        self.camera.resize(self)
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, v):
+        self.window._dirty = True
+        self._y = v
+        self.camera.resize(self)
+
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, v):
+        self.window._dirty = True
+        self._width = v
+        self.camera.resize(self)
+
+    @property
+    def height(self):
+        return self._height
+
+    @height.setter
+    def height(self, v):
+        self.window._dirty = True
+        self._height = v
+        self.camera.resize(self)
+
+    @property
+    def dims(self):
+        return (self._x, self._y, self._width, self._height)
+
+    def draw(self):
+        ctx = self.window.ctx
+        prev_vp = ctx.viewport
+        ctx.viewport = self.dims
+        try:
+            if self.background is not None:
+                ctx.clear(*self._background, viewport=self.dims)
+            self.layers._update(self.camera.proj)
+            for op in self.chain:
+                op.draw(self)
+        finally:
+            ctx.viewport = prev_vp
+
+    def delete(self):
+        self.window.viewports.remove(self)
+        self.camera.release()
+
+    def clone(self, width=None, height=None, x=None, y=None) -> 'Viewport':
+        """Create a new Viewport that shares the scene with this one."""
+        vp = Viewport.__new__(Viewport)
+        self.window.viewports.append(vp)
+        vp.window = self.window
+        vp._width = self.width if width is None else width
+        vp._height = self.height if height is None else height
+        vp._x = self.x if x is None else x
+        vp._y = self.y if y is None else y
+        vp._background = self._background
+
+        vp.chain = self.chain
+        vp.camera = Camera(self.window.ctx, vp)
+        vp.layers = self.layers
+        vp._background = self.background
+
 
 class Drawer:
     """Render the scene using the chain."""
-    def draw(self, scene):
-        scene.ctx.clear(*scene.background)
-        for op in scene.chain:
-            op.draw(scene)
+    def draw(self, window):
+        if window._dirty:
+            window.ctx.clear()
+            window._dirty = False
+        for vp in window.viewports:
+            vp.draw()
 
 
 class NearestScaler(Drawer):
     """Render the scene using the chain, but scaled."""
     def __init__(self, ctx, logical_size):
+        self.ctx = ctx
         self.tex = ctx.texture(
             logical_size,
             3,
@@ -347,11 +481,12 @@ class NearestScaler(Drawer):
         self._fb.release()
         self.tex.release()
 
-    def draw(self, scene):
-        with scene.camera.bind_framebuffer(self._fb):
-            super().draw(scene)
-        with blend_func(scene.ctx, moderngl.ONE, moderngl.ZERO):
-            scene.camera.run_shader(
+    def draw(self, window):
+        with bind_framebuffer(self.ctx, self._fb, clear=True):
+            super().draw(window)
+        with blend_func(self.ctx, moderngl.ONE, moderngl.ZERO):
+            run_shader(
+                self.ctx,
                 """\
 #version 330 core
 
@@ -409,10 +544,20 @@ class Camera:
     for temporary framebuffers corresponding to the viewport size.
     """
 
-    def __init__(self, ctx, width, height):
+    def __init__(self, ctx, viewport):
         self.ctx = ctx
-        self.width = width
-        self.height = height
+        self._xform = np.identity(4, dtype='f4')
+        self._cam_offset = np.zeros(2, dtype='f4')
+        self._cam_vel = np.zeros(2, dtype='f4')
+        self._pos = np.zeros(2, dtype='f4')
+        self._fbs = {}
+        self.resize(viewport)
+        self.pos = vec2(self.width, self.height) * 0.5
+
+    def resize(self, viewport):
+        self.release()  # release framebuffers allocated for the old size
+        self.width = viewport.width
+        self.height = viewport.height
         hw = self.width * 0.5
         hh = self.height * 0.5
         self._proj = Matrix44.orthogonal_projection(
@@ -423,13 +568,6 @@ class Camera:
             near=-1000,
             far=1000
         ).astype('f4')
-        self._xform = np.identity(4, dtype='f4')
-        self._cam_offset = np.zeros(2, dtype='f4')
-        self._cam_vel = np.zeros(2, dtype='f4')
-        self._pos = np.zeros(2, dtype='f4')
-        self._fbs = {}
-        self._shader_passes = {}
-        self.pos = hw, hh
 
     @contextmanager
     def temporary_fbs(self, num=1, dtype='f1', samples=0):
@@ -507,19 +645,14 @@ class Camera:
     def run_shader(self, fragment_shader: str, **uniforms):
         """Execute a fragment shader over the viewport.
 
-        The actual program and buffers will be cached and re-used.
+        The program and buffers will be cached and re-used.
 
         Uniforms may be given as keyword arguments. Be sure to specify all
         uniforms, as reusing a program will mean that previously set values
         will be used.
 
         """
-        shader_pass = self._shader_passes.get(fragment_shader)
-        if shader_pass is None:
-            from .effects.base import PostprocessPass
-            shader_pass = PostprocessPass(self.ctx, text=fragment_shader)
-            self._shader_passes[fragment_shader] = shader_pass
-        shader_pass.render(**uniforms)
+        run_shader(self.ctx, fragment_shader, **uniforms)
 
     @property
     def zoom(self):
@@ -531,12 +664,11 @@ class Camera:
 
     @property
     def pos(self):
-        return vec2(*-self._xform[-1, :2])
+        return vec2(*self._pos)
 
     @pos.setter
     def pos(self, v):
-        assert len(v) == 2
-        self._pos[:] = v
+        self._pos[:] = vec2(v)
         self._xform[-1, :2] = self._cam_offset - self._pos
 
     @property
