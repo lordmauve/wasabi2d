@@ -350,12 +350,24 @@ class Scene(Window):
 
 
 class Viewport:
+    __slots__ = (
+        'window',
+        '_width',
+        '_height',
+        '_x',
+        '_y',
+        'chain',
+        'camera',
+        'layers',
+        '_background',
+    )
+
     def __init__(self, window, width, height, x=0, y=0):
         self.window = window
-        self._width = width
-        self._height = height
-        self._x = x
-        self._y = y
+        self._width = round(width)
+        self._height = round(height)
+        self._x = round(x)
+        self._y = round(y)
 
         # Default chain: render all layers
         self.chain = [LayerRange()]
@@ -384,7 +396,7 @@ class Viewport:
     @x.setter
     def x(self, v):
         self.window._dirty = True
-        self._x = v
+        self._x = round(v)
 
     @property
     def y(self):
@@ -393,7 +405,7 @@ class Viewport:
     @y.setter
     def y(self, v):
         self.window._dirty = True
-        self._y = v
+        self._y = round(v)
 
     @property
     def width(self):
@@ -401,6 +413,8 @@ class Viewport:
 
     @width.setter
     def width(self, v):
+        v = round(v)
+        assert v > 0, f"Cannot set viewport width to {v}"
         self.window._dirty = True
         self._width = v
         self.camera.resize(self._width, self._height)
@@ -411,6 +425,8 @@ class Viewport:
 
     @height.setter
     def height(self, v):
+        v = round(v)
+        assert v > 0, f"Cannot set viewport height to {v}"
         self.window._dirty = True
         self._height = v
         self.camera.resize(self._width, self._height)
@@ -455,6 +471,8 @@ class Viewport:
         vp.camera = Camera(self.window.ctx, vp.width, vp.height)
         vp.layers = self.layers
         vp._background = self.background
+
+        return vp
 
 
 class Drawer:
