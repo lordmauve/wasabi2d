@@ -3,6 +3,7 @@
 This is now based on coroutines and tasks but adapted to call synchronous
 functions, for backwards compatibility.
 """
+from os import initgroups
 import time
 import types
 from typing import Optional
@@ -51,9 +52,10 @@ class Cancelled(Exception):
         meaning flow should continue.
         """
         scopes = self.args[0]
-        if scope in scopes:
-            scopes.discard(scope)
-            return not scopes
+        scopes.discard(scope)
+        if not scopes:
+            current_task.cancelled = None
+            return True
         return False
 
 
@@ -81,7 +83,7 @@ def do(coro):
     return task
 
 
-class Event(set):
+class Event:
     """A concurrency primitive where many tasks can wait for one event.
 
     Events start in an "un-set" state. In this state a task waiting for the
@@ -89,11 +91,12 @@ class Event(set):
     waits will not block.
 
     """
-    __slots__ = ('_is_set')
+    __slots__ = ('_is_set', 'waiters')
 
     def __init__(self):
         """Construct an event. Events are initially in the un-set state."""
         self._is_set = False
+        self.waiters = set()
 
     def __bool__(self):
         """Return True if the event is set."""
@@ -106,9 +109,10 @@ class Event(set):
 
         This will release all blocked tasks. Subsequent waits will not block.
         """
-        for waiter in self:
+        for waiter in self.waiters:
             waiter()
-        self.clear()
+        self.waiters.clear()
+        self._is_set = True
 
     def reset(self):
         """Reset the event.
@@ -119,19 +123,19 @@ class Event(set):
 
     def __await__(self):
         """Await this event object."""
+        return self.wait().__await__()
+
+    async def wait(self):
+        """Wait for the event to be set."""
         if self._is_set:
             return
         resume = resume_callback()
         try:
-            self.add(resume)
-            yield from _block()
+            self.waiters.add(resume)
+            await _block()
         except Cancelled:
-            self.discard(resume)
+            self.waiters.discard(resume)
             raise
-
-    async def wait(self):
-        """Wait for the event to be set."""
-        await self
 
 
 @total_ordering
@@ -146,7 +150,6 @@ class Task:
 
     """
     next_id = 0
-    cancellable = True
 
     __slots__ = (
         'id',
@@ -193,6 +196,7 @@ class Task:
                 self._resume_value = None
                 result = self.coro.send(v)
         except Cancelled as e:
+            e.scope.discard(None)
             assert not e.scope, \
                 f"Task {self.coro} cancelled with uncaught scopes {e.scope!r}"
             self._finish()
@@ -233,14 +237,12 @@ class Task:
 
     def cancel(self, scope=None):
         """Cancel this task."""
-        assert self.cancellable
         if self.finished:
             return
 
         if not self.cancelled:
-            self.cancelled = Cancelled(set())
-        if scope is not None:
-            self.cancelled.scope.add(scope)
+            self.cancelled = Cancelled()
+        self.cancelled.scope.add(scope)
 
         if current_task is not self:
             self._resume()
@@ -340,6 +342,10 @@ class CancelScope:
     def __init__(self):
         self.task = None
 
+    def __repr__(self):
+        coro = self.task.coro if self.task else None
+        return f'<{type(self).__name__} {self._dbgname!r} {coro}>'
+
     def __enter__(self):
         assert self.task is None or self.task is current_task
         self.task = current_task
@@ -416,6 +422,12 @@ class Nursery:
         return self
 
     def _cancel_all(self):
+        """Cancel all tasks in this nursery.
+
+        Also prevent any new tasks being created.
+        """
+        # Prohibit creating new tasks now that we're cancelled
+        self.entered = False
         for t in self.tasks:
             t.cancel()
 
@@ -425,7 +437,6 @@ class Nursery:
 
         abort = cls is not None or current_task.cancelled
         if abort:
-            self.entered = False
             self._cancel_all()
 
         # Absorb existing cancellation, but allow new cancellation
@@ -433,12 +444,17 @@ class Nursery:
         self.cancel_scope.__enter__()
 
         self.waiter = resume_callback()
+        exc = None
         if not abort or handled:
             exc = None
-        elif inst:
-            exc = inst
-        else:
-            exc = current_task.cancelled
+        elif isinstance(inst, Cancelled):
+            exc = Cancelled(scope=inst.scope)
+
+        if current_task.cancelled:
+            if exc:
+                exc.scope.update(current_task.cancelled.scope)
+            else:
+                exc = current_task.cancelled
         try:
             while True:
                 try:
@@ -452,25 +468,22 @@ class Nursery:
                     # If we got cancelled while waiting, cancel tasks
                     self._cancel_all()
 
-                    # Prohibit creating new tasks now that we're cancelled
-                    self.entered = False
-
-                    if e._handle(self.cancel_scope):
-                        continue
-
                     # Merge this cancellation into exc
                     if exc is None:
-                        exc = e
+                        exc = Cancelled(scope=e.scope)
                     else:
                         exc.scope.update(e.scope)
                 else:
                     if exc:
-                        current_task.cancelled = exc
-                        raise exc
-                    return handled
+                        if not exc._handle(self.cancel_scope):
+                            current_task.cancelled = exc
+                            raise exc
+                    current_task.cancelled = None
+                    return True
         finally:
             self.waiter = None
             self.entered = False
+            self.cancel_scope.__exit__(None, None, None)
 
 
 # Override timing calculation when recording video
