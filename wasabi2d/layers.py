@@ -340,7 +340,10 @@ class LayerGroup(dict):
 
     def __init__(self, ctx):
         self.ctx = ctx
-        self.shadermgr = ShaderManager(self.ctx)
+        if 'shadermgr' in ctx.extra:
+            self.shadermgr = ctx.extra['shadermgr']
+        else:
+            self.shadermgr = ShaderManager(self.ctx)
         self.fontmgr = FontManager(self.ctx)
         self.atlas = Atlas(ctx)
 
