@@ -360,7 +360,7 @@ class Viewport:
         # Default chain: render all layers
         self.chain = [LayerRange()]
 
-        self.camera = Camera(window.ctx, self)
+        self.camera = Camera(window.ctx, self._width, self._height)
         self.layers = LayerGroup(window.ctx)
         self._background = None
 
@@ -385,7 +385,6 @@ class Viewport:
     def x(self, v):
         self.window._dirty = True
         self._x = v
-        self.camera.resize(self)
 
     @property
     def y(self):
@@ -395,7 +394,6 @@ class Viewport:
     def y(self, v):
         self.window._dirty = True
         self._y = v
-        self.camera.resize(self)
 
     @property
     def width(self):
@@ -405,7 +403,7 @@ class Viewport:
     def width(self, v):
         self.window._dirty = True
         self._width = v
-        self.camera.resize(self)
+        self.camera.resize(self._width, self._height)
 
     @property
     def height(self):
@@ -415,7 +413,7 @@ class Viewport:
     def height(self, v):
         self.window._dirty = True
         self._height = v
-        self.camera.resize(self)
+        self.camera.resize(self._width, self._height)
 
     @property
     def dims(self):
@@ -439,7 +437,11 @@ class Viewport:
         self.camera.release()
 
     def clone(self, width=None, height=None, x=None, y=None) -> 'Viewport':
-        """Create a new Viewport that shares the scene with this one."""
+        """Create a new Viewport that shares the scene with this one.
+
+        The new viewport will have its own dimensions and an independent camera
+        object.
+        """
         vp = Viewport.__new__(Viewport)
         self.window.viewports.append(vp)
         vp.window = self.window
@@ -450,7 +452,7 @@ class Viewport:
         vp._background = self._background
 
         vp.chain = self.chain
-        vp.camera = Camera(self.window.ctx, vp)
+        vp.camera = Camera(self.window.ctx, vp.width, vp.height)
         vp.layers = self.layers
         vp._background = self.background
 
@@ -544,20 +546,20 @@ class Camera:
     for temporary framebuffers corresponding to the viewport size.
     """
 
-    def __init__(self, ctx, viewport):
+    def __init__(self, ctx, width, height):
         self.ctx = ctx
         self._xform = np.identity(4, dtype='f4')
         self._cam_offset = np.zeros(2, dtype='f4')
         self._cam_vel = np.zeros(2, dtype='f4')
         self._pos = np.zeros(2, dtype='f4')
         self._fbs = {}
-        self.resize(viewport)
+        self.resize(width, height)
         self.pos = vec2(self.width, self.height) * 0.5
 
-    def resize(self, viewport):
+    def resize(self, width, height):
         self.release()  # release framebuffers allocated for the old size
-        self.width = viewport.width
-        self.height = viewport.height
+        self.width = width
+        self.height = height
         hw = self.width * 0.5
         hh = self.height * 0.5
         self._proj = Matrix44.orthogonal_projection(
