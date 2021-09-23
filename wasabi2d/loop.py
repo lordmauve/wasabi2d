@@ -342,10 +342,6 @@ class CancelScope:
     def __init__(self):
         self.task = None
 
-    def __repr__(self):
-        coro = self.task.coro if self.task else None
-        return f'<{type(self).__name__} {self._dbgname!r} {coro}>'
-
     def __enter__(self):
         assert self.task is None or self.task is current_task
         self.task = current_task
