@@ -351,6 +351,69 @@ class Clock:
                 self.unschedule(cb)
         return self.fired
 
+    def animate(
+            self,
+            object,
+            tween='linear',
+            duration=1,
+            on_finished=None,
+            **targets,
+        ):
+        """Interpolate some attributes of object using this clock."""
+        from .animation import Animation
+        return Animation(
+            object,
+            tween,
+            duration,
+            on_finished=on_finished,
+            clock=self,
+            **targets
+        )
+
+    def create_sub_clock(self, rate=1.0) -> 'SubClock':
+        """Create a new clock attached to this one.
+
+        The new clock ticks when this one ticks, but can tick at a different
+        rate and be paused independently.
+
+        """
+        return SubClock(self, rate)
+
+
+class SubClock(Clock):
+    """A clock which has a parent clock controlling when it ticks."""
+    rate: float
+
+    def __init__(self, parent: Clock, rate=1.0):
+        self._paused = True
+        self.parent = parent
+        self.rate = 1.0
+        super().__init__()
+
+    @property
+    def paused(self):
+        return self._paused
+
+    @paused.setter
+    def paused(self, v):
+        v = bool(v)
+        if v == self._paused:
+            return
+        if v:
+            self.parent.unschedule(self._tick_from)
+        else:
+            self.parent.each_tick(self._tick_from, strong=True)
+        self._paused = v
+
+    def _tick_from(self, dt):
+        if self.rate:
+            self.tick(dt * self.rate)
+
+    def delete(self):
+        """Delete this subclock."""
+        self.paused = True
+
+
 
 # One instance of a clock is available by default, to simplify the API
 default_clock = clock = Clock()
@@ -362,3 +425,4 @@ unschedule = clock.unschedule
 each_tick = clock.each_tick
 call_soon = clock.call_soon
 coro = clock.coro
+create_sub_clock = clock.create_sub_clock

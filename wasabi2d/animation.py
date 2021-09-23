@@ -238,23 +238,34 @@ class Animation:
         self.animations.remove(self)
 
     def __await__(self):
-        """Make the animation awaitable.
+        """Wait for the animation to finish.
 
-        Currently, lacking concurrency primitives, this just sleeps for the
-        remaining duration of the animation.
+        Cancelling such an await aborts the animation.
+
+        This seems slightly odd in that animations happen even if not actively
+        awaited. But it is usually what you want: if you are awaiting an
+        animation, and the coroutine is cancelled, you're probably about to
+        do something completely different with the object: change its state, or
+        delete it.
+
+        This cancellation leaves the attributes in an intermediate state so it
+        is up to the awaiting coroutine to restore these if cancelled.
         """
+        # TODO: we could add a different function to await with different cancel
+        # semantics, eg. await w2d.animate().ensure_complete()
+        if not self._running:
+            return
+
         from .loop import resume_callback, Cancelled
         resume = resume_callback()
 
         self.waiters.add(resume)
-
-        sleep_for = self.duration - self.t
         try:
             yield False
         except Cancelled:
             self.waiters.discard(resume)
+            self.stop()
             raise
-        return sleep_for
 
     def _remove_target(self, target, stop=True):
         del self.targets[target]
