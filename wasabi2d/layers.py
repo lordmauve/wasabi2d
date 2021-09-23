@@ -73,18 +73,9 @@ class Layer:
     identity = np.identity(4, dtype='f4')
 
     def _draw_inner(self, camera):
-        prev_pos = None
-        if self.parallax != 1.0:
-            prev_pos = camera.pos
-            camera.pos = prev_pos * self.parallax
-            self.group.shadermgr.set_proj(camera.proj)
-        try:
-            for a in self.arrays.values():
-                a.render(camera)
-        finally:
-            if prev_pos is not None:
-                camera.pos = prev_pos
-                self.group.shadermgr.set_proj(camera.proj)
+        self.group.shadermgr.set_proj(camera._getproj(self.parallax))
+        for a in self.arrays.values():
+            a.render(camera)
 
     def set_effect(self, name: str, **kwargs) -> Any:
         """Set the post processing effect to use for the layer.

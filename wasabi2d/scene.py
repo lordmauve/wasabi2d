@@ -675,6 +675,15 @@ class Camera:
     def proj(self):
         return self._xform @ self._proj
 
+    def _getproj(self, parallax=1.0):
+        if parallax == 1.0:
+            return self._xform @ self._proj
+        pos = tuple(self._xform[-1, :2])
+        self._xform[-1, :2] *= parallax
+        p = self._xform @ self._proj
+        self._xform[-1, :2] = pos
+        return p
+
     def screen_shake(self, dist=25):
         """Trigger a screen shake effect.
 
