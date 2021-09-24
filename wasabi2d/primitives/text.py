@@ -163,7 +163,7 @@ class Label(Colorable, Transformable):
             cx = np.cumsum(metrics[:, 4])
             xpos = metrics[:, 0:2] + cx[::, np.newaxis]
 
-            layout_width = cx[-1] + metrics[-1, 1]
+            layout_width = cx[-1] #+ metrics[-1, 4]
             align_offset = ALIGNMENTS[self._align] * layout_width
             yoff = lineno * line_height
             for idx, char in enumerate(line):
