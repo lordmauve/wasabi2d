@@ -475,7 +475,7 @@ class Nursery:
                             current_task.cancelled = exc
                             raise exc
                     current_task.cancelled = None
-                    return True
+                    return handled
         finally:
             self.waiter = None
             self.entered = False
