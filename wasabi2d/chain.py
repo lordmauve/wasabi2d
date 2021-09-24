@@ -309,7 +309,7 @@ class Fill(ChainNode):
 
     def draw(self, viewport):
         """Draw the effect."""
-        viewport.camera.ctx.clear(*self._color, viewport=viewport.dims)
+        viewport.camera.ctx.clear(*self._color, viewport=viewport._rect)
 
 
 DISPLACEMENT_PROG = """ \

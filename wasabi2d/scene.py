@@ -417,6 +417,32 @@ class Viewport:
         self._y = round(v)
 
     @property
+    def center(self):
+        return vec2(self.x, self.y) + 0.5 * self.dims
+
+    @center.setter
+    def center(self, v):
+        x, y = vec2(*v) - 0.5 * self.dims
+        self.x = x
+        self.y = y
+
+    @property
+    def dims(self):
+        return vec2(self._width, self._height)
+
+    @dims.setter
+    def dims(self, v):
+        w, h = v
+        w = round(w)
+        h = round(h)
+        assert w > 0, f"Cannot set viewport width to {w}"
+        assert h > 0, f"Cannot set viewport height to {h}"
+        self._width = round(w)
+        self._height = round(h)
+        self.window._dirty = True
+        self.camera.resize(self._width, self._height)
+
+    @property
     def width(self):
         return self._width
 
@@ -441,16 +467,20 @@ class Viewport:
         self.camera.resize(self._width, self._height)
 
     @property
-    def dims(self):
+    def _rect(self):
         return (self._x, self._y, self._width, self._height)
+
+    @property
+    def rect(self):
+        return pygame.Rect(*self._rect)
 
     def draw(self):
         ctx = self.window.ctx
         prev_vp = ctx.viewport
-        ctx.viewport = self.dims
+        ctx.viewport = self._rect
         try:
             if self.background is not None:
-                ctx.clear(*self._background, viewport=self.dims)
+                ctx.clear(*self._background, viewport=self._rect)
             self.layers._update(self.camera.proj)
             for op in self.chain:
                 op.draw(self)
