@@ -334,9 +334,18 @@ class Scene(Window):
         super().__init__(*args, **kwargs)
         vp = self.viewport = self.create_viewport()
         self.background = background
-        self.chain = vp.chain
         self.camera = vp.camera
         self.layers = vp.layers
+
+    @property
+    def chain(self):
+        """Expose the viewport's chain as a scene attribute."""
+        return self.viewport.chain
+
+    @chain.setter
+    def chain(self, v):
+        """Set the viewport's chain."""
+        self.viewport.chain = v
 
     @property
     def background(self) -> Tuple[float, float, float]:
@@ -578,6 +587,7 @@ class Camera:
         self.release()  # release framebuffers allocated for the old size
         self.width = width
         self.height = height
+        self.dims = (width, height)
         hw = self.width * 0.5
         hh = self.height * 0.5
         self._proj = Matrix44.orthogonal_projection(

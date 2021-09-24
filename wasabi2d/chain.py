@@ -129,21 +129,22 @@ class Effect(ChainNode):
 
         self._effect = None
         self._subchain = child_node
-        self._camera = None
+        self._camera_dims = None
 
-        def draw(scene):
+        def draw(viewport):
             """Bind the context and instantiate the effect."""
-            ctx = scene.ctx
+            camera = viewport.camera
+            ctx = camera.ctx
             self._effect = cls(ctx, **params)
             self.draw = self.real_draw
-            self.draw(scene)
+            self.draw(viewport)
         self.draw = draw
 
-    def real_draw(self, scene):
-        if scene.camera is not self._camera:
-            self._camera = scene.camera
+    def real_draw(self, viewport):
+        if viewport.camera.dims is not self._camera_dims:
+            self._camera_dims = viewport.camera.dims
             self._effect._set_camera(self._camera)
-        self._effect.draw(partial(self._subchain.draw, scene))
+        self._effect.draw(partial(self._subchain.draw, viewport))
 
     def __getattr__(self, k):
         if k in self._effect_keys:
@@ -255,7 +256,7 @@ class Light(ChainNode):
 
     light: ChainNode
     diffuse: ChainNode
-    ambient: Tuple[float, float, float, float] = (0, 0, 0, 0)
+    ambient: Tuple[float, float, float, float] = (0, 0, 0, 1)
 
     def __post_init__(self):
         self.light = to_node(self.light)
@@ -269,7 +270,7 @@ class Light(ChainNode):
                 camera.temporary_fb(dtype='f2') as light:
             with camera.bind_framebuffer(light):
                 with blend_func(
-                    scene.ctx,
+                    camera.ctx,
                     src=moderngl.SRC_ALPHA,
                     dest=moderngl.ONE,
                     src_a=moderngl.ONE,
@@ -306,9 +307,9 @@ class Fill(ChainNode):
     def color(self, v):
         self._color = convert_color(v)
 
-    def draw(self, scene):
+    def draw(self, viewport):
         """Draw the effect."""
-        scene.ctx.clear(*self._color)
+        viewport.camera.ctx.clear(*self._color, viewport=viewport.dims)
 
 
 DISPLACEMENT_PROG = """ \
