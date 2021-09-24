@@ -447,7 +447,7 @@ class TileMap:
     def clear(self):
         """Clear the tile map."""
         self._tilemgr.clear()
-        self._tiles.clear()
+        self._tiles = [None]
         self._names.clear()
 
     @property
