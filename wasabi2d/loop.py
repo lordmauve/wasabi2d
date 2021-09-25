@@ -180,7 +180,7 @@ class Task:
         return f"Task({self.coro!r})"
 
     def __lt__(self, other):
-        return self.next_id < other.next_id
+        return self.id < other.id
 
     def _step(self):
         global current_task
