@@ -109,6 +109,13 @@ class Coroutines:
             raise
         return self.clock.t - t
 
+    async def intervals(self, seconds: float):
+        """Loop periodically after each interval of time."""
+        t = 0
+        while True:
+            t += await self.sleep(seconds)
+            yield t
+
     async def next_frame(self):
         """Await the next frame. Return the time elapsed."""
         while True:
