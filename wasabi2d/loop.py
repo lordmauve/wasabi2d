@@ -3,7 +3,6 @@
 This is now based on coroutines and tasks but adapted to call synchronous
 functions, for backwards compatibility.
 """
-from os import initgroups
 import time
 import types
 from typing import Optional
@@ -351,7 +350,7 @@ class CancelScope:
         if self.task:
             self.task.cancel(scope=self)
 
-    def __exit__(self, cls, inst, tb):
+    def __exit__(self, cls, inst, tb) -> bool:
         # If we're being cancelled by this scope then we absorb the
         # cancellation and flow can continue.
         #
@@ -427,7 +426,7 @@ class Nursery:
         for t in self.tasks:
             t.cancel()
 
-    async def __aexit__(self, cls, inst, tb):
+    async def __aexit__(self, cls, inst, tb) -> bool:
         if self.waiter:
             raise RuntimeError("A coroutine is already waiting on nursery exit")
 
