@@ -26,12 +26,11 @@ from .loop import do, run, PygameEvents, gather, Nursery, Event
 Vector2 = vec2
 
 event = EventMapper()
-pgevents = PygameEvents(event)
-next_event = pgevents.wait
-do(pgevents.run())
+events = PygameEvents(event)
+next_event = events.wait
+do(events.run())
 del EventMapper
 del PygameEvents
-del pgevents
 
 __version__ = (1, 4, 0)
 __all__ = [

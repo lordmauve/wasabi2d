@@ -5,8 +5,10 @@ functions, for backwards compatibility.
 """
 import time
 import types
-from typing import Optional
-from functools import total_ordering
+from functools import total_ordering, lru_cache
+from contextlib import contextmanager
+from collections import deque
+import builtins
 import heapq
 
 import pygame.event
@@ -186,6 +188,7 @@ class Task:
         assert not self.finished, \
             f"{self!r} was rescheduled when already finished"
         self._scheduled = False
+        prev_task = current_task
         try:
             current_task = self
             if self.cancelled:
@@ -212,7 +215,7 @@ class Task:
             elif result:
                 self._park()
         finally:
-            current_task = None
+            current_task = prev_task
 
     def _park(self):
         """Block until the next frame."""
@@ -227,6 +230,18 @@ class Task:
             heapq.heappush(runnable, self)
             self._resume_value = v
             self._scheduled = True
+
+    def _run_immediate(self, v):
+        """Step the coroutine right now with value v.
+
+        This is primarily used in event dispatch. If we simply mark a task as
+        resumed and run it later then we can only resume it once per frame with
+        one event. This is likely to drop events. So we instead schedule it
+        with _run_immediate which runs tasks during the event dispatch.
+        """
+        assert not self._scheduled, "Coroutine is already scheduled."
+        self._resume_value = v
+        self._step()
 
     def _finish(self):
         self.finished = True
@@ -264,7 +279,83 @@ runnable = []
 runnable_next = []
 
 #: This is the currently executing task, if any.
-current_task: Optional[Task] = None
+current_task = None
+
+
+#: A mapping of strings to events.
+#:
+#: This can be used to subscribe to events without importing the Pygame
+#: constants. Additionally this lets us used extra names, like the HTML5 event
+#: names as documentewd here:
+#:
+#: https://www.w3schools.com/jsref/dom_obj_event.asp
+EVENT_NAMES = {
+    # HTML5 mouse events
+    'mousedown': pygame.MOUSEBUTTONDOWN,
+    'mouseup': pygame.MOUSEBUTTONUP,
+    'mousemove': pygame.MOUSEMOTION,
+    'wheel': pygame.MOUSEWHEEL,
+
+    # Pygame mouse events
+    'mousemotion': pygame.MOUSEMOTION,
+    'mousebuttondown': pygame.MOUSEBUTTONDOWN,
+    'mousebuttonup': pygame.MOUSEBUTTONUP,
+    'mousewheel': pygame.MOUSEWHEEL,
+
+    'keydown': pygame.KEYDOWN,
+    'keyup': pygame.KEYUP,
+    'joyaxismotion': pygame.JOYAXISMOTION,
+    'joyhatmotion': pygame.JOYHATMOTION,
+    'joybuttonup': pygame.JOYBUTTONUP,
+    'joybuttondown': pygame.JOYBUTTONDOWN,
+
+    'userevent': pygame.USEREVENT,
+
+    # HTML5 touch events
+    'touchstart': pygame.FINGERDOWN,
+    'touchend': pygame.FINGERUP,
+    'touchmove': pygame.FINGERMOTION,
+
+    # Pygame touch events
+    'fingerdown': pygame.FINGERDOWN,
+    'fingerup': pygame.FINGERUP,
+    'fingermotion': pygame.FINGERMOTION,
+    'multigesture': pygame.MULTIGESTURE,
+
+    'textediting': pygame.TEXTEDITING,
+    'textinput': pygame.TEXTINPUT,
+
+    'dropbegin': pygame.DROPBEGIN,
+    'dropcomplete': pygame.DROPCOMPLETE,
+    'dropfile': pygame.DROPFILE,
+    'droptext': pygame.DROPTEXT,
+
+    'videoresize': pygame.VIDEORESIZE,
+    'videoexpose': pygame.VIDEOEXPOSE,
+
+    'controllerdeviceadded': pygame.CONTROLLERDEVICEADDED,
+    'controllerdeviceremoved': pygame.CONTROLLERDEVICEREMOVED,
+    'controllerdeviceremapped': pygame.CONTROLLERDEVICEREMAPPED,
+    'joydeviceadded': pygame.JOYDEVICEADDED,
+    'joydeviceremoved': pygame.JOYDEVICEREMOVED,
+}
+
+
+@lru_cache(100)
+def evfilter(**attrs):
+    fns = {}
+    for k, v in attrs.items():
+        if isinstance(v, tuple):
+            fns[k] = v.__contains__
+        else:
+            fns[k] = v.__eq__
+
+    def accept(ev) -> bool:
+        for attr, fn in fns.items():
+            if not fn(getattr(ev, attr)):
+                return False
+        return True
+    return accept
 
 
 class PygameEvents:
@@ -273,20 +364,169 @@ class PygameEvents:
         self.get_events = get_events
         self.waiters = {}
 
-    async def wait(self, *event_types):
-        handler = current_task._resume
-
+    def _reg(self, handler, event_types):
         for event_type in event_types:
             if event_type in self.waiters:
                 self.waiters[event_type].add(handler)
             else:
                 self.waiters[event_type] = {handler}
 
+    def _unreg(self, handler, event_types):
+        for event_type in event_types:
+            self.waiters[event_type].discard(handler)
+
+    @contextmanager
+    def _subscription(self, handler, *event_types):
+        """Register handler for the given event types within the context."""
+        event_types = tuple(EVENT_NAMES.get(t, t) for t in event_types)
+        self._reg(handler, event_types)
         try:
-            return await _block()
+            yield
         finally:
-            for event_type in event_types:
-                self.waiters[event_type].discard(handler)
+            self._unreg(handler, event_types)
+
+    async def wait(self, event_type, **attrs):
+        """Wait for one event.
+
+        For example::
+
+            await wait('mousedown')
+
+        Often this will be called in a loop::
+
+            while True:
+                ev = await wait('mousedown')
+                ...
+                # do something with the event
+
+        Beware that this can drop events; it is only accepting an event within
+        the wait() call. In particular something like this will not work::
+
+            while True:
+                await wait('mousedown')
+                await animate(something)
+                await wait('mouseup')
+                await animate(something)
+
+        The 'mouseup' event can come immediately after the 'mousedown' event,
+        before this coroutine is waiting on it. If that happens this coroutine
+        will block on wait('mouseup') even though the mouse button *is* up.
+
+        To avoid this, use subscribe() or other coalescing functions::
+
+            button = mousebuttonstate(button=0)
+            while True:
+                await button.pressed()
+                await animate(something)
+                await button.released()
+                await animate(something)
+
+
+        We need to use _run_immediate here in order to resume during event
+        dispatch, primarily so that we can resume repeatedly, and in the order
+        that events are found in the queue.
+        """
+        if attrs:
+            resume = current_task._run_immediate
+            filter = evfilter(**attrs)
+            handler = lambda ev: filter(ev) and resume(ev)  # noqa: E731
+        else:
+            handler = current_task._run_immediate
+
+        with self._subscription(handler, event_type):
+            return await _block()
+
+    async def subscribe(self, *event_types, **attrs):
+        """Subscribe for the given types of events.
+
+        Return an asynchronous iterator that allows iterating over the events
+        matched.
+
+        For example::
+
+            async for ev in subscribe('mouseup', 'mousedown', button=0):
+                ...
+
+        Unlike waiting on a single event, this is guaranteed not to miss any
+        events. As long as the subscription object is alive it records events
+        and will not miss any.
+
+        This is not necessarily desirable. It can capture an unbounded queue
+        of events and force processing of all of them. It may be better to
+        coalesce similar events. Other methods of this class provide ways of
+        accessing events that are coalesce similar events in sensible ways.
+
+        """
+        queue = deque()
+        if attrs:
+            filter = evfilter(**attrs)
+        else:
+            filter = None
+
+        wakeup = Event()
+
+        def handler(ev):
+            if filter and not filter(ev):
+                return
+            queue.append(ev)
+            wakeup.set()
+
+        with self._subscription(handler, *event_types):
+            while True:
+                if not queue:
+                    wakeup.reset()
+                    await wakeup
+                yield queue.popleft()
+
+    async def next_touch(self):
+        """Iterate over touch events for the next touch.
+
+        The touch events returned correspond to a single touch/finger.
+
+        You could use this like
+
+            async for event in w2d.events.next_touch():
+                ...
+
+        to handle one touch at a time.
+
+        However, you can also easily extend this to multi-touch, spawning a
+        coroutine for each touch.
+
+            async with w2d.Nursery() as nursery:
+                while True:
+                    touch_events = w2d.events.next_touch()
+                    finger_down_event = await anext(touch)
+                    nursery.do(run_touch(finger_down_event, touch_events))
+
+        """
+        with self._subscription(current_task._run_immediate, 'fingerdown'):
+            start = await _block()
+            finger_id = start.finger_id
+
+        latest = None
+        resume = None
+
+        def handle_drag(ev):
+            nonlocal latest, resume
+            if ev.finger_id == finger_id:
+                latest = ev
+                if resume:
+                    h = resume
+                    resume = None
+                    h(None)
+
+        with self._subscription(handle_drag, 'fingerup', 'fingermotion'):
+            yield start
+
+            while True:
+                if not latest:
+                    resume = current_task._resume
+                    await _block()
+                yield latest
+                if latest.type == pygame.FINGERUP:
+                    break
+                latest = None
 
     async def run(self):
         from .game import UpdateEvent, DrawEvent
@@ -306,9 +546,10 @@ class PygameEvents:
             events.extend([update, draw])
 
             updated = False
+            no_handlers = frozenset()
             for event in events:
                 updated |= self.evmapper.dispatch_event(event)
-                handlers = self.waiters.get(event.type, ())
+                handlers = self.waiters.get(event.type, no_handlers).copy()
                 for h in handlers:
                     h(event)
                 if handlers:
@@ -328,11 +569,32 @@ async def frames_dt():
 
 async def gather(*coros):
     """Wait for all of the given coroutines/tasks to finish."""
-    tasks = []
-    for coro in coros:
-        tasks.append(do(coro))
-    for t in tasks:
-        await t.join()
+    async with Nursery() as ns:
+        for coro in coros:
+            ns.do(coro)
+
+
+NODEFAULT = object()
+
+
+async def anext(aiter, default=NODEFAULT):
+    """Polyfill for anext() in Python <3.10.
+
+    Fun fact: I helped write anext() in Python 3.10 too. This does the same job
+    in much less code.
+    """
+    try:
+        return await aiter.__anext__()
+    except StopAsyncIteration:
+        if default is NODEFAULT:
+            raise
+        return default
+
+
+try:
+    builtins.anext
+except AttributeError:
+    builtins.anext = anext
 
 
 class CancelScope:
@@ -492,12 +754,24 @@ def run(main=None, timefunc=time.perf_counter):
         main = do(main)
 
     t = timefunc()
+
+    exit = None
     while True:
         if main and main.finished:
+            if exit:
+                raise exit
             return main.result
+
         while runnable:
             task = heapq.heappop(runnable)
-            task._step()
+            try:
+                task._step()
+            except SystemExit as e:
+                if main:
+                    exit = e
+                    main.cancel()
+                else:
+                    raise
 
         now = timefunc()
         if lock_fps:

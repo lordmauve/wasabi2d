@@ -5,13 +5,13 @@ To start with, we'll create a new Python file.
 
 The minimal boilerplate for a wasabi2d game is this::
 
-    from wasabi2d import Scene, run
+    import wasabi2d as w2d
 
-    scene = Scene()
+    scene = w2d.Scene()
 
     # The rest of your code goes here.
 
-    run()  # keep this at the end of the file
+    w2d.run()  # keep this at the end of the file
 
 
 Here we create an empty scene/window, and then we start the game.
@@ -44,9 +44,8 @@ function to animate an attribute over time::
 
 
     from math import hypot
-    from wasabi2d import animate, event
 
-    @event
+    @w2d.event
     def on_mouse_down(pos):
         mouse_x, mouse_y = pos
         cx, cy = circle.pos
@@ -55,5 +54,24 @@ function to animate an attribute over time::
 
         if hit:
             circle.radius = 50
-            animate(circle, 'bounce_end', radius=30)
+            w2d.animate(circle, 'bounce_end', radius=30)
 
+
+Quickstart with coroutines
+--------------------------
+
+Wasabi2D has an extensive :doc:`coroutine <coros>` based programming model and
+this is the style we recommend for most programs.
+
+Let's use coroutines to create a circle that follows the mouse.
+
+Instead of defining event handlers, we can pass ``run()`` a coroutine object, and
+await events as we choose:
+
+.. literalinclude:: ../examples/coroutines/clicks.py
+
+This example creates showers of particles wherever we click the mouse button.
+
+We could instead create an emitter that tracks the mouse.
+
+.. literalinclude:: ../examples/coroutines/drags.py
