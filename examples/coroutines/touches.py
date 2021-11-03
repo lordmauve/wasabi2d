@@ -5,8 +5,10 @@ import colorsys
 from wasabi2d import vec2
 
 
-scene = w2d.Scene(1280, 720)
-
+scene = w2d.Scene(1280, 720, background='white')
+scene.chain = [
+    w2d.chain.LayerRange().wrap_effect('outline')
+]
 particles = scene.layers[0].add_particle_group(
     max_age=2,
     grow=0.2,
@@ -47,12 +49,11 @@ async def run_touch(initial_pos, touch_events):
     color = colorsys.hsv_to_rgb(random.random(), 1, 1)
     emitter = particles.add_emitter(
         pos=initial_pos,
-        rate=50,
+        rate=200,
         color=color,
-        size=6,
-        vel_spread=30,
-        spin_spread=2,
-        angle=1.5
+        size=12,
+        vel_spread=60,
+        pos_spread=10,
     )
     try:
         async for ev in touch_events:

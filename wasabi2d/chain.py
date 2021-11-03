@@ -143,13 +143,13 @@ class Effect(ChainNode):
     def real_draw(self, viewport):
         if viewport.camera.dims is not self._camera_dims:
             self._camera_dims = viewport.camera.dims
-            self._effect._set_camera(self._camera)
+            self._effect._set_camera(viewport.camera)
         self._effect.draw(partial(self._subchain.draw, viewport))
 
     def __getattr__(self, k):
         if k in self._effect_keys:
             return getattr(self._effect, k)
-        return object.__getattr__(self, k)
+        return object.__getattribute__(self, k)
 
     def __setattr__(self, k, v):
         if not k.startswith('_') and k in self._effect_keys:
