@@ -6,12 +6,7 @@ out vec4 f_color;
 uniform sampler2D image;
 uniform vec4 color;
 
-vec4 atop(vec4 top, vec4 bottom) {
-    return vec4(
-        mix(bottom.rgb, top.rgb, top.a),
-        top.a + (1 - top.a) * bottom.a
-    );
-}
+#include "atop.frag"
 
 void main()
 {

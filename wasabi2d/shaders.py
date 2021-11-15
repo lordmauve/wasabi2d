@@ -1,10 +1,17 @@
 """Manage the compilation of programs in a context."""
+import re
 from typing import Optional, Dict, Tuple
 from contextlib import contextmanager
 import pkgutil
 
 import moderngl
 import numpy as np
+
+
+INCLUDE_RE = re.compile(
+    r'^#include +"([^"]+)" *$',
+    flags=re.MULTILINE
+)
 
 
 class ShaderManager:
@@ -29,7 +36,17 @@ class ShaderManager:
 
     def _read(self, name: str):
         """Read a GLSL file from the wasabi2d directory."""
-        return pkgutil.get_data('wasabi2d', 'glsl/' + name).decode('utf-8')
+        code = pkgutil.get_data('wasabi2d', 'glsl/' + name).decode('utf-8')
+        return self._preprocessor(code)
+
+    def _preprocessor(self, shader: str) -> str:
+        """Rewrite shader code to handle includes."""
+        def include(match):
+            lineno = shader[:match.start()].count('\n')
+            name = match.group(1)
+            code = self._read(f"include/{name}")
+            return f'{code}\n#line {lineno + 1}\n'
+        return INCLUDE_RE.sub(include, shader)
 
     def load(self, *names) -> moderngl.Program:
         """Load a program from the wasabi2d/glsl directory.
