@@ -18,6 +18,7 @@ of working with Wasabi2D.
     compatible with their event loops. It only uses the ``async`` and
     ``await`` syntax.
 
+.. _sc:
 
 Structured Concurrency Quickstart
 ---------------------------------

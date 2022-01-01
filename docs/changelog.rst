@@ -4,6 +4,8 @@ History
 1.5.0 - unreleased
 ------------------
 
+* New: :ref:`Structured Concurrency model <sc>` for coroutines
+* New: :ref:`subclocks` to allow for slow-motion effects and pausing
 * New: :class:`wasabi2d.chain.Light`
 * Fix: sprites do not update when only the image is changed.
 * Fix: crash when deleting a text label

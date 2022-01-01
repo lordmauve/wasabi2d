@@ -23,7 +23,6 @@ from moderngl import context
 
 from . import loop
 
-
 __all__ = [
     'Clock', 'schedule', 'schedule_interval', 'unschedule',
     'schedule_unique', 'each_tick', 'call_soon', 'coro',
