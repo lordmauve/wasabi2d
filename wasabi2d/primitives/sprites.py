@@ -4,7 +4,7 @@ import numpy as np
 import moderngl
 
 from ..descriptors import CallbackProp
-from .base import Colorable, Transformable, Bounds
+from .base import Colorable, Transformable, Bounds, CoroContext
 from ..allocators.packed import PackedBuffer
 
 
@@ -25,7 +25,7 @@ class TextureContext:
         pass
 
 
-class Sprite(Colorable, Transformable):
+class Sprite(Colorable, Transformable, CoroContext):
     """A sprite is a quad with an image texture."""
 
     def __init__(

@@ -7,14 +7,14 @@ from typing import List, Tuple
 
 import numpy as np
 
-from .base import Transformable
+from .base import Transformable, CoroContext
 
 
 Point = Tuple[float, float]
 Vector = Tuple[float, float]
 
 
-class Group(Transformable):
+class Group(Transformable, CoroContext):
     def __init__(
             self,
             transformables: List[Transformable],

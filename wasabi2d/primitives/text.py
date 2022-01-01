@@ -73,7 +73,7 @@ ALIGNMENTS = {
 }
 
 
-class Label(Colorable, Transformable):
+class Label(Colorable, Transformable, CoroContext):
     """A single-line text block with no additional layout/wrapping."""
 
     def __init__(

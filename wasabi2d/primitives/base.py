@@ -150,7 +150,20 @@ class Colorable:
         self._set_dirty()
 
 
-class AbstractShape(Colorable, Transformable):
+class CoroContext:
+    """A context manager interface to delete the shape.
+
+    This is only really useful in coroutines, where we can await inside
+    the context so that the frame is displayed.
+    """
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.delete()
+
+
+class AbstractShape(Colorable, Transformable, CoroContext):
     """Base class for polygonal shapes."""
 
     def _migrate_stroke(self, vao: VAO):

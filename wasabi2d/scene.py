@@ -111,6 +111,11 @@ class Window:
         self.viewports = []
         self._dirty = False
 
+    @property
+    def dims(self) -> vec2:
+        """Get the size of the window."""
+        return vec2(self.width, self.height)
+
     def release(self):
         self.layers.clear()
         if self.ctx:

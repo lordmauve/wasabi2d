@@ -6,13 +6,149 @@ Coroutines
 ``wasabi2d`` supports Python coroutines for writing asynchronous game logic
 in a synchronous way.
 
-The interface to this is ``wasabi2d.clock.coro``, or the ``coro`` attribute on
-any clock instance.
+As of Wasabi2D 2.0 the coroutine model is a full implementation of structured
+concurrency, similar to Trio_. This powerful approach is the recommended way
+of working with Wasabi2D.
+
+.. _Trio: https://trio.readthedocs.io/
 
 .. note::
 
-    The coroutine system does not use ``asyncio`` and is not compatible with
-    ``asyncio`` loops. It only uses the ``async`` and ``await`` syntax.
+    The coroutine system does not use ``asyncio``, or Trio, and is not
+    compatible with their event loops. It only uses the ``async`` and
+    ``await`` syntax.
+
+
+Structured Concurrency Quickstart
+---------------------------------
+
+To run a Wasabi2D game with structured concurrency, pass a coroutine object
+to ``wasabi2d.run()``::
+
+    import wasabi2d as w2d
+
+    scene = w2d.Scene()
+
+    async def main():
+        with scene.add_circle(
+            pos=scene.dims / 2,
+            radius=scene.dims.length() / 2,
+            color='red'
+        ) as c:
+            await w2d.animate(c, tween='bounce_end', radius=100)
+            await w2d.clock.coro.sleep(3)
+            await w2d.animate(c, duration=0.3, radius=1)
+        await w2d.clock.coro.sleep(3)
+
+    w2d.run(main())
+
+This animates a circle shape, which "drops" into place, waits a few seconds,
+then shrinks away.
+
+Here we're using the circle shape as a context manager, which deletes it when
+the context exits. (This feature is only useful with coroutines; if you don't
+``await`` within the context then the object would be deleted before it is
+ever drawn to the screen.)
+
+``w2d.run()`` does not return until the coroutine it was passed has completed.
+This means that it is only suitable for doing one thing at a time. To run
+multiple tasks in parallel, we use a nursery - a scope within which those
+tasks will run. By the time the nursery has finished all the tasks will have
+finished::
+
+    import wasabi2d as w2d
+    import random
+
+    scene = w2d.Scene()
+
+    async def animate_circle(color):
+        await w2d.clock.coro.sleep(random.random())
+
+        w, h = scene.dims
+        pos = random.uniform(0, w), random.uniform(0, h)
+
+        with scene.add_circle(
+            pos=pos,
+            radius=scene.dims.length() / 2,
+            color=color
+        ) as c:
+            await w2d.animate(
+                c,
+                tween='bounce_end',
+                radius=100
+            )
+            await w2d.clock.coro.sleep(3)
+            await w2d.animate(c, duration=0.3, radius=1)
+
+    async def main():
+        async with w2d.Nursery() as ns:
+            ns.do(animate_circle('red'))
+            ns.do(animate_circle('green'))
+            ns.do(animate_circle('blue'))
+            ns.do(animate_circle('yellow'))
+            ns.do(animate_circle('magenta'))
+
+        # All circles have disappeared
+        await w2d.clock.coro.sleep(3)
+
+    w2d.run(main())
+
+Here we've created 5 tasks, each animating their own circle. Due to random
+delays they will take different amounts of time to animate. Still, we know that
+by the time the context has exited all of the circles will have finished.
+
+Here we're using fixed animations. But the tasks don't need to be so rigid. A
+task could represent an enemy, and stay alive until the enemy is killed. So the
+nursery will not exit until all enemies have been killed. That means you can
+write one coroutine that manages a whole level::
+
+    async def do_level(level_number):
+        await show_level_title(f"Level {level_number}")
+        async with w2d.Nursery() as ns:
+            for _ in range(level_number):
+                ns.do(enemy())
+
+And we can wrap that up to play a sequence of levels. Let's imagine we have a
+coroutine that controls the player. The player will survive multiple levels so
+we can run that with an *outer* nursery::
+
+    async def play():
+        async with w2d.Nursery() as game:
+            game.do(player())
+            level = 1
+            while True:
+                await do_level(level)
+                await w2d.clock.coro.sleep(3)
+
+This is enough to do lots of interesting things, but what happens if the player
+dies? The ``player()`` task completes, but the level stays alive. To handle
+this situation we allow nurseries to be cancelled::
+
+    async def play():
+        async with w2d.Nursery() as game:
+            async def player_lives():
+                for _ in range(3):  # give the player 3 lives
+                    await player()
+                game.cancel()  # end the game
+
+            game.do(player_lives())
+            level = 1
+            while True:
+                await do_level(level)
+                await w2d.clock.coro.sleep(3)
+
+When a nursery is cancelled, all tasks within it are terminated with an
+exception. This propagates into tasks that contain their own nurseries. Here
+the context manager we used becomes important again. Remember we wrote code
+like::
+
+    async def player():
+        with scene.add_sprite() as ship:
+            ...
+
+Using context managers ensures the objects we added to a scene are removed when
+their task is cancelled. So both drawn primitives and the behaviours that
+control them are scoped to a block of code.
 
 
 Example: explosions

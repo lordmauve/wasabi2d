@@ -5,7 +5,7 @@ import numpy as np
 import numpy.random
 from sortedcontainers import SortedList
 
-from .base import Transformable
+from .base import Transformable, CoroContext
 from ..clock import default_clock
 from ..color import convert_color
 from ..allocators.vertlists import VAO
@@ -37,7 +37,7 @@ class ParticleVAO(VAO):
         super().render(camera)
 
 
-class ParticleGroup:
+class ParticleGroup(CoroContext):
     """A group of particles."""
 
     def __init__(
@@ -221,7 +221,7 @@ class EmitterDesc:
         inst._params[self.name] = value
 
 
-class Emitter(Transformable):
+class Emitter(Transformable, CoroContext):
     """A transformable emitter object."""
 
     group: ParticleGroup

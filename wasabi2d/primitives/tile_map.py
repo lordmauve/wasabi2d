@@ -9,6 +9,7 @@ import numpy as np
 from wasabigeom import bresenham
 
 import wasabi2d
+from .base import CoroContext
 from ..allocators.abstract import FreeListAllocator, NoCapacity
 from ..allocators.vertlists import dtype_to_moderngl
 
@@ -176,7 +177,7 @@ class TileManager:
         self.texture.use(unit)
 
 
-class TileMap:
+class TileMap(CoroContext):
     """A sparse tile map."""
     _tiles: List[str]
     layer: 'wasabi2d.layers.Layer'
