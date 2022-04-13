@@ -43,7 +43,7 @@ class Layer:
         self.visible = True
         self.objects = set()
         self._dirty = set()
-        self.effect = None
+        self.effect = self.effect_has_camera = None
         self.parallax = 1.0
 
     def clear(self):
@@ -66,6 +66,9 @@ class Layer:
         self._dirty.clear()
 
         if self.effect:
+            if self.effect_has_camera is not camera:
+                self.effect._set_camera(camera)
+                self.effect_has_camera = camera
             self.effect.draw(lambda: self._draw_inner(camera))
         else:
             self._draw_inner(camera)
@@ -87,7 +90,7 @@ class Layer:
         mod = importlib.import_module(f'wasabi2d.effects.{name}')
         cls = getattr(mod, name.title())
         self.effect = cls(self.ctx, **kwargs)
-        self.effect._set_camera(self.group.camera)
+        self.effect_has_camera = None
         return self.effect
 
     def clear_effect(self):
