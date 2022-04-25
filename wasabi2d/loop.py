@@ -568,7 +568,7 @@ async def frames_dt():
 
 
 async def gather(*coros):
-    """Wait for all of the given coroutines/tasks to finish."""
+    """Wait for all of the given coroutines to finish."""
     async with Nursery() as ns:
         for coro in coros:
             ns.do(coro)

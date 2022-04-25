@@ -256,11 +256,14 @@ class Window:
             bufsize=0
         )
         print("Recording video...")
-        from . import event
-        event.lock_fps = True
+        from . import loop
+        loop.lock_fps = True
+        self.vid_thread = None
 
     def stop_recording(self):
         """Finish recording the current video."""
+        if self.vid_thread:
+            self.vid_thread.join()
         self._ffmpeg.stdin.close()
         ret = self._ffmpeg.wait()
         if ret == 0:
@@ -268,8 +271,8 @@ class Window:
         else:
             print("Error writing video.")
         self._recording = None
-        from . import event
-        event.lock_fps = False
+        from . import loop
+        loop.lock_fps = False
 
     def toggle_recording(self) -> bool:
         """Start or stop recording video.
@@ -296,7 +299,11 @@ class Window:
             self.fps = 1e9 / (self._fps_query.elapsed or 1e9)
 
         if self._recording:
-            self._vid_frame()
+            if self.vid_thread:
+                self.vid_thread.join()
+            import threading
+            self.vid_thread = threading.Thread(target=self._vid_frame)
+            self.vid_thread.start()
 
         if self.unflipped:
             self._flip()
