@@ -48,7 +48,6 @@ class EventMapper:
         self.get_events = get_events
         self.keyboard = wasabi2d.keyboard.keyboard
         self.handlers = {}
-        self.lock_fps = False
         self.EVENT_PARAM_MAPPERS = {
             **self.EVENT_PARAM_MAPPERS,
             'keyboard': lambda _: self.keyboard
@@ -178,33 +177,3 @@ class EventMapper:
             handler(event)
             return True
         return False
-
-    def run(self):
-        """Run the main loop."""
-        pgzclock = wasabi2d.clock.clock
-
-        timefunc = time.perf_counter
-
-        t = timefunc()
-        dt = 0.0
-        updated = True  # Need to draw initial scene
-        while True:
-            for event in self.get_events():
-                updated |= self.dispatch_event(event)
-
-            updated |= pgzclock.tick(dt)
-
-            ev = UpdateEvent(UpdateEvent, t, dt, self.keyboard)
-            updated |= self.dispatch_event(ev)
-
-            # Because the current draw strategy a single draw is
-            # only flipped at the next draw. Therefore we must always issue
-            # a draw event. However we pass the "updated" flag and hope the
-            # renderer can deal with this.
-            self.dispatch_event(DrawEvent(DrawEvent, t, dt, updated))
-
-            dt = timefunc() - t
-            if self.lock_fps:
-                dt = 1.0 / 60.0
-            t += dt
-            updated = False
