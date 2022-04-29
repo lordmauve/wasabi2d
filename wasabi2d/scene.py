@@ -299,11 +299,7 @@ class Window:
             self.fps = 1e9 / (self._fps_query.elapsed or 1e9)
 
         if self._recording:
-            if self.vid_thread:
-                self.vid_thread.join()
-            import threading
-            self.vid_thread = threading.Thread(target=self._vid_frame)
-            self.vid_thread.start()
+            self._vid_frame()
 
         if self.unflipped:
             self._flip()

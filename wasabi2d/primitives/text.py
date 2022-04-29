@@ -10,7 +10,7 @@ from ..allocators.vertlists import VAO
 from ..loaders import fonts
 from ..atlas import Atlas
 from .sprites import QUAD
-from .base import Bounds, Transformable, Colorable
+from .base import Bounds, Transformable, Colorable, CoroContext
 
 
 FONT_LOAD_SIZE = 48

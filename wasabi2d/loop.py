@@ -385,7 +385,7 @@ class PygameEvents:
         finally:
             self._unreg(handler, event_types)
 
-    async def wait(self, event_type, **attrs):
+    async def wait(self, *event_types, **attrs):
         """Wait for one event.
 
         For example::
@@ -433,7 +433,7 @@ class PygameEvents:
         else:
             handler = current_task._run_immediate
 
-        with self._subscription(handler, event_type):
+        with self._subscription(handler, *event_types):
             return await _block()
 
     async def subscribe(self, *event_types, **attrs):
