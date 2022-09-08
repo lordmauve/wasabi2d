@@ -623,7 +623,11 @@ class CancelScope:
         if isinstance(inst, Cancelled):
             handled = inst._handle(self)
 
-        if current_task.cancelled and current_task.cancelled._handle(self):
+        if (
+            current_task
+            and current_task.cancelled
+            and current_task.cancelled._handle(self)
+        ):
             current_task.cancelled = None
 
         return handled

@@ -339,7 +339,13 @@ class VAO:
 
     def free(self, lst):
         """Remove a list from the array."""
-        self.allocs.remove(lst)
+        try:
+            self.allocs.remove(lst)
+        except ValueError:
+            # FIXME: we should not suppress this here, the caller should not
+            # have called us
+            return
+
         del self.indirect[lst.command]
 
         # Free space in allocators
