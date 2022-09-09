@@ -149,6 +149,17 @@ class Colorable:
         self._color[:] = convert_color(v)
         self._set_dirty()
 
+    @property
+    def alpha(self):
+        """Get the alpha value of the object."""
+        return self._color[3]
+
+    @alpha.setter
+    def alpha(self, v: float):
+        """Set the alpha value of the object."""
+        self._color[3] = v
+        self._set_dirty()
+
 
 class CoroContext:
     """A context manager interface to delete the shape.
