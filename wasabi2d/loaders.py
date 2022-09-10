@@ -219,7 +219,7 @@ DEFAULT_FONT_SIZE = 16
 
 
 class FontLoader(ResourceLoader):
-    EXTNS = ['ttf']
+    EXTNS = ['ttf', 'otf']
     TYPE = 'font'
 
     def _load(self, path, fontsize=None):
