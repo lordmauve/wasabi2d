@@ -4,5 +4,5 @@ numpy
 pyrr
 sortedcontainers
 dataclasses; python_version < '3.7'
-mapbox-earcut==0.12.10
+mapbox-earcut==1.0.*
 wasabi-geom>=2.0.1
