@@ -227,7 +227,8 @@ class Label(Colorable, Transformable, CoroContext):
         if self.layer is None:
             return
         self.layer.objects.remove(self)
-        self.lst.free()
+        if self.lst:
+            self.lst.free()
         self.lst = None
         self.layer = None
         self.vao = None
