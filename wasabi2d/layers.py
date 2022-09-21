@@ -73,7 +73,7 @@ class Layer:
         else:
             self._draw_inner(camera)
 
-    identity = np.identity(4, dtype='f4')
+    identity = np.identity(4, dtype="f4")
 
     def _draw_inner(self, camera):
         self.group.shadermgr.set_proj(camera._getproj(self.parallax))
@@ -87,7 +87,7 @@ class Layer:
         the effect.
 
         """
-        mod = importlib.import_module(f'wasabi2d.effects.{name}')
+        mod = importlib.import_module(f"wasabi2d.effects.{name}")
         cls = getattr(mod, name.title())
         self.effect = cls(self.ctx, **kwargs)
         self.effect_has_camera = None
@@ -102,10 +102,10 @@ class Layer:
         *,
         pos=(0, 0),
         angle=0,
-        anchor_x='center',
-        anchor_y='center',
+        anchor_x="center",
+        anchor_y="center",
         color=(1, 1, 1, 1),
-        scale=1.0
+        scale=1.0,
     ):
         spr = Sprite(
             layer=self,
@@ -129,11 +129,11 @@ class Layer:
 
     def _lines_vao(self):
         """Get a VAO for objects made of line strips."""
-        return self._get_or_create_vao('lines', line_vao)
+        return self._get_or_create_vao("lines", line_vao)
 
     def _fill_vao(self):
         """Get a VAO for objects made of colored triangles."""
-        return self._get_or_create_vao('shapes', shape_vao)
+        return self._get_or_create_vao("shapes", shape_vao)
 
     def _load_texture(self, name):
         """Load a texture."""
@@ -145,16 +145,17 @@ class Layer:
 
     def _text_vao(self, font):
         """Get a VAO for objects made of font glyphs."""
-        return self._get_or_create_vao(('text', font), text_vao)
+        return self._get_or_create_vao(("text", font), text_vao)
 
-    def add_circle(self,
-                   *,
-                   radius: float,
-                   pos: Tuple[float, float] = (0, 0),
-                   color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-                   fill: bool = True,
-                   stroke_width: float = 1.0,
-                   ) -> Circle:
+    def add_circle(
+        self,
+        *,
+        radius: float,
+        pos: Tuple[float, float] = (0, 0),
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        fill: bool = True,
+        stroke_width: float = 1.0,
+    ) -> Circle:
         c = Circle(
             layer=self,
             radius=radius,
@@ -170,15 +171,15 @@ class Layer:
         return c
 
     def add_star(
-            self,
-            *,
-            points: int,
-            inner_radius: float = 1.0,
-            outer_radius: float = None,
-            pos: Tuple[float, float] = (0, 0),
-            fill: bool = True,
-            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-            stroke_width: float = 1.0,
+        self,
+        *,
+        points: int,
+        inner_radius: float = 1.0,
+        outer_radius: float = None,
+        pos: Tuple[float, float] = (0, 0),
+        fill: bool = True,
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        stroke_width: float = 1.0,
     ) -> Circle:
         assert points >= 3, "Stars must have at least 3 points."
 
@@ -202,14 +203,15 @@ class Layer:
         c.orig_verts[1::2, :2] *= inner_radius
         return c
 
-    def add_polygon(self,
-                    vertices,
-                    *,
-                    pos: Tuple[float, float] = (0, 0),
-                    color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-                    fill: bool = True,
-                    stroke_width: float = 1.0,
-                    ) -> Polygon:
+    def add_polygon(
+        self,
+        vertices,
+        *,
+        pos: Tuple[float, float] = (0, 0),
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        fill: bool = True,
+        stroke_width: float = 1.0,
+    ) -> Polygon:
         c = Polygon(
             layer=self,
             vertices=vertices,
@@ -224,13 +226,14 @@ class Layer:
             c._migrate_stroke(self._lines_vao())
         return c
 
-    def add_line(self,
-                 vertices,
-                 *,
-                 pos: Tuple[float, float] = (0, 0),
-                 color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-                 stroke_width: float = 1.0,
-                 ) -> PolyLine:
+    def add_line(
+        self,
+        vertices,
+        *,
+        pos: Tuple[float, float] = (0, 0),
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        stroke_width: float = 1.0,
+    ) -> PolyLine:
         """Add a line strip.
 
         To create a single line segment of two points, pass two vertices!
@@ -248,14 +251,15 @@ class Layer:
         return c
 
     def add_rect(
-            self,
-            width: float,
-            height: float,
-            *,
-            pos: Tuple[float, float] = (0, 0),
-            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-            fill: bool = True,
-            stroke_width: float = 1) -> Rect:
+        self,
+        width: float,
+        height: float,
+        *,
+        pos: Tuple[float, float] = (0, 0),
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        fill: bool = True,
+        stroke_width: float = 1,
+    ) -> Rect:
 
         c = Rect(
             layer=self,
@@ -272,53 +276,41 @@ class Layer:
             c._migrate_stroke(self._lines_vao())
         return c
 
-    def add_label(self,
-                  text: str,
-                  *,
-                  font: Optional[str] = None,
-                  align: str = 'left',
-                  fontsize: int = 20,
-                  pos: Tuple[float, float] = (0, 0),
-                  color: Tuple[float, float, float, float] = (1, 1, 1, 1),
-                  ) -> Rect:
+    def add_label(
+        self,
+        text: str,
+        *,
+        font: Optional[str] = None,
+        align: str = "left",
+        fontsize: int = 20,
+        pos: Tuple[float, float] = (0, 0),
+        color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+        scale: float = 1.0,
+    ) -> Rect:
 
         fa = self.group.fontmgr.get(font)
-        c = Label(
-            text,
-            fa,
-            self,
-            align=align,
-            fontsize=fontsize,
-            pos=pos,
-            color=color
-        )
+        c = Label(text, fa, self, align=align, fontsize=fontsize, pos=pos, color=color)
+        c.scale = scale
         self.objects.add(c)
         return c
 
     def add_particle_group(
-        self,
-        texture=None,
-        clock=default_clock,
-        **kwargs
+        self, texture=None, clock=default_clock, **kwargs
     ) -> ParticleGroup:
         """Create a group of particles.
 
         We do not actually emit any particles at this time.
         """
-        c = ParticleGroup(
-            layer=self,
-            clock=default_clock,
-            **kwargs
-        )
+        c = ParticleGroup(layer=self, clock=default_clock, **kwargs)
 
         vao = self.arrays[c] = ParticleVAO(
             c,
             mode=moderngl.POINTS,
             ctx=self.ctx,
-            prog=self.group.shadermgr.load('primitives/particle')
+            prog=self.group.shadermgr.load("primitives/particle"),
         )
         if texture is None:
-            tex = self.ctx.texture((1, 1), 4, data=b'\xff' * 4)
+            tex = self.ctx.texture((1, 1), 4, data=b"\xff" * 4)
         else:
             tex = self._load_texture(texture)
             tex.repeat_x = tex.repeat_y = False
@@ -332,6 +324,7 @@ class Layer:
     def add_tile_map(self, *args, **kwargs):
         """Create a tile map in the layer."""
         from .primitives.tile_map import TileMap
+
         tiles = TileMap(self, *args, **kwargs)
         self.objects.add(tiles)
         return tiles
@@ -343,8 +336,8 @@ class LayerGroup(dict):
 
     def __init__(self, ctx):
         self.ctx = ctx
-        if 'shadermgr' in ctx.extra:
-            self.shadermgr = ctx.extra['shadermgr']
+        if "shadermgr" in ctx.extra:
+            self.shadermgr = ctx.extra["shadermgr"]
         else:
             self.shadermgr = ShaderManager(self.ctx)
         self.fontmgr = FontManager(self.ctx)
