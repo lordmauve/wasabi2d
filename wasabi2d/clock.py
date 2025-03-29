@@ -15,11 +15,9 @@ import warnings
 from weakref import ref
 from itertools import chain, count
 from functools import total_ordering
-from collections import namedtuple
 from types import MethodType
 from contextlib import contextmanager
 
-from moderngl import context
 
 from . import loop
 
@@ -198,7 +196,6 @@ class Coroutines:
 
     def run(self, coro):
         """Schedule a coroutine."""
-        import warnings
         warnings.warn(
             "clock.coro.run is deprecated",
             DeprecationWarning,
