@@ -1,5 +1,5 @@
-pygame~=2.1
-moderngl==5.6.*
+pygame>=2.1
+moderngl>=5.7,<6
 numpy
 pyrr
 sortedcontainers
