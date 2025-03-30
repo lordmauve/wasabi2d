@@ -533,6 +533,7 @@ class PygameEvents:
         from .clock import default_clock
         t = dt = 0.0
         updated = True
+        no_handlers = frozenset()
         while True:
             events = self.get_events()
             update = UpdateEvent(UpdateEvent, t, dt, None)
@@ -546,7 +547,6 @@ class PygameEvents:
             events.extend([update, draw])
 
             updated = False
-            no_handlers = frozenset()
             for event in events:
                 updated |= self.evmapper.dispatch_event(event)
                 handlers = self.waiters.get(event.type, no_handlers).copy()
