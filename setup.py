@@ -15,7 +15,7 @@ def package_data(dirname):
 
 setup(
     name='wasabi2d',
-    version='1.4.0',
+    version='1.5.0.a1',
     description="A convenient 2D OpenGL games framework",
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
