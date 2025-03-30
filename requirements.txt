@@ -1,8 +1,8 @@
-pygame==2.0.0.dev10
-moderngl==5.6.*
+pygame>=2.1
+moderngl>=5.6
 numpy
 pyrr
 sortedcontainers
 dataclasses; python_version < '3.7'
-mapbox-earcut==0.12.10
+mapbox-earcut==0.12.*
 bresenham==0.2.*
