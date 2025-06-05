@@ -193,7 +193,7 @@ class Window:
         pygame.display.set_caption(title)
 
     def on_screenshot_requested(self, video):
-        """Handle a screenshot event from the event sytem."""
+        """Handle a screenshot event from the event system."""
         if video:
             self.toggle_recording()
         else:

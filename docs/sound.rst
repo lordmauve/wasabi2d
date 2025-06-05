@@ -47,7 +47,7 @@ stop the sound as well as query its length in seconds:
         Get the duration of the sound in seconds.
 
 You should avoid using the ``sounds`` object to play longer pieces of music.
-Because the sounds sytem will fully load the music into memory before playing
+Because the sounds system will fully load the music into memory before playing
 it, this can use a lot of memory, as well as introducing a delay while the
 music is loaded.
 
