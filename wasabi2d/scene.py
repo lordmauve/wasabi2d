@@ -55,7 +55,7 @@ class Window:
             self,
             width: int = 800,
             height: int = 600,
-            title: int = "wasabi2d",
+            title: str = "wasabi2d",
             *,
             fullscreen: bool = False,
             icon: str = None,
