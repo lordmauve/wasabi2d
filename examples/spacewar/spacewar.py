@@ -225,7 +225,7 @@ def update(dt):
         if obj in dead:
             dead.discard(obj)
             w2d.tone.play(20, 1.0, waveform='square')
-            w2d.clock.coro.run(respawn(obj))
+            w2d.do(respawn(obj))
             continue
         elif obj.dead:
             continue

@@ -4,444 +4,602 @@ Coroutines
 .. versionadded:: 1.3.0
 
 ``wasabi2d`` supports Python coroutines for writing asynchronous game logic
-in a synchronous way.
+in a direct, sequential style. Coroutines are particularly useful for logic
+that unfolds over time: animations, enemy behaviour, levels, cut-scenes, and
+input gestures.
 
-As of Wasabi2D 2.0 the coroutine model is a full implementation of structured
-concurrency, similar to Trio_. This powerful approach is the recommended way
-of working with Wasabi2D.
+As of Wasabi2D 2.0 the coroutine model is an implementation of structured
+concurrency, similar to Trio_. It is the recommended way to structure most
+Wasabi2D programs.
 
 .. _Trio: https://trio.readthedocs.io/
 
 .. note::
 
-    The coroutine system does not use ``asyncio``, or Trio, and is not
-    compatible with their event loops. It only uses the ``async`` and
-    ``await`` syntax.
+    Wasabi2D does not use ``asyncio`` or Trio and is not compatible with their
+    event loops. It uses Python's ``async`` and ``await`` syntax with its own
+    game loop.
 
 .. _sc:
 
-Structured Concurrency Quickstart
----------------------------------
+Your first coroutine
+--------------------
 
-To run a Wasabi2D game with structured concurrency, pass a coroutine object
-to ``wasabi2d.run()``::
+A coroutine is declared with ``async def``. Pass the coroutine object returned
+by calling it to :func:`wasabi2d.run`::
 
     import wasabi2d as w2d
 
     scene = w2d.Scene()
 
     async def main():
-        with scene.add_circle(
+        circle = scene.layers[0].add_circle(
             pos=scene.dims / 2,
-            radius=scene.dims.length() / 2,
-            color='red'
-        ) as c:
-            await w2d.animate(c, tween='bounce_end', radius=100)
-            await w2d.clock.coro.sleep(3)
-            await w2d.animate(c, duration=0.3, radius=1)
-        await w2d.clock.coro.sleep(3)
+            radius=1,
+            color='red',
+        )
+        await w2d.animate(circle, tween='bounce_end', radius=100)
+        await w2d.clock.coro.sleep(1)
+        await w2d.animate(circle, duration=0.3, radius=1)
+        circle.delete()
 
     w2d.run(main())
 
-This animates a circle shape, which "drops" into place, waits a few seconds,
-then shrinks away.
+The calls to ``await`` pause ``main()`` without freezing the window. Wasabi2D
+continues drawing frames and processing input, then resumes the coroutine when
+the animation or sleep finishes.
 
-Here we're using the circle shape as a context manager, which deletes it when
-the context exits. (This feature is only useful with coroutines; if you don't
-``await`` within the context then the object would be deleted before it is
-ever drawn to the screen.)
+``w2d.run()`` keeps the game open until its main coroutine finishes. A program
+with no main coroutine can still use callback-style event handlers, but a
+coroutine-based program usually has one top-level ``main()`` or ``play()``
+coroutine that owns the lifetime of the game.
 
-``w2d.run()`` does not return until the coroutine it was passed has completed.
-This means that it is only suitable for doing one thing at a time. To run
-multiple tasks in parallel, we use a nursery - a scope within which those
-tasks will run. By the time the nursery has finished all the tasks will have
-finished::
+Tie primitives to a block of code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    import wasabi2d as w2d
+Primitives added to a scene can be used as context managers. Exiting the
+``with`` block calls the primitive's ``delete()`` method and removes it from
+the scene::
+
+    async def show_message(text):
+        with scene.layers[0].add_label(
+            text,
+            pos=scene.dims / 2,
+            align='center',
+        ) as label:
+            await w2d.animate(label, tween='bounce_end', scale=2)
+            await w2d.clock.coro.sleep(2)
+
+        # label has been deleted here
+
+This is especially useful in a coroutine because the primitive remains in the
+scene while the coroutine awaits. It is removed whether the block finishes
+normally, raises an exception, or is cancelled.
+
+Use ``with primitive`` whenever a primitive belongs to one piece of behaviour.
+This keeps the visual object's lifetime next to the code that controls it and
+prevents forgotten cleanup paths::
+
+    async def enemy():
+        with scene.layers[0].add_circle(radius=10, color='orange') as body:
+            await run_enemy_ai(body)
+            await w2d.animate(body, scale=0, duration=0.2)
+
+Shapes, sprites, labels, tile maps, groups, particle groups, and particle
+emitters support this pattern. Objects that do not implement the context
+manager protocol should be cleaned up with ``try``/``finally`` instead::
+
+    effect = make_external_effect()
+    try:
+        await use_effect(effect)
+    finally:
+        effect.close()
+
+Run several behaviours together
+--------------------------------
+
+Awaiting one coroutine runs one sequence of work. Use a :class:`Nursery` when
+several behaviours should overlap::
+
     import random
-
-    scene = w2d.Scene()
 
     async def animate_circle(color):
         await w2d.clock.coro.sleep(random.random())
+        pos = (
+            random.uniform(0, scene.width),
+            random.uniform(0, scene.height),
+        )
 
-        w, h = scene.dims
-        pos = random.uniform(0, w), random.uniform(0, h)
-
-        with scene.add_circle(
+        with scene.layers[0].add_circle(
             pos=pos,
-            radius=scene.dims.length() / 2,
-            color=color
-        ) as c:
-            await w2d.animate(
-                c,
-                tween='bounce_end',
-                radius=100
-            )
-            await w2d.clock.coro.sleep(3)
-            await w2d.animate(c, duration=0.3, radius=1)
+            radius=1,
+            color=color,
+        ) as circle:
+            await w2d.animate(circle, tween='bounce_end', radius=100)
+            await w2d.clock.coro.sleep(1)
+            await w2d.animate(circle, duration=0.3, radius=1)
 
     async def main():
-        async with w2d.Nursery() as ns:
-            ns.do(animate_circle('red'))
-            ns.do(animate_circle('green'))
-            ns.do(animate_circle('blue'))
-            ns.do(animate_circle('yellow'))
-            ns.do(animate_circle('magenta'))
+        async with w2d.Nursery() as nursery:
+            nursery.do(animate_circle('red'))
+            nursery.do(animate_circle('green'))
+            nursery.do(animate_circle('blue'))
 
-        # All circles have disappeared
-        await w2d.clock.coro.sleep(3)
+        # All three tasks have finished and all three circles are gone.
 
     w2d.run(main())
 
-Here we've created 5 tasks, each animating their own circle. Due to random
-delays they will take different amounts of time to animate. Still, we know that
-by the time the context has exited all of the circles will have finished.
+A nursery is an asynchronous context manager. It does not exit until every
+task started with ``nursery.do()`` has finished. This gives every task a clear
+owner and prevents background work from silently outliving the game state it
+belongs to.
 
-Here we're using fixed animations. But the tasks don't need to be so rigid. A
-task could represent an enemy, and stay alive until the enemy is killed. So the
-nursery will not exit until all enemies have been killed. That means you can
-write one coroutine that manages a whole level::
+Model game structure with nested nurseries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nurseries can be nested to match the structure of the game. For example, a
+level can own all of its enemies while the game owns both the player and the
+current level::
 
     async def do_level(level_number):
-        await show_level_title(f"Level {level_number}")
-        async with w2d.Nursery() as ns:
+        await show_level_title(level_number)
+        async with w2d.Nursery() as level:
             for _ in range(level_number):
-                ns.do(enemy())
-
-And we can wrap that up to play a sequence of levels. Let's imagine we have a
-coroutine that controls the player. The player will survive multiple levels so
-we can run that with an *outer* nursery::
+                level.do(enemy())
 
     async def play():
         async with w2d.Nursery() as game:
             game.do(player())
-            level = 1
-            while True:
-                await do_level(level)
-                await w2d.clock.coro.sleep(3)
 
-This is enough to do lots of interesting things, but what happens if the player
-dies? The ``player()`` task completes, but the level stays alive. To handle
-this situation we allow nurseries to be cancelled::
+            level_number = 1
+            while True:
+                await do_level(level_number)
+                level_number += 1
+
+The resulting lifetime tree is::
+
+    play
+    +-- player task
+    +-- do_level
+        +-- enemy task
+        +-- enemy task
+        +-- ...
+
+When a scope finishes, everything below it has finished too. Code after
+``do_level()`` therefore cannot accidentally overlap tasks from the previous
+level.
+
+End a group of behaviours together
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Call ``nursery.cancel()`` when one outcome should end every task in that
+nursery. Cancellation propagates into child nurseries::
 
     async def play():
         async with w2d.Nursery() as game:
             async def player_lives():
-                for _ in range(3):  # give the player 3 lives
+                for _ in range(3):
                     await player()
-                game.cancel()  # end the game
+                game.cancel()
 
             game.do(player_lives())
-            level = 1
-            while True:
-                await do_level(level)
-                await w2d.clock.coro.sleep(3)
 
-When a nursery is cancelled, all tasks within it are terminated with an
-exception. This propagates into tasks that contain their own nurseries. Here
-the context manager we used becomes important again. Remember we wrote code
-like::
+            level_number = 1
+            while True:
+                await do_level(level_number)
+                level_number += 1
+
+Cancellation is delivered at an ``await`` point. Context managers and
+``finally`` blocks are still unwound, which is why ``with primitive`` is the
+preferred cleanup style. In general, do not catch ``Cancelled`` merely to
+continue running. Clean up resources and let cancellation propagate.
+
+If a task raises an exception, its nursery cancels the nursery's other tasks,
+waits for them to clean up, and propagates the error. This prevents a failing
+task from leaving its siblings running in a partially broken game state.
+
+Work with time and frames
+-------------------------
+
+Sleep and repeat
+~~~~~~~~~~~~~~~~
+
+Use :meth:`clock.coro.sleep` for a one-off delay::
+
+    await w2d.clock.coro.sleep(0.5)
+
+Use :meth:`clock.coro.intervals` for periodic work. It yields the total elapsed
+time after each interval::
+
+    async def spawn_enemies():
+        async for elapsed in w2d.clock.coro.intervals(3):
+            w2d.do(enemy())
+            print(f'Enemy spawned after {elapsed:.1f} seconds')
+
+``w2d.do()`` starts an independent task immediately. Prefer
+``nursery.do()`` when the task belongs to a level, menu, entity, or other
+bounded scope. Reserve ``w2d.do()`` for genuinely top-level or application
+lifetime work.
+
+Update on every frame
+~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`clock.coro.frames_dt` when movement depends on the duration of each
+frame::
+
+    async def move_towards(sprite, target, speed):
+        async for dt in w2d.clock.coro.frames_dt():
+            offset = target - sprite.pos
+            if offset.length() < speed * dt:
+                sprite.pos = target
+                return
+            sprite.pos += offset.scaled_to(speed * dt)
+
+Use :meth:`clock.coro.frames` when an effect depends on total elapsed time::
+
+    async for elapsed in w2d.clock.coro.frames(seconds=2):
+        label.text = f'{elapsed:.1f}'
+
+A time-limited ``frames()`` iteration yields the exact final duration, even
+when the last rendered frame goes past it. This makes it suitable for effects
+that must finish at an exact final value.
+
+For simple interpolation, :meth:`clock.coro.interpolate` produces values over
+time::
+
+    async for value in w2d.clock.coro.interpolate(0, 100, duration=1):
+        meter.width = value
+
+Most primitive attributes are more conveniently changed with
+:func:`wasabi2d.animate`, which is itself awaitable::
+
+    await w2d.animate(sprite, pos=target, duration=1)
+
+Use the clock that owns the behaviour
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Coroutine timing methods belong to a clock. The default
+``w2d.clock.coro`` follows real game time. A subclock's coroutine methods
+follow that subclock, including its pause state and rate. This lets gameplay
+pause while menu animation continues::
+
+    game_clock = w2d.clock.create_sub_clock()
+
+    async def gameplay():
+        async for dt in game_clock.coro.frames_dt():
+            update_world(dt)
+
+See :ref:`subclocks` for creating, pausing, and changing the rate of subclocks.
+
+Handle input from coroutines
+----------------------------
+
+Wait for one event
+~~~~~~~~~~~~~~~~~~
+
+Use :func:`wasabi2d.next_event` when the next matching event is all that
+matters. Event types can be Pygame constants or Wasabi2D's string names::
+
+    import pygame
+
+    event = await w2d.next_event(pygame.MOUSEBUTTONDOWN, button=1)
+    print(event.pos)
+
+This subscribes only while ``next_event()`` is being awaited. An event that
+occurs while the coroutine is doing something else is not retained. That is
+usually desirable for isolated interactions such as "press a key to
+continue".
+
+Subscribe to a sequence of events
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`events.subscribe` when every event in a sequence matters, such as a
+drag gesture. The subscription remains active for the lifetime of the
+asynchronous iterator and queues matching events::
+
+    async def drag_circle(circle):
+        await w2d.next_event(pygame.MOUSEBUTTONDOWN, button=1)
+
+        async for event in w2d.events.subscribe(
+            pygame.MOUSEMOTION,
+            pygame.MOUSEBUTTONUP,
+        ):
+            if event.type == pygame.MOUSEBUTTONUP:
+                return
+            circle.pos = event.pos
+
+The queue means events are not missed while the loop body awaits, but it can
+grow without bound if events arrive faster than they are processed. Keep the
+loop body quick, or use a higher-level input helper that coalesces events.
+
+Handle multiple touches
+~~~~~~~~~~~~~~~~~~~~~~~
+
+``events.next_touch()`` returns an asynchronous iterator for one finger, from
+the initial down event through its motion events to the final up event. Start
+one task per touch to support multi-touch::
+
+    async def follow_touch(first_event, touch):
+        with particles.add_emitter(
+            pos=(
+                first_event.x * scene.width,
+                first_event.y * scene.height,
+            ),
+            rate=100,
+        ) as emitter:
+            async for event in touch:
+                emitter.pos = (
+                    event.x * scene.width,
+                    event.y * scene.height,
+                )
+
+    async def touches():
+        async with w2d.Nursery() as nursery:
+            while True:
+                touch = w2d.events.next_touch()
+                first_event = await touch.__anext__()
+                nursery.do(follow_touch(first_event, touch))
+
+The first event is consumed to ensure that the touch has started before its
+task is added to the nursery. The remaining iterator still contains subsequent
+motion and up events.
+
+Common patterns
+---------------
+
+Wait for several operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :func:`wasabi2d.gather` when you only need to start several coroutines and
+wait until all of them finish::
+
+    await w2d.gather(
+        w2d.animate(title, pos=(400, 200)),
+        play_intro_music(),
+        preload_level(),
+    )
+
+Use a nursery instead when you need to add tasks over time, keep their returned
+task objects, or cancel the group explicitly.
+
+Wait for a task's result
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+``nursery.do()`` and ``w2d.do()`` return a :class:`Task`. Await
+``task.join()`` to retrieve the coroutine's return value::
+
+    async with w2d.Nursery() as nursery:
+        task = nursery.do(load_level_data())
+        await show_loading_animation()
+        level_data = await task.join()
+
+Usually it is simpler to directly ``await load_level_data()``. A task is useful
+when that operation must overlap other work.
+
+Time out optional work
+~~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`clock.coro.move_on_after` to cancel the current block after a clock
+duration and then continue after the block::
+
+    with w2d.clock.coro.move_on_after(5):
+        event = await w2d.next_event(pygame.KEYDOWN)
+        choose_key(event.key)
+
+    # Reached after a key press or after five seconds.
+
+The timeout follows the clock on which ``move_on_after()`` was called. A
+timeout on a paused subclock remains paused too. Resources created inside the
+block should use context managers or ``finally`` so they are cleaned up when
+the timeout cancels the block.
+
+Signal between tasks
+~~~~~~~~~~~~~~~~~~~~
+
+Use :class:`Event` for a condition that one task sets and one or more tasks
+await::
+
+    level_ready = w2d.Event()
+
+    async def loader():
+        await load_level()
+        level_ready.set()
 
     async def player():
-        with scene.add_sprite() as ship:
-            ...
+        await level_ready
+        start_playing()
 
-Using context managers ensures the objects we added to a scene are removed when
-their task is cancelled. So both drawn primitives and the behaviours that
-control them are scoped to a block of code.
+An event remains set until ``reset()`` is called. Awaiting an already-set event
+returns immediately. It carries no value; use ordinary shared state for data
+that accompanies the signal.
 
+Choosing the right construct
+----------------------------
 
-Example: explosions
+The coroutine tools solve different lifetime and waiting problems:
+
+* Direct ``await`` means "do this next and use its result."
+* ``async with Nursery()`` means "these tasks belong to this block."
+* ``nursery.do()`` means "start this sibling task in the current scope."
+* ``w2d.do()`` means "start application-lifetime work with no local owner."
+* ``with primitive`` means "this scene object belongs to this block."
+* ``async for`` over clock methods means "update on repeated clock ticks."
+* ``next_event()`` means "wait for the next matching input event."
+* ``events.subscribe()`` means "retain every matching event in this sequence."
+* ``Event`` means "wait until another task announces a condition."
+* ``move_on_after()`` means "give this work a time budget, then continue."
+
+The common idea is ownership. A game state should own its tasks, and each task
+should own the scene objects and other resources it controls. When the game
+state ends, Python's normal block unwinding then cleans up the entire subtree.
+
+Coroutine reference
 -------------------
 
-Let's start with an example of what is possible. Here we use a single coroutine
-to manage the whole lifecycle of a sprite.
+Starting and grouping tasks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. function:: wasabi2d.run(main=None)
 
-.. code-block:: python3
+    Run the Wasabi2D event loop. If ``main`` is a coroutine object, start it
+    as the main task and keep running until it finishes.
 
-    async def explode(pos):
-        """Create an explosion at pos."""
-        sprite = scene.layers[1].add_sprite('explosion', pos=pos)
+.. function:: wasabi2d.do(coro)
 
-        # Grow, rotate, and fade the sprite
-        await animate(
-            sprite,
-            duration=0.3,
-            tween='accel',
-            scale=10,
-            angle=10,
-            color=(1, 1, 1, 0),
-        )
+    Start a coroutine or awaitable as an independent task. It begins running
+    immediately and returns a :class:`Task`.
 
-        # Delete it again
-        sprite.delete()
+    Prefer :meth:`Nursery.do` for work with a bounded lifetime.
 
-    clock.coro.run(explode((400, 400)))
+.. class:: Nursery
 
+    An asynchronous context manager that owns a group of tasks. On normal
+    exit, it waits for all tasks. On cancellation or error, it cancels them,
+    waits for cleanup, and then exits or propagates the error.
 
-This code isn't too dissimilar to how we might write it without the coroutine,
-the only complexity being that we must pass a callable to ``on_finished``:
+    .. method:: do(coro)
 
+        Start ``coro`` in the nursery and return its :class:`Task`.
 
-.. code-block:: python3
+    .. method:: cancel()
 
-    def explode(pos):
-        """Create an explosion at pos."""
-        sprite = scene.layers[1].add_sprite('explosion', pos=pos)
+        Cancel the code running inside the nursery and every task owned by it.
 
-        # Grow, rotate, and fade the sprite
-        animate(
-            sprite,
-            duration=0.3,
-            tween='accel',
-            scale=10,
-            angle=10,
-            color=(1, 1, 1, 0),
-            on_finished=sprite.delete
-        )
+.. class:: Task
 
+    A running coroutine returned by ``w2d.do()`` or ``nursery.do()``.
 
-    explode((400, 400))
+    .. method:: cancel()
 
+        Request cancellation. Cancellation is raised inside the coroutine at
+        an await point.
 
-But consider what happens if we want to chain several animations. This would be
-very hard to express using the ``on_finished`` callbacks alone:
+    .. method:: join()
+        :async:
 
+        Wait for the task to finish and return the coroutine's return value.
 
-.. code-block:: python3
+    .. attribute:: finished
 
-    async def explode(pos):
-        """Create an explosion at pos."""
-        sprite = scene.layers[1].add_sprite('explosion', pos=pos)
-        sprite.color = (1, 1, 1, 0.3)
+        Whether the task has finished.
 
-        # Explode phase
-        await animate(
-            sprite,
-            duration=0.3,
-            tween='accel',
-            scale=10,
-            angle=2,
-            color=(1, 1, 1, 1),
-        )
+    .. attribute:: failed
 
-        # Twist phase
-        await animate(
-            sprite,
-            duration=0.1,
-            tween='accel_decel',
-            angle=10,
-        )
+        Whether the task finished by raising an exception.
 
-        # Collapse phase
-        await animate(
-            sprite,
-            duration=1,
-            tween='accel_decel',
-            scale=1,
-            pos=(pos[0] + 50, pos[1] - 50),
-            color=(0, 0, 0, 0)
-        )
+    .. attribute:: result
 
-        # Delete it again
-        sprite.delete()
+        The task's return value after it has finished successfully.
 
-    clock.coro.run(explode((400, 400)))
+.. function:: wasabi2d.gather(*coros)
 
-The `full example code is here`__.
+    Start all the given coroutines in a nursery and wait for all of them to
+    finish.
 
-.. __: https://github.com/lordmauve/wasabi2d/blob/master/examples/coroutines/explosions.py
+Synchronization
+~~~~~~~~~~~~~~~
 
-.. video:: _static/video/explosions.mp4
+.. class:: Event
 
+    A persistent boolean signal that tasks can await.
 
-Example: enemy spawner
-----------------------
+    .. method:: set()
 
-Coroutines don't have to be sequential effects. A coroutine can loop for as
-long as you want.
+        Set the event and wake every waiting task. Future waits return
+        immediately until the event is reset.
 
-We could use an infinite loop to spawn baddies every 3 seconds:
+    .. method:: reset()
 
-.. code-block:: python3
+        Clear the event so future waits block.
 
-    async def spawn_baddies():
-        while True:
-            clock.coro.run(enemy())
-            await clock.coro.sleep(3)
+    .. method:: wait()
+        :async:
 
-    clock.coro.run(spawn_baddies())
+        Wait until the event is set. ``await event`` is equivalent.
 
+    .. method:: is_set()
 
-Meanwhile, the behaviour of every individual baddie can be its own coroutine
-instance:
+        Return whether the event is currently set. ``bool(event)`` is
+        equivalent.
 
+Input
+~~~~~
 
-.. code-block:: python3
+.. function:: wasabi2d.next_event(*event_types, **attrs)
 
-    target = (400, 400)  # update this
+    Wait for and return the next Pygame event matching one of ``event_types``
+    and all the given event attributes.
 
+.. method:: events.subscribe(*event_types, **attrs)
+    :async:
 
-    async def enemy():
-        # Spawn a blob
-        pos = random_pos()
-        e = scene.layers[0].add_circle(
-            radius=10,
-            color=random_color()
-            pos=pos,
-        )
+    Return an asynchronous iterator that queues and yields all matching events
+    until the iterator is closed or cancelled.
 
-        # Move inexorably towards target
-        async for dt in clock.coro.frames_dt():
-            to_target = target - pos
-            if to_target.magnitude() < e.radius:
-                # We hit!
-                break
-            pos += to_target.normalize() * 100 * dt
-            e.pos = pos
+.. method:: events.next_touch()
+    :async:
 
-        # Explode, using the effect above
-        e.delete()
-        await explode(pos)
+    Return an asynchronous iterator over the events for the next touch,
+    including finger down, motion, and finger up.
 
+Clock operations
+~~~~~~~~~~~~~~~~
 
-The `full example code is here`__.
-
-.. __: https://github.com/lordmauve/wasabi2d/blob/master/examples/coroutines/run.py
-
-.. video:: _static/video/run.mp4
-
-
-Coroutine API
--------------
-
-The ``.coro`` attribute of any :class:`Clock` is the interface to run
-coroutines with that clock. This namespace distinguishes coroutine methods from
-synchronous/callback methods.
-
-First we need to be able to run and stop coroutines:
-
-.. method:: clock.coro.run(coro)
-
-    Launch the given coroutine instance. ``coro`` will be executed as far as
-    its first ``await`` at this point.
-
-    Return a ``Task`` instance.
-
-    Example::
-
-        async def myroutine(param):
-            ...
-
-        task = clock.coro.run(myroutine(param))
-
-
-Tasks allow the coroutine to be cancelled (from the outside).
-
-.. method:: task.cancel()
-
-    Cancel the task. An exception ``clock.coro.Cancelled`` will be raised
-    inside the coroutine.
-
-    Example::
-
-        async def myroutine():
-            sprite = ...
-            try:
-                while True:
-                    ...
-            except clock.coro.Cancelled:
-                sprite.delete()
-
-        task = clock.coro.run(myroutine())
-        ...
-        if player.dead:
-            task.cancel()
-
-
-Async methods/iterators
------------------------
-
-Various asynchronous methods can be called inside the coroutine in order to
-wait for a period of time.
-
-.. method:: animate
-    :noindex:
-
-    You can await any animation; see :doc:`animation` for details.
-
-    Example::
-
-        await animate(sprite, angle=6)
-
+Each clock has a ``coro`` namespace. Operations use that clock's time, rate,
+and pause state.
 
 .. method:: clock.coro.sleep(seconds)
     :async:
 
-    Sleep for the given amount of time in seconds.
+    Wait for ``seconds`` on the clock and return the actual elapsed clock time.
 
-    Example::
+.. method:: clock.coro.intervals(seconds)
+    :async:
 
-        await clock.coro.sleep(10)  # sleep for 10s
-
+    Iterate forever at the given interval, yielding total elapsed clock time.
 
 .. method:: clock.coro.next_frame()
     :async:
 
-    Sleep until the next frame. Return the interval between frames.
-
-    Example::
-
-        dt = await clock.coro.next_frame()
-
+    Wait for the next tick of this clock and return the elapsed time since its
+    previous tick.
 
 .. method:: clock.coro.frames(*, seconds=None, frames=None)
     :async:
 
-    Iterate over multiple frames, yielding the total time waited in seconds.
-
-    Example::
-
-        async for t in clock.coro.frames(seconds=10):
-            percent = t * 10.0
-            print(f"Waiting {percent}%")
-
-    If seconds or frames are given these are the limit on the duration of
-    the loop; otherwise iterate forever.
-
-    If limiting by seconds, you are guaranteed to receive an event after
-    exactly ``seconds``, regardless of frame rate, in order to ensure that
-    any effect is complete.
-
+    Iterate over clock frames, yielding total elapsed time. Pass either
+    ``seconds`` or ``frames`` to limit the iteration; pass neither to iterate
+    forever.
 
 .. method:: clock.coro.frames_dt(*, seconds=None, frames=None)
     :async:
 
-    Iterate over multiple frames, yielding the time difference each iteration
-    in seconds.
-
-    Example::
-
-        async for dt in clock.coro.frames_dt(seconds=10):
-            x, y = sprite.pos
-            sprite.pos = (x + dt * 100, y)  # move 100 pixels per second
-
+    Iterate over clock frames, yielding the elapsed time for each frame. The
+    optional limits are the same as for :meth:`clock.coro.frames`.
 
 .. method:: clock.coro.interpolate(start, end, duration=1.0, tween='linear')
     :async:
 
-    Interpolate between the values start and end (which must be numbers or
-    tuples of numbers), over the given duration.
-
-    This is usually less convenient than ``animate()``, but does give finer
-    control.
-
-    If ``tween`` is given it is a tweening function as described under
+    Iterate over interpolated values from ``start`` to ``end``. Values may be
+    numbers or tuples of numbers. ``tween`` uses the names documented under
     :doc:`animation`.
 
-    Example::
+.. method:: clock.coro.move_on_after(seconds)
 
-        async for v in clock.coro.interpolate(1, 20):
-            sprite.scale = v
+    Return a synchronous context manager that cancels its block after
+    ``seconds`` of clock time, absorbs that cancellation, and continues after
+    the block.
+
+.. method:: clock.coro.run(coro)
+
+    Deprecated alias for :func:`wasabi2d.do`. New code should use
+    ``w2d.do(coro)`` or ``nursery.do(coro)``.
+
+Awaitable animation
+~~~~~~~~~~~~~~~~~~~
+
+.. function:: wasabi2d.animate(object, tween='linear', duration=1, **targets)
+    :noindex:
+
+    Animate attributes of ``object`` and return an awaitable animation. See
+    :doc:`animation` for all options.

@@ -30,7 +30,7 @@ async def drive_ship():
         await animate(ship, duration=0.5, angle=angle)
 
         # Begin emitting particles
-        clock.coro.run(thrust(duration * 0.8))
+        w2d.do(thrust(duration * 0.8))
 
         # Move
         scene.layers[0].set_effect('trails', fade=1e-2)
@@ -60,5 +60,4 @@ async def thrust(duration):
             )
 
 
-clock.coro.run(drive_ship())
-w2d.run()
+w2d.run(drive_ship())
