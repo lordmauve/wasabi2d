@@ -127,6 +127,50 @@ And these methods:
 * ``.delete()`` - delete the sprite.
 
 
+Nine-patches
+------------
+
+A nine-patch turns a small image into a resizable panel while keeping its
+corners and edges at their original size. It is useful for interface panels,
+buttons, speech bubbles, and other framed shapes.
+
+First describe the stretchable center of the source image. Cut coordinates
+are measured in pixels from the image's top-left corner::
+
+    PANEL = w2d.NinePatch(
+        'panel',
+        hcuts=(6, 26),
+        vcuts=(6, 26),
+    )
+
+For this 32 by 32 image, the left and right borders are each 6 pixels wide,
+as are the top and bottom borders. Create panels from the definition with
+``Layer.add_ninepatch()``::
+
+    panel = scene.layers[0].add_ninepatch(
+        PANEL,
+        pos=(scene.width / 2, scene.height / 2),
+        width=300,
+        height=100,
+        color='white',
+    )
+
+.. method:: Layer.add_ninepatch(patch, *, [options]) -> ...
+
+    Create and return a scalable textured panel.
+
+    * ``patch`` - a :class:`wasabi2d.NinePatch` definition.
+    * ``width``, ``height`` - the output dimensions in pixels. Each defaults
+      to the corresponding source-image dimension.
+    * ``pos``, ``angle``, ``scale``, and ``color`` - the common primitive
+      transformation and color options.
+
+    The returned object's ``patch``, ``width``, and ``height`` attributes can
+    be changed after creation. If an output dimension is smaller than the two
+    fixed borders combined, the borders shrink proportionally and the center
+    collapses rather than overlapping.
+
+
 Circles
 -------
 
@@ -239,4 +283,3 @@ directory in TTF format, and have names that are `lowercase_with_underscores`.
       of the characters may differ due to the metrics of the font.
     * `align` - `str` - one of `'left'`, `'center'`, or `'right'`. This
       controls how the text aligns relative to `pos`.
-

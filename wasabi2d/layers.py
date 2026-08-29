@@ -329,6 +329,13 @@ class Layer:
         self.objects.add(tiles)
         return tiles
 
+    def add_ninepatch(self, patch, **kwargs):
+        """Create a scalable textured panel from a nine-patch definition."""
+        from .primitives.ninepatch import NinePatchPrimitive
+        primitive = NinePatchPrimitive(self, patch, **kwargs)
+        self.objects.add(primitive)
+        return primitive
+
 
 class LayerGroup(dict):
     def __new__(cls, ctx):
