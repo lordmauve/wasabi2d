@@ -11,18 +11,19 @@ particles = scene.layers[0].add_particle_group(
 
 async def particle_spray():
     ev = await w2d.next_event(pygame.MOUSEBUTTONDOWN)
-    emitter = particles.add_emitter(
+    with particles.add_emitter(
         pos=ev.pos,
         rate=50,
         color='cyan',
         size=6,
         vel_spread=30
-    )
-    async for ev in w2d.events.subscribe(pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP):
-        if ev.type == pygame.MOUSEBUTTONUP:
-            emitter.delete()
-            return
-        else:
+    ) as emitter:
+        async for ev in w2d.events.subscribe(
+            pygame.MOUSEMOTION,
+            pygame.MOUSEBUTTONUP,
+        ):
+            if ev.type == pygame.MOUSEBUTTONUP:
+                return
             emitter.pos = ev.pos
 
 async def main():

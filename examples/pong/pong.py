@@ -160,10 +160,10 @@ def update(dt, keyboard):
     if x < -BALL_RADIUS:
         scene.camera.screen_shake()
         blue_score.text += 1
-        w2d.clock.coro.run(start(1))
+        w2d.do(start(1))
         w2d.sounds.airhorn.play()
     elif x > scene.width + BALL_RADIUS:
-        w2d.clock.coro.run(start(-1))
+        w2d.do(start(-1))
         scene.camera.screen_shake()
         red_score.text += 1
         w2d.sounds.airhorn.play()
@@ -190,7 +190,7 @@ for s in sticks:
 
 def reset():
     red_score.text = blue_score.text = 0
-    w2d.clock.coro.run(start())
+    w2d.do(start())
 
 
 @w2d.event

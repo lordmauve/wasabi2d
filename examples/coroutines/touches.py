@@ -47,26 +47,23 @@ async def next_touch():
 
 async def run_touch(initial_pos, touch_events):
     color = colorsys.hsv_to_rgb(random.random(), 1, 1)
-    emitter = particles.add_emitter(
+    with particles.add_emitter(
         pos=initial_pos,
         rate=200,
         color=color,
         size=12,
         vel_spread=60,
         pos_spread=10,
-    )
-    try:
+    ) as emitter:
         async for ev in touch_events:
             emitter.pos = pos(ev)
-    finally:
-        emitter.delete()
 
 
 async def main():
     async with w2d.Nursery() as nursery:
         while True:
             touch = w2d.events.next_touch()
-            first_ev = await anext(touch)
+            first_ev = await touch.__anext__()
             nursery.do(run_touch(pos(first_ev), touch))
 
 

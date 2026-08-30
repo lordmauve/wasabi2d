@@ -26,33 +26,32 @@ async def enemy():
         random.uniform(50, scene.width - 50),
         random.uniform(50, scene.height - 50)
     )
-    e = scene.layers[0].add_circle(
+    with scene.layers[0].add_circle(
         radius=10,
         color=color,
         pos=pos,
-    )
-    e.scale = 0.1
-    await animate(
-        e,
-        duration=0.3,
-        scale=1,
-    )
-    async for dt in clock.coro.frames_dt():
-        to_target = target - pos
-        if to_target.length() < e.radius:
-            break
-        pos += to_target.scaled_to(100 * dt)
-        e.pos = pos
+    ) as e:
+        e.scale = 0.1
+        await animate(
+            e,
+            duration=0.3,
+            scale=1,
+        )
+        async for dt in clock.coro.frames_dt():
+            to_target = target - pos
+            if to_target.length() < e.radius:
+                break
+            pos += to_target.scaled_to(100 * dt)
+            e.pos = pos
 
-    scene.camera.screen_shake()
-    await animate(
-        e,
-        duration=0.1,
-        scale=10,
-        tween='accelerate',
-        color=(*color, 0)
-    )
-    e.delete()
+        scene.camera.screen_shake()
+        await animate(
+            e,
+            duration=0.1,
+            scale=10,
+            tween='accelerate',
+            color=(*color, 0)
+        )
 
 
 @w2d.event
