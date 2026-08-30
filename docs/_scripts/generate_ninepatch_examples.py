@@ -1,5 +1,7 @@
 """Render the nine-patch examples used by the documentation."""
+from base64 import b64encode
 from pathlib import Path
+import re
 
 import pygame.image
 import pygame.transform
@@ -12,6 +14,22 @@ from wasabi2d.scene import HeadlessScene, capture_screen
 DOCS = Path(__file__).parents[1]
 SOURCE = DOCS / '_static' / 'primitives' / 'ninepatch-panel.png'
 OUTPUT = DOCS / '_static' / 'primitives' / 'ninepatch-examples.png'
+GUIDE = DOCS / '_static' / 'primitives' / 'ninepatch-slicing-guide.svg'
+
+
+def embed_source_in_guide():
+    """Inline the panel because browsers block external files in SVG images."""
+    encoded = b64encode(SOURCE.read_bytes()).decode('ascii')
+    svg = GUIDE.read_text(encoding='utf8')
+    svg, replacements = re.subn(
+        r'(<image href=")[^"]+("\s+x="90")',
+        rf'\1data:image/png;base64,{encoded}\2',
+        svg,
+        count=1,
+    )
+    if replacements != 1:
+        raise RuntimeError('Could not find the slicing-guide source image')
+    GUIDE.write_text(svg, encoding='utf8')
 
 
 def render():
@@ -23,6 +41,7 @@ def render():
             source = source.subsurface((36, 58, 1464, 862))
             source = pygame.transform.smoothscale(source, (480, 282))
             pygame.image.save(source, str(SOURCE))
+        embed_source_in_guide()
         images._cache[images.cache_key('ninepatch_panel', (), {})] = source
 
         panel = w2d.NinePatch(
