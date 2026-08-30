@@ -2,10 +2,10 @@ pytest
 tox
 pytest-cov
 Sphinx>=2.2.0
+sphinx-copybutton
 wheel
 twine
 matplotlib
 git+https://github.com/sphinx-contrib/video#egg=sphinxcontrib-video
-
 
 
