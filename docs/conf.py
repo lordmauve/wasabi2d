@@ -32,6 +32,7 @@ release = '1.4.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx_copybutton',
     'sphinxcontrib.video',
 ]
 
