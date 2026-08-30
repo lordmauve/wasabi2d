@@ -19,15 +19,16 @@ def render():
     try:
         scene.background = '#101521'
         source = pygame.image.load(str(SOURCE))
-        if source.get_size() != (384, 384):
-            source = pygame.transform.smoothscale(source, (384, 384))
+        if source.get_size() != (480, 282):
+            source = source.subsurface((36, 58, 1464, 862))
+            source = pygame.transform.smoothscale(source, (480, 282))
             pygame.image.save(source, str(SOURCE))
         images._cache[images.cache_key('ninepatch_panel', (), {})] = source
 
         panel = w2d.NinePatch(
             'ninepatch_panel',
-            hcuts=(77, 307),
-            vcuts=(77, 307),
+            hcuts=(55, 425),
+            vcuts=(48, 238),
         )
         layer = scene.layers[0]
 

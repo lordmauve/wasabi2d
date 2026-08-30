@@ -263,16 +263,16 @@ top-left corner.
     :alt: Nine-patch slicing guide showing fixed corners, stretchable edges, and cut coordinates
     :width: 100%
 
-    The dashed lines divide the source into nine regions. For this 384 by
-    384 image, the stretchable center runs from pixel 77 to pixel 307 on
-    both axes.
+    The dashed lines divide the source into nine regions. For this 480 by 282
+    image, the stretchable center runs from x=55 to x=425 and from y=48 to
+    y=238.
 
 Create the reusable definition with those coordinates::
 
     PANEL = w2d.NinePatch(
         'ninepatch_panel',
-        hcuts=(77, 307),
-        vcuts=(77, 307),
+        hcuts=(55, 425),
+        vcuts=(48, 238),
     )
 
 Then create panels from it with ``Layer.add_ninepatch()``::
