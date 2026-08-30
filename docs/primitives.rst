@@ -240,3 +240,62 @@ directory in TTF format, and have names that are `lowercase_with_underscores`.
     * `align` - `str` - one of `'left'`, `'center'`, or `'right'`. This
       controls how the text aligns relative to `pos`.
 
+
+Nine-patches
+------------
+
+A nine-patch turns one small image into resizable panels while keeping its
+corners and edge thickness intact. The same source can become a dialog,
+button, inventory panel, speech bubble, tooltip, or notification.
+
+.. figure:: _static/primitives/ninepatch-examples.png
+    :alt: A wide quest dialog, a button, and a tall inventory panel made from the same nine-patch image
+    :width: 100%
+
+    One source image rendered at several sizes and aspect ratios.
+
+First identify the stretchable center of the source image. ``hcuts`` gives
+its left and right x coordinates; ``vcuts`` gives its top and bottom y
+coordinates. All four values are source-image pixels measured from the
+top-left corner.
+
+.. figure:: _static/primitives/ninepatch-slicing-guide.svg
+    :alt: Nine-patch slicing guide showing fixed corners, stretchable edges, and cut coordinates
+    :width: 100%
+
+    The dashed lines divide the source into nine regions. For this 480 by 282
+    image, the stretchable center runs from x=55 to x=425 and from y=48 to
+    y=238.
+
+Create the reusable definition with those coordinates::
+
+    PANEL = w2d.NinePatch(
+        'ninepatch_panel',
+        hcuts=(55, 425),
+        vcuts=(48, 238),
+    )
+
+Then create panels from it with ``Layer.add_ninepatch()``::
+
+    panel = scene.layers[0].add_ninepatch(
+        PANEL,
+        pos=(scene.width / 2, scene.height / 2),
+        width=900,
+        height=360,
+        color='white',
+    )
+
+.. method:: Layer.add_ninepatch(patch, *, [options]) -> ...
+
+    Create and return a scalable textured panel.
+
+    * ``patch`` - a :class:`wasabi2d.NinePatch` definition.
+    * ``width``, ``height`` - the output dimensions in pixels. Each defaults
+      to the corresponding source-image dimension.
+    * ``pos``, ``angle``, ``scale``, and ``color`` - the common primitive
+      transformation and color options.
+
+    The returned object's ``patch``, ``width``, and ``height`` attributes can
+    be changed after creation. If an output dimension is smaller than the two
+    fixed borders combined, the borders shrink proportionally and the center
+    collapses rather than overlapping.

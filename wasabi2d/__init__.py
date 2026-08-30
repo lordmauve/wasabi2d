@@ -17,6 +17,7 @@ from .animation import animate
 from .storage import Storage
 from .chain import LayerRange
 from .primitives.group import Group
+from .primitives.ninepatch import NinePatch
 from .loop import do, run, PygameEvents, gather, Nursery, Event
 
 # Vector2 was pygame.math.Vector2, which was mutable, so we replaced it with
@@ -42,5 +43,6 @@ __all__ = [
     'clock', 'animate',
     'Scene', 'Storage', 'LayerRange',
     'Group',
+    'NinePatch',
     'gather', 'Nursery', 'Event',
 ]
