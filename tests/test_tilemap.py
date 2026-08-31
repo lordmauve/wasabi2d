@@ -101,4 +101,11 @@ def test_tilemap_clear(scene):
 
     tilemap.clear()
 
+    # All tiles previously written should now be gone.
+    for x in range(3, 6):
+        for y in range(6, 9):
+            assert tilemap.get((x, y)) is None
+
+    # Clearing one tilemap does not affect another tilemap in the same scene
     tm[4, 5] = 'bomb'
+    assert tm.get((4, 5)) == 'bomb'
