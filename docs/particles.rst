@@ -134,6 +134,21 @@ particles, call ``.emit()`` or create an :ref:`emitter object <emitters>`.
                         particles, in radians per second.
 
 
+    :param age_spread: Spread of initial particle ages, in seconds (default
+                      0). Ages are the absolute values of samples from a
+                      normal distribution with mean 0 and this standard
+                      deviation, so they are always non-negative.
+
+    ``age_spread`` starts particles at different points in their colour ramp
+    and leaves them different amounts of time before ``max_age``. It does not
+    advance their initial positions, sizes or velocities. For example::
+
+        group = scene.layers[0].add_particle_group(max_age=2)
+        group.add_color_stop(0, 'yellow')
+        group.add_color_stop(2, (1, 0, 0, 0))
+        group.emit(100, pos=(200, 150), age_spread=0.5)
+
+
 .. _emitters:
 
 Emitters
@@ -177,6 +192,11 @@ other graphics.
     :param float emit_angle: The rotation of the emitted particles, in radians.
     :param float emit_angle_spread: The standard deviation for the angle of
         particles, in radians.
+
+    ``age_spread`` is also available on emitters, with the same meaning as
+    for ``emit()``. For example, ``group.add_emitter(rate=50, age_spread=0.5)``
+    starts each emitted particle at a randomly varied age. You can change
+    ``emitter.age_spread`` while it is running.
 
     The other properties are shared with emit:
 

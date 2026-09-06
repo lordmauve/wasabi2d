@@ -179,6 +179,37 @@ The effects are described here as separate calls:
         :alt: Examples of the posterize effect
 
 
+.. method:: Layer.set_effect('outline', color=(0.0, 0.0, 0.0, 1.0))
+    :no-index:
+
+    Draw a thin outline around the opaque parts of the layer. The original
+    image is composited over the outline. Overlapping objects in the same
+    layer are outlined together, rather than each object independently.
+
+    ``color`` is a four-component RGBA tuple of floats, defaulting to opaque
+    black. Unlike primitive colours, this parameter does not convert colour
+    names or hex strings.
+
+    The outline samples neighbouring pixels in the render target; it has no
+    configurable radius. Camera zoom does not enlarge its sampling radius,
+    but scene scaling enlarges the final result.
+
+    For example, give the sprites in layer 1 a white outline::
+
+        outline = scene.layers[1].set_effect(
+            'outline', color=(1.0, 1.0, 1.0, 1.0),
+        )
+        outline.color = (1.0, 0.8, 0.0, 1.0)
+
+    It can also wrap a chain node::
+
+        from wasabi2d import chain
+
+        scene.chain = [
+            chain.LayerRange().wrap_effect('outline', color=(1, 1, 1, 1)),
+        ]
+
+
 .. tip:: Effects Examples
 
     Each effect has an interactive example in the ``examples/effects/``

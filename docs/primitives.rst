@@ -37,8 +37,8 @@ Common Attributes
 Most primitives support attributes for transforming the position, rotation,
 scale and color of the object.
 
-You can pass these as keyword arguments to the factory function, or you can
-set them on the primitive object.
+You can set these attributes on the primitive object. Factory functions accept
+a subset of them as keyword arguments; see each factory below.
 
 Common attributes:
 
@@ -66,6 +66,21 @@ Common attributes:
 .. attribute:: color
 
     The color of the shape, as :ref:`described above <colors>`.
+
+.. attribute:: alpha
+
+    The opacity, from 0 (transparent) to 1 (opaque). Assigning this changes
+    only the alpha component of ``color``, preserving the RGB components.
+    Assigning a new ``color`` replaces the alpha component too; an RGB colour
+    without alpha resets it to 1.
+
+    For example, fade a sprite out over half a second::
+
+        from wasabi2d import animate
+
+        animate(ship, duration=0.5, alpha=0)
+
+    This is an attribute to set after creation, not a factory keyword.
 
 .. attribute:: angle
 
@@ -197,8 +212,8 @@ Polygons
 
     Create and return a closed polygon.
 
-    * `vertices` - sequence of `(float, float)` tuples. The vertices cannot
-      currently be updated after creation.
+    * `vertices` - sequence of `(float, float)` tuples. Assign to ``.vertices`` to update
+      the positions after creation, keeping the same number of vertices.
     * `fill` - `bool` - if `True`, the shape will be drawn filled. Otherwise,
       it will be drawn as an outline. This cannot currently be changed after
       creation.
@@ -216,29 +231,64 @@ Lines
     consisting of 3 points will be drawn as line segments from point 0 to 1, 1
     to 2, and so on. Corners are bevelled.
 
-    * `vertices` - sequence of `(float, float)` tuples. The vertices cannot
-      currently be updated after creation.
+    * `vertices` - sequence of `(float, float)` tuples. Assign to ``.vertices`` to update
+      the positions after creation, keeping the same number of vertices.
     * `stroke_width` - `int` if `fill` is `False`, this is the width of the
       line that will be drawn.
+
+
+Updating lines and polygons
+---------------------------
+
+Assign a complete sequence to ``.vertices`` to change the shape. The number
+of vertices must stay the same::
+
+    line = scene.layers[0].add_line(
+        [(20, 40), (100, 80), (180, 40)], stroke_width=6,
+    )
+    line.vertices = [(20, 40), (100, 120), (180, 40)]
+
+Reading ``.vertices`` returns a copy, so editing that array alone does not
+update the shape; assign it back afterwards. Filled polygons retain their
+original triangulation, so changes must remain compatible with those triangles.
+
+Lines also support a colour per vertex through ``.colors``. Supply a NumPy
+array with shape ``(number_of_vertices, 4)`` containing floating-point RGBA
+values. Colours interpolate along the segments::
+
+    import numpy as np
+
+    line.colors = np.array([
+        (1, 0, 0, 1),
+        (1, 1, 0, 1),
+        (0, 0, 1, 1),
+    ], dtype='f4')
+
+Assigning ``.colors`` replaces the uniform colour. Reassign the array after
+editing it to mark the line for redraw. While per-vertex colours are active,
+edit their alpha column to change opacity rather than using ``line.alpha``.
 
 
 Text
 ----
 
 wasabi2d supports text labels. The fonts for the labels must be in the `fonts/`
-directory in TTF format, and have names that are `lowercase_with_underscores`.
+directory in TTF or OTF format, and have names that are `lowercase_with_underscores`.
 
 
 .. method:: Layer.add_label(...) -> ...
 
-    Create an return a text label.
+    Create and return a text label.
 
     * `text` - `str` - the text of the label
-    * `font` - `str` - the name of the font to load
+    * `font` - `str` - the font filename without its ``.ttf`` or ``.otf``
+      extension; omit it to use the bundled default font
     * `fontsize` - `float` - the size of the font, in pixels. The actual height
       of the characters may differ due to the metrics of the font.
     * `align` - `str` - one of `'left'`, `'center'`, or `'right'`. This
       controls how the text aligns relative to `pos`.
+    * `pos`, `color`, `scale` - initial position, colour and scale. Other
+      transform attributes can be assigned after creation.
 
 
 Nine-patches
