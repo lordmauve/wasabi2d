@@ -1,4 +1,5 @@
 """Draw scheduling and buffer submission, without an OpenGL context."""
+
 import gc
 import weakref
 from unittest.mock import Mock
@@ -12,7 +13,6 @@ from wasabi2d.allocators.packed import PackedBuffer
 from wasabi2d.allocators.vertlists import VAO
 from wasabi2d.layers import Layer
 from wasabi2d.primitives.base import ZOrder
-
 
 DTYPE = np.dtype([('in_vert', '2f4')])
 
@@ -44,16 +44,31 @@ def test_sort_toggle_and_dynamic_allocations(packed):
     buffer = make_buffer(Mock(), packed)
     ids = [allocate(buffer, (z, i)) for i, z in enumerate([1, -1, 0])]
     buffer.set_zsorted(True)
-    assert [key for key, *_ in buffer.iter_draws()] == [(-1, 1), (0, 2), (1, 0)]
+    assert [key for key, *_ in buffer.iter_draws()] == [
+        (-1, 1),
+        (0, 2),
+        (1, 0),
+    ]
     buffer.set_sort(ids[0], (-2, 0))
-    assert [key for key, *_ in buffer.iter_draws()] == [(-2, 0), (-1, 1), (0, 2)]
+    assert [key for key, *_ in buffer.iter_draws()] == [
+        (-2, 0),
+        (-1, 1),
+        (0, 2),
+    ]
     # Allocating into an already sorted buffer must not compare None to tuples.
     allocate(buffer, (0, 3))
-    assert [key for key, *_ in buffer.iter_draws()] == [(-2, 0), (-1, 1), (0, 2), (0, 3)]
+    assert [key for key, *_ in buffer.iter_draws()] == [
+        (-2, 0),
+        (-1, 1),
+        (0, 2),
+        (0, 3),
+    ]
     buffer.set_zsorted(False)
     if packed:
         assert list(buffer.indexes.id_lookup) == list(range(1, 5))
-        assert [key[1] for key in buffer.indexes.allocations] == list(range(1, 5))
+        assert [key[1] for key in buffer.indexes.allocations] == list(
+            range(1, 5)
+        )
     else:
         assert buffer.indirect.ordered_keys() == list(range(4))
 
@@ -66,7 +81,10 @@ def test_merge_across_buffer_types_batches_contiguous_ranges():
     for key in [(0, 1), (0, 4)]:
         allocate(shapes, key)
     assert schedule(sprites, shapes) == [
-        (sprites, 0, 3), (shapes, 0, 1), (sprites, 3, 9), (shapes, 1, 2),
+        (sprites, 0, 3),
+        (shapes, 0, 1),
+        (sprites, 3, 9),
+        (shapes, 1, 2),
     ]
 
 
@@ -82,7 +100,10 @@ def test_legacy_render_submits_only_selected_sorted_commands(version):
     buffer.render(None, first=1, count=1, vao=vao)
     if version >= 420:
         vao.render_indirect.assert_called_once_with(
-            buffer.indirect.get_buffer(), mode=moderngl.TRIANGLES, first=1, count=1,
+            buffer.indirect.get_buffer(),
+            mode=moderngl.TRIANGLES,
+            first=1,
+            count=1,
         )
         # The uploaded command array must have the same order as the schedule.
         commands = ctx.buffer.call_args.args[0]
@@ -90,8 +111,10 @@ def test_legacy_render_submits_only_selected_sorted_commands(version):
         np.testing.assert_array_equal(commands, expected)
     else:
         vao.render.assert_called_once_with(
-            moderngl.TRIANGLES, 3,
-            first=buffer.allocs[2].indexoff.start, instances=1,
+            moderngl.TRIANGLES,
+            3,
+            first=buffer.allocs[2].indexoff.start,
+            instances=1,
         )
     vao.release.assert_not_called()
 
@@ -119,7 +142,9 @@ def test_cached_schedule_survives_vertex_changes_but_not_z_changes():
     layer._draw_sorted(None)
     commands = layer._draw_commands
     assert len(commands) == 3
-    assert ctx.vertex_array.call_count == 2  # a is prepared once, despite two draws
+    assert (
+        ctx.vertex_array.call_count == 2
+    )  # a is prepared once, despite two draws
     a.get_verts(first)['in_vert'] = 1
     layer._draw_sorted(None)
     assert layer._draw_commands is commands
@@ -134,7 +159,9 @@ def test_cached_schedule_survives_vertex_changes_but_not_z_changes():
     a_ref = weakref.ref(a)
     del a
     gc.collect()
-    assert a_ref() is None  # the cache must not retain otherwise-unused buffers
+    assert (
+        a_ref() is None
+    )  # the cache must not retain otherwise-unused buffers
     assert 'a' not in layer.arrays
 
 
@@ -144,7 +171,9 @@ def test_sorted_vao_cleanup_on_draw_error():
     buffer = make_buffer(ctx, True)
     allocate(buffer, (0, 0))
     layer.arrays[0] = buffer
-    ctx.vertex_array.return_value.render.side_effect = RuntimeError('draw failed')
+    ctx.vertex_array.return_value.render.side_effect = RuntimeError(
+        'draw failed'
+    )
     with pytest.raises(RuntimeError, match='draw failed'):
         layer._draw_sorted(None)
     ctx.vertex_array.return_value.release.assert_called_once()

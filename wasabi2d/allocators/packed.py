@@ -45,7 +45,8 @@ class PackedBuffer:
             return
         self._zsorted = enabled
         for id in self.allocs:
-            self.indexes.set_sort(id, self._sort_keys[id] if enabled else (0, id))
+            key = self._sort_keys[id] if enabled else (0, id)
+            self.indexes.set_sort(id, key)
 
     def iter_draws(self):
         for key, _, start, end in bufiter(self.indexes):

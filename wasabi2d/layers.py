@@ -111,7 +111,9 @@ class Layer:
         if state != self._draw_state:
             self._draw_commands = tuple(
                 (weakref.ref(a), start, end)
-                for a, start, end in merge_draws(a.iter_draws() for a in arrays)
+                for a, start, end in merge_draws(
+                    a.iter_draws() for a in arrays
+                )
             )
             self._draw_state = state
 

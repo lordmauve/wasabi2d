@@ -1,4 +1,5 @@
 """Pixel comparisons of sorted layers against separately ordered layers."""
+
 import numpy as np
 import pygame
 import pytest
@@ -39,13 +40,19 @@ def make(layer, kind, color=(0.8, 0.2, 0.3, 0.6)):
     if kind == 'circle':
         return layer.add_circle(radius=65, pos=pos, color=color)
     if kind == 'line':
-        return layer.add_line([(40, 40), (100, 120), (160, 60)],
-                              stroke_width=25, color=color)
+        return layer.add_line(
+            [(40, 40), (100, 120), (160, 60)], stroke_width=25, color=color
+        )
     if kind == 'label':
         return layer.add_label('MMM', pos=(30, 120), fontsize=60, color=color)
     if kind == 'ninepatch':
-        return layer.add_ninepatch(NinePatch('solid_a', (8, 56), (8, 56)),
-                                   pos=pos, width=110, height=90, color=color)
+        return layer.add_ninepatch(
+            NinePatch('solid_a', (8, 56), (8, 56)),
+            pos=pos,
+            width=110,
+            height=90,
+            color=color,
+        )
     if kind == 'particles':
         group = layer.add_particle_group(max_age=10)
         group.emit(1, pos=pos, size=80, color=color)
@@ -60,14 +67,17 @@ def make(layer, kind, color=(0.8, 0.2, 0.3, 0.6)):
 def pixels(scene, nodes):
     scene.chain = [chain.to_node(node) for node in nodes]
     scene.draw(0, 0, True)
-    return np.frombuffer(scene.ctx.screen.read(components=3), dtype=np.uint8).astype(int)
+    return np.frombuffer(
+        scene.ctx.screen.read(components=3), dtype=np.uint8
+    ).astype(int)
 
 
 def assert_matches_reference(scene, actual, expected, effect=False):
     actual_nodes = [0]
-    expected_nodes = [100 + i for i in sorted(
-        range(len(expected)), key=lambda i: (expected[i].z, i)
-    )]
+    expected_nodes = [
+        100 + i
+        for i in sorted(range(len(expected)), key=lambda i: (expected[i].z, i))
+    ]
     if effect:
         actual_nodes = [chain.Effect(actual_nodes, 'greyscale', {})]
         expected_nodes = [chain.Effect(expected_nodes, 'greyscale', {})]
@@ -77,16 +87,29 @@ def assert_matches_reference(scene, actual, expected, effect=False):
     assert np.any(a.reshape(-1, 3) != a[:3])
 
 
-@pytest.mark.parametrize('kind', [
-    'other_texture', 'rect', 'circle', 'line', 'label', 'ninepatch',
-    'particles', 'tilemap',
-])
+@pytest.mark.parametrize(
+    'kind',
+    [
+        'other_texture',
+        'rect',
+        'circle',
+        'line',
+        'label',
+        'ninepatch',
+        'particles',
+        'tilemap',
+    ],
+)
 @pytest.mark.parametrize('depths', [(0, 0, 0), (1, -2, 0.5)])
 def test_interleaved_primitives_match_separate_layers(renderer, kind, depths):
     scene = renderer
     actual, expected = [], []
     for i, primitive in enumerate(['sprite', kind, 'sprite']):
-        color = [(0.9, 0.2, 0.1, 0.6), (0.1, 0.9, 0.2, 0.7), (0.2, 0.1, 0.9, 0.5)][i]
+        color = [
+            (0.9, 0.2, 0.1, 0.6),
+            (0.1, 0.9, 0.2, 0.7),
+            (0.2, 0.1, 0.9, 0.5),
+        ][i]
         a = make(scene.layers[0], primitive, color)
         b = make(scene.layers[100 + i], primitive, color)
         a.z = b.z = depths[i]
@@ -109,7 +132,9 @@ def test_migration_toggle_and_effect(renderer):
         actual.append(make(layer, kind, color))
         expected.append(make(scene.layers[100 + i], kind, color))
     assert_matches_reference(scene, actual, expected)
-    actual[0].image = 'solid_b'  # Migration must preserve the creation tie-break.
+    actual[0].image = (
+        'solid_b'  # Migration must preserve the creation tie-break.
+    )
     actual[2].patch = NinePatch('solid_b', (8, 56), (8, 56))
     assert_matches_reference(scene, actual, expected)
     actual[2].z = expected[2].z = -1
