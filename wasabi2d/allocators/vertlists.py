@@ -67,8 +67,7 @@ class VAOList:
     @property
     def num_indexes(self):
         """Get the number of indices to draw."""
-        pos = self.buf.allocs.index(self)
-        return self.buf.indirect[pos, 0]
+        return self.buf.indirect.allocations[self.command][0]
 
     @num_indexes.setter
     def num_indexes(self, n):
@@ -83,9 +82,9 @@ class VAOList:
         if n > size:
             raise ValueError(f"Only allocated {size} indices.")
 
-        # TODO: linear cost
-        pos = self.buf.allocs.index(self)
-        self.buf.indirect[pos, 0] = n
+        cmd = self.buf.indirect.allocations[self.command].copy()
+        cmd[0] = n
+        self.buf.indirect[self.command] = cmd
 
     def realloc(self, num_verts=None, num_indexes=None):
         """Reallocate the list to a new size. Invalidate the data."""
@@ -120,6 +119,33 @@ class IndirectBuffer:
         self.next_key = 0
         self.allocations = OrderedDict()
         self.buffer = None
+        self.sort_keys = {}
+        self.zsorted = False
+        self.version = 0
+        self._ordered = None
+
+    def ordered_keys(self):
+        if self._ordered is None:
+            self._ordered = list(self.allocations)
+            if self.zsorted:
+                self._ordered.sort(key=self.sort_keys.__getitem__)
+        return self._ordered
+
+    def set_sort(self, key, sort):
+        if self.sort_keys[key] != sort:
+            self.sort_keys[key] = sort
+            if self.zsorted:
+                self._changed()
+
+    def set_zsorted(self, enabled):
+        if enabled != self.zsorted:
+            self.zsorted = enabled
+            self._changed()
+
+    def _changed(self):
+        self.version += 1
+        self._ordered = None
+        self.release()
 
     def _initialise(self):
         self.indirect = np.zeros((self.capacity, 5), dtype='u4')
@@ -139,13 +165,17 @@ class IndirectBuffer:
         """
         if not self.buffer:
             self.buffer = self.ctx.buffer(
-                np.array(list(self.allocations.values()), dtype='u4'),
+                np.array([
+                    self.allocations[k] for k in self.ordered_keys()
+                ], dtype='u4'),
             )
         return self.buffer
 
-    def render_direct(self, vao, mode):
-        cmds = self.allocations.values()
-        for vs, insts, base_idx, base_v, base_inst in cmds:
+    def render_direct(self, vao, mode, first=0, count=-1):
+        keys = self.ordered_keys()
+        stop = None if count < 0 else first + count
+        for k in keys[first:stop]:
+            vs, insts, base_idx, base_v, base_inst = self.allocations[k]
             vao.render(mode, vs, first=base_idx, instances=1)
 
     def append(self, vs, insts, base_idx, base_v, base_inst) -> int:
@@ -161,7 +191,8 @@ class IndirectBuffer:
             [vs, insts, base_idx, base_v, base_inst],
             dtype='u4'
         )
-        self.release()
+        self.sort_keys[key] = (0, key)
+        self._changed()
         return key
 
     def release(self):
@@ -171,12 +202,13 @@ class IndirectBuffer:
 
     def __delitem__(self, key):
         del self.allocations[key]
-        self.release()
+        del self.sort_keys[key]
+        self._changed()
 
     def __setitem__(self, key, vals):
         assert len(vals) == 5, "Invalid indirect draw command"
         self.allocations[key][:] = vals
-        self.release()
+        self._changed()
 
 
 class MemoryBackedBuffer:
@@ -292,6 +324,20 @@ class VAO:
         )
         self.indirect = IndirectBuffer(ctx)
 
+    @property
+    def draw_version(self):
+        return self.indirect.version
+
+    def set_sort(self, command, key):
+        self.indirect.set_sort(command, key)
+
+    def set_zsorted(self, enabled):
+        self.indirect.set_zsorted(enabled)
+
+    def iter_draws(self):
+        for pos, key in enumerate(self.indirect.ordered_keys()):
+            yield self.indirect.sort_keys[key], self, pos, pos + 1
+
     def alloc(self, num_verts: int, num_indexes: int) -> VAOList:
         """Allocate a list from within this buffer."""
         vs, vertbuf = self.verts.allocate(num_verts)
@@ -378,20 +424,27 @@ class VAO:
         )
         return vao
 
-    def render(self, camera):
+    def render(self, camera, first=0, count=-1, vao=None):
         """Render all lists."""
         if not self.allocs:
             return
-        vao = self.get_vao()
-        if self.ctx.version_code >= 420:
-            indirect = self.indirect.get_buffer()
-            vao.render_indirect(
-                indirect,
-                mode=self.mode,
-            )
-        else:
-            self.indirect.render_direct(vao, self.mode)
-        vao.release()
+        own_vao = vao is None
+        if own_vao:
+            vao = self.get_vao()
+        try:
+            if self.ctx.version_code >= 420:
+                indirect = self.indirect.get_buffer()
+                vao.render_indirect(
+                    indirect,
+                    mode=self.mode,
+                    first=first,
+                    count=count,
+                )
+            else:
+                self.indirect.render_direct(vao, self.mode, first, count)
+        finally:
+            if own_vao:
+                vao.release()
 
     def release(self):
         """Release this array."""

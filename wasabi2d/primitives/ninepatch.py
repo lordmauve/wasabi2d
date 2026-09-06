@@ -7,7 +7,7 @@ import numpy as np
 
 from ..allocators.packed import PackedBuffer
 from ..atlas import TextureRegion
-from .base import Bounds, Colorable, CoroContext, Transformable
+from .base import ZOrder, Bounds, Colorable, CoroContext, Transformable
 from .sprites import TextureContext
 
 
@@ -46,7 +46,7 @@ def _make_indices() -> np.ndarray:
 NINE_PATCH_INDICES = _make_indices()
 
 
-class NinePatchPrimitive(Colorable, Transformable, CoroContext):
+class NinePatchPrimitive(Colorable, Transformable, ZOrder, CoroContext):
     """A textured rectangle whose corners and edges do not stretch."""
 
     def __init__(
@@ -118,6 +118,7 @@ class NinePatchPrimitive(Colorable, Transformable, CoroContext):
                 old_array.remove(old_array_id)
             self._array = array
             self._array_id, _ = array.alloc(16, NINE_PATCH_INDICES)
+            self._sync_draw_order()
 
         self._patch = patch
         self._region = region

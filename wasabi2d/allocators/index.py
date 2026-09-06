@@ -41,6 +41,7 @@ class IndexBuffer:
 
         # Track whether we have updates
         self.dirty: bool = True
+        self.version = 0
 
         # We allocate identifiers for each allocation. These are sequential
         # and form part of the sort key; this ensures that insertion order
@@ -59,6 +60,7 @@ class IndexBuffer:
         self.id_lookup[id] = k
         self.allocations[k] = indexes
         self.dirty = True
+        self.version += 1
         return id
 
     def remove(self, id: int):
@@ -66,13 +68,15 @@ class IndexBuffer:
         k = self.id_lookup.pop(id)
         del self.allocations[k]
         self.dirty = True
+        self.version += 1
 
     def clear(self):
         """Clear all allocations."""
         self.allocations.clear()
         self.id_lookup.clear()
-        self.next_id = 0
+        self.next_id = 1
         self.dirty = True
+        self.version += 1
 
     def __contains__(self, id: int) -> bool:
         """Return True if the given id is allocated."""
@@ -89,15 +93,19 @@ class IndexBuffer:
         k = self.id_lookup[id]
         self.allocations[k] = indexes
         self.dirty = True
+        self.version += 1
 
     def set_sort(self, id: int, sort: Any):
         """Set the sort key for an allocation."""
         k = self.id_lookup[id]
+        if k[0] == sort:
+            return
         indexes = self.allocations.pop(k)
         k = sort, id
         self.id_lookup[id] = k
         self.allocations[k] = indexes
         self.dirty = True
+        self.version += 1
 
     def update(self, id: int, indexes: np.ndarray, sort: Any = None):
         """Update sort and indexes for an allocation."""
@@ -111,13 +119,16 @@ class IndexBuffer:
         self.id_lookup[id] = k
         self.allocations[k] = indexes
         self.dirty = True
+        self.version += 1
 
     def as_array(self) -> np.ndarray:
         """Flatten the allocations to a numpy array."""
         # TODO: maybe track the total length of the allocations and keep a
         # memoized array here. This would let us hstack into an existing array
         # if our allocations have simply changed sort key.
-        return np.hstack(self.allocations.values())
+        if not self.allocations:
+            return np.empty(0, dtype='u4')
+        return np.hstack(list(self.allocations.values()))
 
     def get_buffer(self) -> mgl.Buffer:
         """Get the index buffer."""
@@ -126,6 +137,7 @@ class IndexBuffer:
                 # TODO: use moderngl orphan with resize
                 self.buffer.release()
             self.buffer = self.ctx.buffer(self.as_array())
+            self.dirty = False
         return self.buffer
 
     def release(self):
@@ -185,8 +197,16 @@ def merge_seq(
     do not move.
 
     """
-    bufiters = map(bufiter, buffers)
-    merged_allocs = heapq.merge(*bufiters, key=lambda i: (i[0], id(i[1])))
+    yield from merge_draws(map(bufiter, buffers))
+
+
+def merge_draws(streams):
+    """Merge sorted draw ranges, batching neighbours from the same buffer.
+
+    Ranges use each buffer's own units (indices or indirect commands).
+    Sort keys supplied by primitives include their creation sequence.
+    """
+    merged_allocs = heapq.merge(*streams, key=lambda i: (i[0], id(i[1])))
     try:
         _, lastbuf, laststart, lastend = next(merged_allocs)
     except StopIteration:

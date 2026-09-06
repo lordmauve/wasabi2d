@@ -10,7 +10,7 @@ from ..allocators.vertlists import VAO
 from ..loaders import fonts
 from ..atlas import Atlas
 from .sprites import QUAD
-from .base import Bounds, Transformable, Colorable, CoroContext
+from .base import ZOrder, Bounds, Transformable, Colorable, CoroContext
 
 
 FONT_LOAD_SIZE = 48
@@ -29,10 +29,10 @@ def get_default_font():
 class TextureVAO(VAO):
     """A VAO with an associated texture."""
 
-    def render(self, camera):
+    def render(self, camera, **kwargs):
         self.prog['tex'].value = 0
         self.tex.use(0)
-        super().render(camera)
+        super().render(camera, **kwargs)
 
 
 def text_vao(
@@ -73,7 +73,7 @@ ALIGNMENTS = {
 }
 
 
-class Label(Colorable, Transformable, CoroContext):
+class Label(Colorable, Transformable, ZOrder, CoroContext):
     """A single-line text block with no additional layout/wrapping."""
 
     def __init__(
@@ -256,6 +256,7 @@ class Label(Colorable, Transformable, CoroContext):
         self.vao = vao
         self.vao.tex = self.tex
         self.lst = vao.alloc(len(self._verts), len(idxs))
+        self._sync_draw_order()
         self.lst.indexbuf[:] = idxs
         self.lst.indexbuf += self.lst.vertoff.start
         self.lst.vertbuf['in_uv'] = self._uvs

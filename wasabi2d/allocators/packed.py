@@ -5,7 +5,7 @@ from contextlib import nullcontext
 import moderngl
 import numpy as np
 
-from .index import IndexBuffer
+from .index import IndexBuffer, bufiter
 from .vertlists import dtype_to_moderngl, MemoryBackedBuffer
 
 
@@ -28,6 +28,28 @@ class PackedBuffer:
         self.indexes = IndexBuffer(ctx)
         self.draw_context = draw_context
         self.dirty = False
+        self._sort_keys = {}
+        self._zsorted = False
+
+    @property
+    def draw_version(self):
+        return self.indexes.version
+
+    def set_sort(self, id, key):
+        self._sort_keys[id] = key
+        if self._zsorted:
+            self.indexes.set_sort(id, key)
+
+    def set_zsorted(self, enabled):
+        if enabled == self._zsorted:
+            return
+        self._zsorted = enabled
+        for id in self.allocs:
+            self.indexes.set_sort(id, self._sort_keys[id] if enabled else (0, id))
+
+    def iter_draws(self):
+        for key, _, start, end in bufiter(self.indexes):
+            yield key, self, start, end
 
     def empty(self) -> bool:
         """Return True if there are no allocations in this buffer."""
@@ -48,9 +70,13 @@ class PackedBuffer:
 
         """
         vertoff, vertbuf = self.verts.allocate(num_verts)
-        id = self.indexes.insert(indexes + vertoff.start)
+        key = (0, self.indexes.next_id)
+        id = self.indexes.insert(
+            indexes + vertoff.start, key
+        )
 
         self.allocs[id] = vertoff
+        self._sort_keys[id] = (0, id)
         self.dirty = True
         return id, vertbuf
 
@@ -62,7 +88,7 @@ class PackedBuffer:
 
     def realloc(self, id: int, verts: np.ndarray, indexes: np.ndarray):
         """Update an allocation."""
-        vertoff, _ = self.allocs.pop(id)
+        vertoff = self.allocs[id]
 
         vertoff, vertbuf = self.verts.realloc(
             vertoff,
@@ -92,6 +118,7 @@ class PackedBuffer:
         vertoff = self.allocs.pop(id)
         self.verts.free(vertoff)
         self.indexes.remove(id)
+        del self._sort_keys[id]
         self.dirty = True
 
     def get_vao(self):
@@ -99,6 +126,7 @@ class PackedBuffer:
         # a buffer need updating.
         vbo = self.verts.get_buffer(self.dirty)
         ibo = self.indexes.get_buffer()
+        self.dirty = False
 
         # TODO: only recreate the VAO if buffers have changed
         vao = self.ctx.vertex_array(
@@ -110,14 +138,19 @@ class PackedBuffer:
         )
         return vao
 
-    def render(self, camera):
+    def render(self, camera, first=0, count=-1, vao=None):
         """Render all lists."""
         if not self.allocs:
             return
-        vao = self.get_vao()
-        with self.draw_context:
-            vao.render(self.mode)
-        vao.release()
+        own_vao = vao is None
+        if own_vao:
+            vao = self.get_vao()
+        try:
+            with self.draw_context:
+                vao.render(self.mode, first=first, vertices=count)
+        finally:
+            if own_vao:
+                vao.release()
 
     def release(self):
         """Release this array."""

@@ -1,0 +1,43 @@
+name: Rendering tests
+
+on:
+  pull_request:
+  push:
+    branches: [master, zsorted-layers]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rendering:
+    runs-on: ubuntu-latest
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - name: Install software rendering dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri
+      - name: Install engine and tests
+        run: |
+          uv venv
+          # Existing geometry code uses NumPy APIs removed in 2.0.
+          uv pip install -e . 'numpy<2' 'pytest>=7,<8'
+      - name: Check ordering and rendering regressions
+        run: >-
+          xvfb-run -a .venv/bin/python -m pytest -q
+          tests/test_draw_order.py tests/test_zsorted.py
+          tests/test_indexbuffer.py tests/test_vertexlist.py
+          tests/test_sprites.py tests/test_ninepatch.py tests/test_tilemap.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: rendering-differences
+          path: tests/failed-image/
+          if-no-files-found: ignore

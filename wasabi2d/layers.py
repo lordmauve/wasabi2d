@@ -1,6 +1,7 @@
 from typing import Tuple, Optional, Any
 import importlib
 import weakref
+from contextlib import ExitStack
 
 import numpy as np
 import moderngl
@@ -15,6 +16,7 @@ from .primitives.text import Label, FontAtlas, text_vao
 from .primitives.particles import ParticleGroup, ParticleVAO
 from .loaders import images
 from .shaders import ShaderManager
+from .allocators.index import merge_draws
 
 
 class FontManager:
@@ -45,6 +47,22 @@ class Layer:
         self._dirty = set()
         self.effect = self.effect_has_camera = None
         self.parallax = 1.0
+        self._zsorted = False
+        self._draw_state = None
+        self._draw_commands = ()
+
+    @property
+    def zsorted(self):
+        """Whether primitives draw by increasing z, then creation order."""
+        return self._zsorted
+
+    @zsorted.setter
+    def zsorted(self, enabled):
+        self._zsorted = bool(enabled)
+        self._draw_state = None
+        self._draw_commands = ()
+        for array in self.arrays.values():
+            array.set_zsorted(self._zsorted)
 
     def clear(self):
         """Remove everything from the layer."""
@@ -55,6 +73,8 @@ class Layer:
         self.arrays.clear()
         self.objects.clear()
         self._dirty.clear()
+        self._draw_state = None
+        self._draw_commands = ()
 
     def _draw(self, camera):
         """Render the layer."""
@@ -77,8 +97,40 @@ class Layer:
 
     def _draw_inner(self, camera):
         self.group.shadermgr.set_proj(camera._getproj(self.parallax))
+        if self._zsorted:
+            self._draw_sorted(camera)
+            return
         for a in self.arrays.values():
             a.render(camera)
+
+    def _draw_sorted(self, camera):
+        arrays = list(self.arrays.values())
+        for array in arrays:
+            array.set_zsorted(True)
+        state = tuple((weakref.ref(a), a.draw_version) for a in arrays)
+        if state != self._draw_state:
+            self._draw_commands = tuple(
+                (weakref.ref(a), start, end)
+                for a, start, end in merge_draws(a.iter_draws() for a in arrays)
+            )
+            self._draw_state = state
+
+        # Prepare each buffer once, even if z order revisits it many times.
+        # Cached commands use weak references so they do not keep deleted
+        # primitives' buffers alive through Layer.arrays.
+        with ExitStack() as stack:
+            vaos = {}
+            for ref, start, end in self._draw_commands:
+                array = ref()
+                if array is None:
+                    continue
+                if array not in vaos:
+                    vao = array.get_vao()
+                    vaos[array] = vao
+                    if vao is not None:
+                        stack.callback(vao.release)
+                array.render(camera, first=start, count=end - start,
+                             vao=vaos[array])
 
     def set_effect(self, name: str, **kwargs) -> Any:
         """Set the post processing effect to use for the layer.
