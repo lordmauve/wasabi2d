@@ -58,7 +58,7 @@ def make(layer, kind, color=(0.8, 0.2, 0.3, 0.6)):
 
 
 def pixels(scene, nodes):
-    scene.chain = nodes
+    scene.chain = [chain.to_node(node) for node in nodes]
     scene.draw(0, 0, True)
     return np.frombuffer(scene.ctx.screen.read(components=3), dtype=np.uint8).astype(int)
 

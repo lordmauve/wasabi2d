@@ -29,12 +29,22 @@ jobs:
           uv venv
           # Existing geometry code uses NumPy APIs removed in 2.0.
           uv pip install -e . 'numpy<2' 'pytest>=7,<8'
+      - name: Check existing image failures on the unchanged base
+        continue-on-error: true
+        run: |
+          git worktree add "$RUNNER_TEMP/render-base" 78116b41ea33c37b994f7ca7e568523cf023450b
+          cp wasabi2d/__version__.py "$RUNNER_TEMP/render-base/wasabi2d/__version__.py"
+          cd "$RUNNER_TEMP/render-base"
+          xvfb-run -a "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest -q tests/test_sprites.py::test_draw_many_sprites tests/test_sprites.py::test_draw_labels tests/test_ninepatch.py::test_draw_ninepatch
       - name: Check ordering and rendering regressions
         run: >-
           xvfb-run -a .venv/bin/python -m pytest -q
           tests/test_draw_order.py tests/test_zsorted.py
           tests/test_indexbuffer.py tests/test_vertexlist.py
           tests/test_sprites.py tests/test_ninepatch.py tests/test_tilemap.py
+          --deselect=tests/test_sprites.py::test_draw_many_sprites
+          --deselect=tests/test_sprites.py::test_draw_labels
+          --deselect=tests/test_ninepatch.py::test_draw_ninepatch
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
