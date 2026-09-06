@@ -74,4 +74,10 @@ jobs:
       - name: Publish to PyPI
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: uv publish --check-url https://pypi.org/simple/
+        run: |
+          if [ -n "$UV_PUBLISH_TOKEN" ]; then
+            uv publish --trusted-publishing never --check-url https://pypi.org/simple/
+          else
+            unset UV_PUBLISH_TOKEN
+            uv publish --trusted-publishing always --check-url https://pypi.org/simple/
+          fi
