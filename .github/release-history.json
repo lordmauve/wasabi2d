@@ -1,0 +1,44 @@
+[
+  {
+    "tag": "1.0.0",
+    "version": "1.0.0",
+    "body": "Originally published on PyPI on 2019-09-21. This GitHub Release backfills the existing version tag.\n\n* Initial PyPI version of Wasabi2D.",
+    "prerelease": false
+  },
+  {
+    "tag": "1.1.0",
+    "version": "1.1.0",
+    "body": "Originally published on PyPI on 2019-09-22. This GitHub Release backfills the existing version tag.\n\n* New: `dropshadow` effect.\n* New: Particle group has `spin_drag`.\n* New: Particles can be emitted with `angle` and `angle_spread`.",
+    "prerelease": false
+  },
+  {
+    "tag": "1.2.0",
+    "version": "1.2.0",
+    "body": "Originally published on PyPI on 2019-09-29. This GitHub Release backfills the existing version tag.\n\n* New: add_sprite() takes an argument `color` to match other primitives\n* New: `.scale_x` and `.scale_y` for independently scaling primitives\n* New: `scene.background` can now be assigned as a color name\n* Fix: pick suitable OpenGL version on OS X\n* Fix: `dropshadow` effect is composited more correctly\n* Fix: several bugs when resizing vertex/index buffers\n* Fix: `keymods` is now exported from wasabi2d as documented.\n* Fix: video recording is glitchy due to recording from back buffer\n* Fix: text labels can now be empty\n* Fix: text labels can be deleted\n* Fix: particles display upside down and with rotation reversed",
+    "prerelease": false
+  },
+  {
+    "tag": "1.3.0",
+    "version": "1.3.0",
+    "body": "Originally published on PyPI on 2019-12-10. This GitHub Release backfills the existing version tag.\n\n* New: add a coroutine system\n* New: make F12 a built-in combination for\n  screenshots/video recording.\n* New: chain, for more powerful post-processing effect\n  configurations\n* New: `Mask` chain effect.\n* New: `DisplacementMap` chain effect.\n* New: `trails` effect takes an `alpha` parameter\n* New: `bloom` effects takes `gamma` and `intensity` parameters\n* New: shape primitives are drawn with antialiasing\n* New: tone generation supports square and saw waves\n* New: add `pixellate`, `greyscale`, `sepia` and `posterize`\n  post-processing effects.\n* New: scene-scaling for high dpi displays and retro games\n* New: Sprites now support `.anchor_x` and `.anchor_y`\n  parameters/attributes\n* Fix: actually release OpenGL resources, which needed to be done explicitly\n* Fix: add missing documentation for `Layer.add_line()`\n* Fix: grow a single texture atlas rather than allocating multiple. This\n  removes a limit on how many unique text characters can be drawn with a single\n  font.\n* Fix: crash when creating a scene from a REPL\n* New: HeadlessScene class to run the graphics engine without creating a\n  window.",
+    "prerelease": false
+  },
+  {
+    "tag": "1.4.0",
+    "version": "1.4.0",
+    "body": "Originally published on PyPI on 2020-07-09. This GitHub Release backfills the existing version tag.\n\n* New: Tile maps\n* New: Groups\n* New: Emitter objects\n* New: scene-wide pixel_art mode\n* New: vertices of a line can now be updated\n* New: `background=` can be set in Scene constructor\n* New: `label.text` can be assigned a non-str\n* Fix: bug with drawing end segments of lines and lines at right angles\n* Fix: `stroke_width` wasn't passed through in `add_rect`\n* Fix: Use NFC not NFKC for Unicode normalisation",
+    "prerelease": false
+  },
+  {
+    "tag": "v1.4.1",
+    "version": "1.4.1",
+    "body": "Originally published on PyPI on 2025-03-30. This GitHub Release backfills the existing version tag.\n\n* Update dependencies for compatibility with newer Python and dependency releases.",
+    "prerelease": false
+  },
+  {
+    "tag": "v1.5.0.a1",
+    "version": "1.5.0a1",
+    "body": "Originally published on PyPI on 2025-03-30. This GitHub Release backfills the existing version tag.\n\n* New: Structured Concurrency model for coroutines\n* New: subclocks to allow for slow-motion effects and pausing\n* New: wasabi2d.chain.Light\n* Fix: sprites do not update when only the image is changed.\n* Fix: crash when deleting a text label\n* Fix: crash when deleting a group\n\nThis alpha also includes coroutine scheduling and cancellation improvements, viewport and parallax support, the Outline effect, and OpenType font loading.\n\n[Full changes](https://github.com/lordmauve/wasabi2d/compare/1.4.0...v1.5.0.a1).",
+    "prerelease": true
+  }
+]

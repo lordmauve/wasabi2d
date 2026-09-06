@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ['[0-9]*', 'v[0-9]*']
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish (also used to retry a failed upload)
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.33'
+          python-version: '3.12'
+      - name: Build wheel through the source distribution
+        run: uv build
+      - name: Check version and packaged resources
+        run: uv run --no-project --with packaging python .github/scripts/check_dist.py "$RELEASE_TAG"
+      - name: Check distribution metadata
+        run: uvx twine check dist/*
+      - name: Install wheel and validation tools
+        run: |
+          uv venv
+          uv pip install dist/*.whl -r requirements-docs.txt
+      - name: Smoke-test installed wheel outside the checkout
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -c 'import wasabi2d; from importlib.metadata import version; assert wasabi2d.__version__ == version("wasabi2d"); print(wasabi2d.__version__)'
+      - name: Build Sphinx documentation
+        env:
+          SPHINX_GITHUB_CHANGELOG_TOKEN: ${{ github.token }}
+        run: .venv/bin/sphinx-build -b html docs docs/_build/html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.33'
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish --check-url https://pypi.org/simple/

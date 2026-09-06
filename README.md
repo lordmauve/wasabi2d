@@ -85,3 +85,45 @@ This screenshot shows off polygons, sprites, text and particle effects:
 [Spire of Chaos](https://pyweek.org/e/blaze/) was another entry in PyWeek 28 written with Wasabi2D by Daniel Moisset:
 
 ![Spire of Chaos screenshot](https://github.com/lordmauve/wasabi2d/raw/master/docs/spire-of-chaos.png)
+
+## Development and releases
+
+Use Python 3.12 or later for the development and documentation tools:
+
+```sh
+uv venv
+uv pip install -e . -r requirements-dev.txt
+.venv/bin/python -m pytest
+.venv/bin/sphinx-build -b html docs docs/_build/html
+uv build
+```
+
+Git tags are the source of version numbers. `uv build` invokes `flit_scm`, which
+uses `setuptools_scm` to generate `wasabi2d/__version__.py`; do not edit or commit
+that generated file. Reinstall the editable package after switching revisions to
+refresh it. The wheel and Sphinx docs use the same version metadata. Building
+from an sdist also works without Git.
+
+To release, publish a GitHub Release with a new PEP 440 version tag targeting
+`master` (for example, `v1.5.0a2` or `v1.5.0`). Mark alpha, beta, release candidate,
+and development releases as prereleases. For development tags use `.dev0`, which
+allows setuptools_scm to number subsequent commits. Write the release notes in
+GitHub; the Sphinx changelog reads them automatically. A pushed version tag also
+runs the release workflow.
+
+The Release workflow builds and validates the distributions before publishing
+them to PyPI. Configure either a `PYPI_TOKEN` repository secret containing a
+project-scoped PyPI API token, or a PyPI trusted publisher for owner `lordmauve`,
+repository `wasabi2d`, workflow `release.yml` (no environment). Failed uploads can
+be retried using **Run workflow** with the existing tag; already uploaded files
+are skipped. Never move a published tag.
+
+The **Backfill releases** workflow creates only missing historical GitHub
+Releases, using `.github/release-history.json`, and creates the development test
+release. It does not republish historical versions to PyPI. Their release notes
+retain the original PyPI dates because GitHub's publication dates cannot be
+backdated.
+
+Public documentation builds can read the changelog anonymously. To avoid GitHub
+API rate limits, set `SPHINX_GITHUB_CHANGELOG_TOKEN` in the documentation build
+environment; Actions supplies its token automatically.

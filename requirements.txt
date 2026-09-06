@@ -1,8 +1,2 @@
-pygame>=2.1
-moderngl>=5.7,<6
-numpy
-pyrr
-sortedcontainers
-dataclasses; python_version < '3.7'
-mapbox-earcut==1.0.*
-wasabi-geom>=2.0.1
+# Runtime dependencies are declared in pyproject.toml.
+.

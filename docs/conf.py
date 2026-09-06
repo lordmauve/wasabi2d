@@ -22,7 +22,9 @@ copyright = '2019, Daniel Pope'
 author = 'Daniel Pope'
 
 # The full version, including alpha/beta/rc tags
-release = '1.4.0'
+from importlib.metadata import version as distribution_version
+
+release = distribution_version('wasabi2d')
 
 
 # -- General configuration ---------------------------------------------------
@@ -33,6 +35,7 @@ release = '1.4.0'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx_copybutton',
+    'sphinx_github_changelog',
     'sphinxcontrib.video',
 ]
 
