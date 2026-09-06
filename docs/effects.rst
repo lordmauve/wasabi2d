@@ -22,6 +22,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('bloom', radius: float=10, gamma: float = 1.0, intensity: float = 0.5)
+    :no-index:
 
     Create a light bloom effect, where very bright pixels glow, making them
     look exceptionally bright. The radius controls how far the effect reaches.
@@ -35,6 +36,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('trails', fade: float=0.9, alpha: float = 1.0)
+    :no-index:
 
     Apply a "motion blur" effect. Fade is the fraction of the full brightness
     that is visible after 1 second.
@@ -46,6 +48,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('punch', factor: float=1.0)
+    :no-index:
 
     Apply a pinch/punch effect.
 
@@ -63,6 +66,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('blur', radius: float=10.0)
+    :no-index:
 
     Apply a full screen gaussian blur.
 
@@ -76,6 +80,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('pixellate', pxsize: int=10, antialias: float=1.0)
+    :no-index:
 
     Pixellate the contents of the layer. ``pxsize`` is the output pixel size.
 
@@ -96,6 +101,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('dropshadow', radius: float=10.0, opacity: float=1.0, offset: Tuple[float, float]=(1.0, 1.0))
+    :no-index:
 
     Apply a drop-shadow effect: draw an offset, blurred copy layer underneath
     the normal layer contents.
@@ -115,6 +121,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('greyscale', amount: float=1.0)
+    :no-index:
 
     Convert colours to greyscale or partially desaturate them.
 
@@ -128,6 +135,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('sepia', amount: float=1.0)
+    :no-index:
 
     Convert colours to sepia.
 
@@ -144,6 +152,7 @@ The effects are described here as separate calls:
 
 
 .. method:: Layer.set_effect('posterize', levels: int=2, gamma: float=0.7)
+    :no-index:
 
     Map colours to a reduced palette.
 

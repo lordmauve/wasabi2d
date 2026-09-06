@@ -26,17 +26,13 @@ stop the sound as well as query its length in seconds:
 
 .. class:: Sound
 
-    .. method:: play()
+    .. method:: play(loops=0)
 
-        Play the sound.
+        Play the sound once, or repeat it a number of times.
 
-    .. method:: play(loops)
-
-        Play the sound, but loop it a number of times.
-
-        :param loops: The number of times to loop. If you pass ``-1`` as the
-                      number of times to loop, the sound will loop forever (or
-                      until you call :meth:`.Sound.stop()`
+        :param loops: The number of additional times to play the sound.
+                      The default, ``0``, plays it once. Pass ``-1`` to loop
+                      forever (or until you call :meth:`.Sound.stop()`).
 
     .. method:: stop()
 
