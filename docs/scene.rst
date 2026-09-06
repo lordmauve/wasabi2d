@@ -53,6 +53,8 @@ Create a scene with::
     (read-only) The Camera object used to render the scene. See :ref:`camera`.
 
 
+For split-screen or a separate HUD camera, see :ref:`viewports`.
+
 There's also an off-screen version, which will mainly be useful for testing
 and screenshotting:
 
@@ -155,6 +157,13 @@ The camera for the scene is ``scene.camera``.
     Initially, this is ``(scene.width / 2, scene.height / 2)``.
 
 
+.. attribute:: wasabi2d.scene.Camera.zoom
+
+    Get/set the camera's magnification, initially ``1.0``. A value of ``2``
+    draws objects twice as large. Zoom also applies to layers with zero
+    parallax; use an independent viewport for an unzoomed HUD.
+
+
 .. automethod:: wasabi2d.scene.Camera.screen_shake
 
     Trigger a screen shake effect.
@@ -194,3 +203,127 @@ As well as this, you can use these features programmatically:
 .. automethod:: wasabi2d.Scene.stop_recording
 
 .. automethod:: wasabi2d.Scene.toggle_recording
+
+
+.. _viewports:
+
+Multiple viewports
+------------------
+
+A ``Scene`` is a window with one initial viewport, available as
+``scene.viewport``. A viewport defines a rectangular area of the window and
+has its own camera, layers, background and rendering chain. The familiar
+``scene.camera``, ``scene.layers`` and ``scene.chain`` expose the initial
+viewport's objects.
+
+Use ``Window`` directly when creating several views from scratch. For example,
+this complete split-screen example shows the same world through two cameras::
+
+    from wasabi2d import Window, run
+
+    window = Window(800, 600)
+    left = window.create_viewport(width=400, height=600, background='black')
+    right = left.clone(x=400)
+
+    left.layers[0].add_circle(radius=40, pos=(300, 300), color='orange')
+    left.camera.pos = (200, 300)
+    right.camera.pos = (400, 300)
+    run()
+
+``clone()`` shares the original layers and chain list, but creates a new,
+independent camera. Both views show edits to the shared primitives. Camera
+position and zoom are not copied; configure the new camera explicitly.
+Appending to the shared chain list affects both views; assigning a new list
+to one viewport's ``chain`` separates their rendering configurations.
+
+.. method:: Window.create_viewport(width=None, height=None, x=0, y=0, background=None)
+
+    Create and append a viewport with new, independent layers and camera.
+    Omitted dimensions default to the window's logical width and height.
+    Dimensions must be positive. ``background=None`` leaves the previous
+    contents beneath the viewport intact; a colour clears its rectangle.
+
+.. method:: Viewport.clone(width=None, height=None, x=None, y=None)
+
+    Append a viewport sharing this viewport's layers and chain. Omitted
+    dimensions and position are inherited, as is the background colour.
+
+.. attribute:: Window.viewports
+
+    The viewports in drawing order. Later entries draw over earlier ones.
+
+.. attribute:: Viewport.layers
+
+    The layer collection, used in the same way as ``scene.layers``.
+
+.. attribute:: Viewport.camera
+
+    The independent camera for this view. See :ref:`camera`.
+
+.. attribute:: Viewport.chain
+
+    The list of rendering operations for this view. See :ref:`chain`.
+
+.. attribute:: Viewport.background
+
+    The background colour, or ``None`` to skip clearing this viewport.
+
+.. attribute:: Viewport.x
+.. attribute:: Viewport.y
+
+    The rectangle's position in logical window pixels. Unlike primitive
+    coordinates, viewport rectangles use OpenGL's bottom-left origin:
+    increasing ``y`` moves a viewport upwards. Primitive coordinates within
+    each viewport still increase downwards.
+
+.. attribute:: Viewport.width
+.. attribute:: Viewport.height
+.. attribute:: Viewport.dims
+
+    Get/set the positive dimensions in logical pixels. ``dims`` is a pair.
+    Resizing also resizes the camera's projection.
+
+.. attribute:: Viewport.center
+
+    Get/set the rectangle's centre in the same coordinate system as ``x``
+    and ``y``.
+
+.. attribute:: Viewport.rect
+
+    A read-only snapshot of the rectangle as a ``pygame.Rect``. Editing this
+    returned object does not change the viewport.
+
+.. method:: Viewport.delete()
+
+    Remove the view from the window and release its camera resources. This
+    does not delete the shared primitives.
+
+Mouse events remain in window coordinates: selecting a viewport does not
+translate input into its camera's world coordinates automatically.
+
+
+Layer parallax and HUDs
+-----------------------
+
+.. attribute:: Layer.parallax
+
+    Multiplier for camera translation, defaulting to ``1.0``. Smaller values
+    make a background move more slowly as the camera moves. ``0`` ignores
+    camera translation, including screen shake; camera zoom still applies.
+
+For example::
+
+    scene.layers[-1].parallax = 0.25   # Distant background
+    scene.layers[0].parallax = 1.0     # Main game world (the default)
+    scene.layers[10].parallax = 0.0    # HUD unaffected by camera movement
+    scene.layers[10].add_label('Score: 0', pos=(20, 30))
+
+For a HUD that must also ignore world-camera zoom, use a separate viewport
+with independent layers and camera. Create it after the world view, leave
+its background as ``None``, and keep its camera at the default position and
+zoom. For example, with the split-screen window above::
+
+    hud = window.create_viewport()
+    hud.layers[0].add_label('Paused', pos=(20, 30))
+
+Put this setup before ``run()`` so the HUD is created before the game starts.
