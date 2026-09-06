@@ -1,0 +1,27 @@
+name: Backfill releases
+
+on:
+  push:
+    branches: [master]
+    paths: ['.github/release-history.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: backfill-releases
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Backfill historical releases and create the development test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/scripts/backfill_releases.py

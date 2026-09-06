@@ -1,11 +1,6 @@
-pytest
-tox
+# Tests use fixture internals removed in pytest 8.
+pytest>=7,<8
 pytest-cov
-Sphinx>=2.2.0
-sphinx-copybutton
-wheel
-twine
+tox
 matplotlib
-git+https://github.com/sphinx-contrib/video#egg=sphinxcontrib-video
-
-
+-r requirements-docs.txt

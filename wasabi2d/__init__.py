@@ -33,7 +33,7 @@ do(events.run())
 del EventMapper
 del PygameEvents
 
-__version__ = (1, 4, 0)
+from .__version__ import __version__
 __all__ = [
     'Vector2',
     'event',

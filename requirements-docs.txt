@@ -1,0 +1,4 @@
+Sphinx>=7
+sphinx-copybutton
+sphinxcontrib-video
+sphinx-github-changelog>=2.3,<3
