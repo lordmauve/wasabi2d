@@ -1,22 +1,13 @@
 #version 330 core
 
-in vec2 uv;
-out vec4 f_color;
+#include "postprocess.glsl"
 
 uniform sampler2D image;
-//uniform sampler2D gauss_tex;
-uniform float radius;
-uniform vec2 blur_direction;
 
 uniform float gamma;
 uniform float alpha;
 
-
-float gauss(float off) {
-    float x = off / radius * 2;
-    return exp(x * x / -2.0);
-}
-
+#include "gaussian.glsl"
 
 vec3 sample(vec2 pos) {
     vec3 val = texture(image, uv + pos).rgb;
@@ -24,7 +15,6 @@ vec3 sample(vec2 pos) {
     float intensity = pow(lum, gamma);
     return val * intensity;
 }
-
 
 void main()
 {

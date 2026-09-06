@@ -1,7 +1,6 @@
 #version 330 core
 
-in vec2 uv;
-out vec4 f_color;
+#include "postprocess.glsl"
 
 uniform sampler2D image;
 uniform sampler2D blurred;

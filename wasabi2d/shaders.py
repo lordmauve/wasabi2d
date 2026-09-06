@@ -1,5 +1,4 @@
 """Manage the compilation of programs in a context."""
-import re
 from typing import Optional, Dict, Tuple
 from contextlib import contextmanager
 import pkgutil
@@ -8,9 +7,8 @@ import moderngl
 import numpy as np
 
 
-INCLUDE_RE = re.compile(
-    r'^#include +"([^"]+)" *$',
-    flags=re.MULTILINE
+from .shader_preprocessor import (
+    preprocess_shader, format_shader_with_line_info,
 )
 
 
@@ -32,21 +30,29 @@ class ShaderManager:
             raise ValueError(f"ShaderManager is already defined for {ctx}")
         ctx.extra['shadermgr'] = self
         self.files = {}
+        self.source_maps = {}
         self.programs = {}
 
     def _read(self, name: str):
         """Read a GLSL file from the wasabi2d directory."""
         code = pkgutil.get_data('wasabi2d', 'glsl/' + name).decode('utf-8')
-        return self._preprocessor(code)
+        return self._preprocessor(code, name)
 
-    def _preprocessor(self, shader: str) -> str:
-        """Rewrite shader code to handle includes."""
-        def include(match):
-            lineno = shader[:match.start()].count('\n')
-            name = match.group(1)
-            code = self._read(f"include/{name}")
-            return f'{code}\n#line {lineno + 1}\n'
-        return INCLUDE_RE.sub(include, shader)
+    def _preprocessor(self, shader: str, name: str = '<string>') -> str:
+        """Expand includes and conditionals, retaining compiler diagnostics."""
+        code, locations = preprocess_shader(shader, source_filename=name)
+        self.source_maps[code] = locations
+        return code
+
+    def _compile(self, **stages):
+        try:
+            return self.ctx.program(**stages)
+        except moderngl.Error as exc:
+            for stage, source in stages.items():
+                if source in self.source_maps and stage in str(exc):
+                    print(format_shader_with_line_info(
+                        source, self.source_maps[source]))
+            raise
 
     def load(self, *names) -> moderngl.Program:
         """Load a program from the wasabi2d/glsl directory.
@@ -65,23 +71,26 @@ class ShaderManager:
         if len(names) == 1:
             name = names[0]
             try:
-                geom_shader = self._read(f'{name}.geom')
+                geom_source = pkgutil.get_data(
+                    'wasabi2d', f'glsl/{name}.geom').decode('utf-8')
             except FileNotFoundError:
                 geom_shader = None
-            prog = self.programs[names] = self.ctx.program(
+            else:
+                geom_shader = self._preprocessor(geom_source, f'{name}.geom')
+            prog = self.programs[names] = self._compile(
                 vertex_shader=self._read(f'{name}.vert'),
                 geometry_shader=geom_shader,
                 fragment_shader=self._read(f'{name}.frag'),
             )
         elif len(names) == 2:
             vert, frag = names
-            prog = self.programs[names] = self.ctx.program(
+            prog = self.programs[names] = self._compile(
                 vertex_shader=self._read(f'{vert}.vert'),
                 fragment_shader=self._read(f'{frag}.frag'),
             )
         elif len(names) == 3:
             vert, geom, frag = names
-            prog = self.programs[names] = self.ctx.program(
+            prog = self.programs[names] = self._compile(
                 vertex_shader=self._read(f'{vert}.vert'),
                 geometry_shader=self._read(f'{geom}.geom'),
                 fragment_shader=self._read(f'{frag}.frag'),
@@ -106,7 +115,7 @@ class ShaderManager:
         except KeyError:
             pass
 
-        prog = self.programs[k] = self.ctx.program(
+        prog = self.programs[k] = self._compile(
             vertex_shader=vertex_shader,
             fragment_shader=fragment_shader,
             geometry_shader=geometry_shader,
@@ -130,6 +139,7 @@ class ShaderManager:
         for prog in self.programs.values():
             prog.release()
         self.programs.clear()
+        self.source_maps.clear()
 
 
 def shadermgr(ctx: moderngl.Context) -> ShaderManager:
