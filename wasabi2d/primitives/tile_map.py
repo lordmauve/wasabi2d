@@ -9,7 +9,7 @@ import numpy as np
 from wasabigeom import bresenham
 
 import wasabi2d
-from .base import CoroContext
+from .base import CoroContext, ZOrder
 from ..allocators.abstract import FreeListAllocator, NoCapacity
 from ..allocators.vertlists import dtype_to_moderngl
 
@@ -177,7 +177,7 @@ class TileManager:
         self.texture.use(unit)
 
 
-class TileMap(CoroContext):
+class TileMap(ZOrder, CoroContext):
     """A sparse tile map."""
     _tiles: List[str]
     layer: 'wasabi2d.layers.Layer'
@@ -229,6 +229,20 @@ class TileMap(CoroContext):
             [(self._tilemgr.verts, *TileManager.MGL_DTYPE)]
         )
         layer.arrays[id(self)] = self
+
+    @property
+    def draw_version(self):
+        return self._sort_key
+
+    def set_zsorted(self, enabled):
+        pass  # The whole map is one draw item.
+
+    def iter_draws(self):
+        yield self._sort_key, self, 0, 1
+
+    def get_vao(self):
+        # Tile maps own their persistent VAO; the layer must not release it.
+        return None
 
     def release(self):
         """Release OpenGL resources associated with this TileMap."""
@@ -462,10 +476,11 @@ class TileMap(CoroContext):
             return
         self.layer._dirty.discard(self)
         self.layer.objects.discard(self)
+        del self.layer.arrays[id(self)]
         self.layer = None
         self.release()
 
-    def render(self, camera: wasabi2d.scene.Camera):
+    def render(self, camera: wasabi2d.scene.Camera, **kwargs):
         blocks = len(self._tilemgr.block_map)
         if not blocks:
             return

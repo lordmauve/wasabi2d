@@ -34,6 +34,11 @@ relevant when using :doc:`effects`.
 Common Attributes
 -----------------
 
+All drawable primitives have a ``z`` attribute, defaulting to ``0``. This
+controls draw order when their layer has ``zsorted = True``; see
+:ref:`z-sorted-layers`. Set it on the returned object, for example
+``sprite.z = 10``.
+
 Most primitives support attributes for transforming the position, rotation,
 scale and color of the object.
 

@@ -23,11 +23,11 @@ class PolyVAO(VAO):
             'postprocess/multisample_blend'
         )
 
-    def render(self, camera):
+    def render(self, camera, **kwargs):
         samples = min(self.ctx.max_samples, 4)
         with camera.temporary_fb(samples=samples) as fb:
             with bind_framebuffer(self.ctx, fb, clear=True):
-                super().render(camera)
+                super().render(camera, **kwargs)
             self.composite_prog.render(image=fb, samples=samples)
 
 

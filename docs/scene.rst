@@ -35,6 +35,8 @@ Create a scene with::
 
     Layers are drawn from back to front - lowest layer number to highest.
 
+    To control the order of primitives within a layer, see :ref:`z-sorted-layers`.
+
 .. attribute:: Scene.title
 
     Get/set the caption for the window.
@@ -57,6 +59,67 @@ There's also an off-screen version, which will mainly be useful for testing
 and screenshotting:
 
 .. autoclass:: wasabi2d.scene.HeadlessScene
+
+
+.. _z-sorted-layers:
+
+Sorting within a layer
+----------------------
+
+Layers normally batch their primitives for speed, without guaranteeing the
+order of objects within each layer. Enable z sorting when objects need a
+specific order::
+
+    layer = scene.layers[0]
+    layer.zsorted = True
+
+    ship = layer.add_sprite('ship', pos=(400, 300))
+    label = layer.add_label('Player', pos=(400, 260))
+    ship.z = 0
+    label.z = 1
+
+.. attribute:: Layer.zsorted
+
+    Defaults to ``False``. When ``True``, primitives draw from lowest ``z`` to
+    highest, regardless of their type or image. Equal z values draw in creation
+    order, with newer objects on top. Every primitive starts at ``z = 0``.
+
+    Sorting can be enabled or disabled at any time, including after objects
+    have been created. Disabling it restores the normal batched rendering path;
+    the objects retain their z values for when sorting is enabled again.
+
+Assign a finite number to a primitive's ``z`` attribute to change its order on
+the next draw. Changing its image or resizing its geometry does not change its
+z value or its position among objects with equal z values. To sort by vertical
+position, update ``actor.z = actor.y`` whenever the actor moves.
+
+Sorting works across sprites, text, filled and stroked shapes, nine-patches,
+particle groups and tilemaps. Each particle group or tilemap occupies one
+position in the order: individual particles or tiles do not have separate z
+values. Transform groups do not change their members' z values.
+
+Z values only affect ordering *within* a layer. A primitive in layer 0 cannot
+draw over layer 1 by increasing its z value. Layer effects apply to the sorted
+result in the usual way.
+
+Performance
+~~~~~~~~~~~
+
+Z sorting preserves the requested order, including for translucent objects.
+Wasabi2d batches compatible neighbouring objects and caches the draw schedule
+until the order or allocations change. Moving an object without changing its z
+value does not rebuild that schedule.
+
+Interleaving primitive types or images on different textures can nevertheless
+be expensive. For example, alternating a sprite, text and an outlined shape for
+each of hundreds of objects can require many draw calls. Antialiased shapes
+also need a compositing pass for each uninterrupted group of shapes using the
+same rendering state.
+
+Where the desired appearance allows it, use separate layers for backgrounds,
+actors and labels, or group similar primitives together in z order. Keep
+``zsorted`` disabled on layers that do not need ordering within them. You do not
+need to manage rendering buffers to obtain correct draw order.
 
 
 .. _pixel-art:

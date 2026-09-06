@@ -4,7 +4,7 @@ import numpy as np
 import moderngl
 
 from ..descriptors import CallbackProp
-from .base import Colorable, Transformable, Bounds, CoroContext
+from .base import ZOrder, Colorable, Transformable, Bounds, CoroContext
 from ..allocators.packed import PackedBuffer
 
 
@@ -25,7 +25,7 @@ class TextureContext:
         pass
 
 
-class Sprite(Colorable, Transformable, CoroContext):
+class Sprite(Colorable, Transformable, ZOrder, CoroContext):
     """A sprite is a quad with an image texture."""
 
     def __init__(
@@ -76,11 +76,13 @@ class Sprite(Colorable, Transformable, CoroContext):
             # migrate into a new array
             self._array = self._get_array(tex)
             self._array_id, _ = self._array.alloc(4, QUAD)
+            self._sync_draw_order()
         elif tex is not self._array.draw_context.tex:
             # migrate out of this buffer
             self._array.remove(self._array_id)
             self._array = self._get_array(tex)
             self._array_id, _ = self._array.alloc(4, QUAD)
+            self._sync_draw_order()
 
     def _get_array(self, tex):
         k = ('sprite', id(tex))

@@ -1,4 +1,7 @@
 from functools import partial
+from itertools import count
+from math import isfinite
+from numbers import Real
 
 import numpy as np
 from wasabigeom import vec2
@@ -174,7 +177,43 @@ class CoroContext:
         self.delete()
 
 
-class AbstractShape(Colorable, Transformable, CoroContext):
+class ZOrder:
+    """Draw order shared by all primitives, independent of their buffers."""
+    _creation_ids = count()
+    _z = 0.0
+
+    def __init__(self):
+        super().__init__()
+        self._creation_id = next(self._creation_ids)
+
+    @property
+    def z(self):
+        """Depth within a z-sorted layer. Larger values draw on top."""
+        return self._z
+
+    @z.setter
+    def z(self, value):
+        if not isinstance(value, Real):
+            raise TypeError("z must be a finite number")
+        if not isfinite(value):
+            raise ValueError("z must be a finite number")
+        if value != self._z:
+            self._z = value
+            self._sync_draw_order()
+
+    @property
+    def _sort_key(self):
+        return self._z, self._creation_id
+
+    def _sync_draw_order(self):
+        """Propagate depth after a change or allocation migration."""
+        if getattr(self, '_array', None) is not None:
+            self._array.set_sort(self._array_id, self._sort_key)
+        elif getattr(self, 'lst', None) is not None:
+            self.vao.set_sort(self.lst.command, self._sort_key)
+
+
+class AbstractShape(Colorable, Transformable, ZOrder, CoroContext):
     """Base class for polygonal shapes."""
 
     def _migrate_stroke(self, vao: VAO):
@@ -183,6 +222,7 @@ class AbstractShape(Colorable, Transformable, CoroContext):
         idxs = self._stroke_indices()
         self.vao = vao
         self.lst = vao.alloc(len(self.orig_verts), len(idxs))
+        self._sync_draw_order()
         self.lst.indexbuf[:] = idxs
         self.lst.indexbuf += self.lst.vertoff.start
         self._update()
@@ -193,6 +233,7 @@ class AbstractShape(Colorable, Transformable, CoroContext):
         idxs = self._fill_indices()
         self.vao = vao
         self.lst = vao.alloc(len(self.orig_verts), len(idxs))
+        self._sync_draw_order()
         self.lst.indexbuf[:] = idxs
         self.lst.indexbuf += self.lst.vertoff.start
         self._update()

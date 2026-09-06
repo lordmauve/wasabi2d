@@ -5,7 +5,7 @@ import numpy as np
 import numpy.random
 from sortedcontainers import SortedList
 
-from .base import Transformable, CoroContext
+from .base import Transformable, ZOrder, CoroContext
 from ..clock import default_clock
 from ..color import convert_color
 from ..allocators.vertlists import VAO
@@ -27,17 +27,17 @@ class ParticleVAO(VAO):
         super().__init__(*args, dtype=PARTICLE_DTYPE, **kwargs)
         self.pgroup = pgroup
 
-    def render(self, camera):
+    def render(self, camera, **kwargs):
         self.prog['grow'].value = self.pgroup.grow
         self.prog['max_age'].value = self.pgroup.max_age
         self.prog['tex'].value = 0
         self.prog['color_tex'].value = 1
         self.tex.use(0)
         self.color_tex.use(1)
-        super().render(camera)
+        super().render(camera, **kwargs)
 
 
-class ParticleGroup(CoroContext):
+class ParticleGroup(ZOrder, CoroContext):
     """A group of particles."""
 
     def __init__(
@@ -179,6 +179,7 @@ class ParticleGroup(CoroContext):
 
         # Allocate a large slice (set high water mark)
         self.lst = vao.alloc(num, num)
+        self._sync_draw_order()
         first_vertex = self.lst.vertoff.start
         self.lst.indexbuf[:] = np.arange(
             first_vertex,
