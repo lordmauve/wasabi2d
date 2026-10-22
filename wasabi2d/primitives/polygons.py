@@ -1,5 +1,11 @@
 import numpy as np
 
+try:
+    from wasabigeom import triangulate
+except ImportError:
+    # Keep installations with older wasabi-geom releases working.
+    triangulate = None
+
 mapbox_earcut = None
 
 try:
@@ -54,13 +60,28 @@ class Polygon(AbstractShape):
         winding = idxs[[-1, *idxs, 0, 1, 2]]
         return winding
 
+    def _fill_indices_earstrip(self):
+        """Use Earstrip for simple polygons; retain Earcut's repair behaviour.
+
+        The native binding returns independent uint32 storage. NumPy views that
+        storage without copying, including when orig_verts has a 3-float stride.
+        """
+        try:
+            idxs = triangulate(self.orig_verts[:, :2])
+        except ValueError:
+            # Earstrip's index-only API refuses polygons it cannot cut exactly.
+            # Earcut historically accepts some non-simple polygons, so preserve
+            # that path instead of changing the Polygon rendering contract.
+            if mapbox_earcut:
+                return self._fill_indices_mapbox_earcut()
+            return self._fill_indices_earcut()
+        return np.asarray(idxs).reshape(-1)
+
     def _fill_indices_mapbox_earcut(self):
         """Indexes for drawing the fill as TRIANGLES.
 
-        This version uses the mapbox_earcut library, which is C++, but
-        currently doesn't have a Python 3.8 release. See
-
-        https://github.com/skogler/mapbox_earcut_python/issues/2
+        This version uses the mapbox_earcut C++ library. It remains the fallback
+        for older wasabi-geom releases and polygons Earstrip refuses.
 
         """
         verts = self.orig_verts[:, :2]
@@ -78,7 +99,9 @@ class Polygon(AbstractShape):
         idxs = earcut(verts)
         return np.array(idxs, dtype='i4')
 
-    if mapbox_earcut:
+    if triangulate is not None:
+        _fill_indices = _fill_indices_earstrip
+    elif mapbox_earcut:
         _fill_indices = _fill_indices_mapbox_earcut
     else:
         _fill_indices = _fill_indices_earcut

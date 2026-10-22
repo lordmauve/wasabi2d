@@ -206,6 +206,21 @@ Polygons
       line that will be drawn.
 
 
+Polygon fills use the native Earstrip binding when the installed
+``wasabi-geom`` exports ``triangulate``. Installations with older releases keep
+the existing Earcut path. Earcut also remains the fallback when Earstrip cannot
+triangulate a polygon exactly without introducing vertices. Triangle diagonals
+and index ordering are implementation details; the rendering API is unchanged.
+Circle and star triangle fans, strokes and outlines are unchanged.
+
+This capability-based rollout deliberately retains the existing
+``wasabi-geom>=2.0.1`` and ``mapbox-earcut==1.0.*`` dependencies. It does not
+require a not-yet-released version from PyPI or add a Git dependency to normal
+installations. To test the new path before a release, install the feature commit
+from the companion wasabi-geom PR in the same environment before running
+wasabi2d's tests and ``benchmarks/triangulate.py``. A normal installation with an
+older wasabi-geom gets no Earstrip speedup until that dependency is upgraded.
+
 
 Lines
 -----
