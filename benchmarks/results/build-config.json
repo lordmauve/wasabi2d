@@ -1,0 +1,58 @@
+{
+  "date_utc": "2026-10-22",
+  "baseline": {
+    "package": "mapbox-earcut",
+    "version": "1.0.3",
+    "sdist_sha256": "b6bac5d519d9947a6321a699c15d58e0b5740da61b9210ed229e05ad207c1c04",
+    "compiler": "GNU g++13.3.0",
+    "flags": [
+      "-O3",
+      "-DNDEBUG",
+      "-fPIC",
+      "-fvisibility=hidden",
+      "-flto=auto",
+      "-fno-fat-lto-objects"
+    ],
+    "build_tools": {
+      "pybind11": "3.1.0",
+      "scikit-build-core": "1.1.1",
+      "cmake": "4.4.4",
+      "ninja": "1.13.2"
+    }
+  },
+  "candidate": {
+    "repository": "https://github.com/lordmauve/wasabi-geom",
+    "commit": "e4114f6386f4a3e45d18ad9debdf1d73c95057a6",
+    "earstrip_commit": "a145683a71b8a723f1ae9afa20b7f434e9b957e3",
+    "compiler": "GNU g++13.3.0",
+    "flags": [
+      "-fno-strict-overflow",
+      "-Wsign-compare",
+      "-Wunreachable-code",
+      "-DNDEBUG",
+      "-g",
+      "-O3",
+      "-Wall",
+      "-fstack-protector",
+      "-fstack-clash-protection",
+      "-U_FORTIFY_SOURCE",
+      "-D_FORTIFY_SOURCE=2",
+      "-fno-omit-frame-pointer",
+      "-mno-omit-leaf-frame-pointer",
+      "-fPIC",
+      "-std=c++17"
+    ],
+    "build_tools": {
+      "Cython": "3.3.0",
+      "setuptools": "84.2.1",
+      "wheel": "0.48.0"
+    },
+    "original_extension": "wasabigeom still compiled with gcc as C; no C++17 flag"
+  },
+  "harness_commit": "90611c885c5aba0a5a7635f32382385eeaa76667",
+  "notes": [
+    "Python itself was built by Clang23.1.3, but both measured native extensions were source-built with GCC/G++13.3.0.",
+    "No package release/version bump is implied by feature commit metadata.",
+    "Full local verbose build logs retained privately in artifacts/earstrip-investigation/."
+  ]
+}
